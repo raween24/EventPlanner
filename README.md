@@ -1,6 +1,6 @@
 modifiactions acceuil : adem 
 connection avec gmail : rawen 
-modification page connection image + scroll a supprimé : rawen 
+modification page connection image + scroll a supprimé **(c bon done )** : rawen 
 rapport chapitre 1+2 : rawen sur template foughali 
 page ressources : adem 
 remarques :
