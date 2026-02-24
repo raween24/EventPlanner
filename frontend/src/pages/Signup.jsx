@@ -12,7 +12,7 @@ export default function Signup() {
     dateNaissance: "",
     region: "",
     numTel: "",
-    genre: "homme", // default
+    genre: "homme",
     email: "",
     password: "",
     image: "",
@@ -32,6 +32,7 @@ export default function Signup() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = () => {
       setPreview(reader.result);
@@ -43,30 +44,42 @@ export default function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // mapping frontend → backend model
     const body = {
-      ...form,
-      CID: form.identifier.length === 8 ? form.identifier : "",
-      numPassport: form.identifier.length !== 8 ? form.identifier : "",
+      firstname: form.firstName,
+      lastname: form.lastName,
+      date_de_naissance: form.dateNaissance,
+      region: form.region || null,
+      numTel: form.numTel || null,
+      gender: form.genre,
+      email: form.email,
+      password: form.password,
+      role: form.role,
+      image: form.image || null,
+      passportOrCid: form.identifier || null,
     };
-    delete body.identifier;
 
     try {
-      const res = await fetch("http://localhost:7000/api/auth/signup", {
+      const res = await fetch("http://localhost:5000/api/users/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(body),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        alert("Compte créé avec succès ✅");
-        navigate("/");
+        alert("Compte créé avec succès ");
+
+        // redirection login après signup
+        navigate("/login");
       } else {
-        alert(data || "Erreur signup");
+        alert(data.message || "Erreur signup");
       }
     } catch (err) {
-      console.log(err);
+      console.log("Erreur serveur:", err);
       alert("Erreur serveur");
     }
   };
@@ -77,14 +90,14 @@ export default function Signup() {
         <div className="auth-card-header">
           <span className="auth-badge">✦ Event Planner</span>
           <h2>Créer un compte</h2>
-          <p className="auth-subtitle">Rejoignez la plateforme et gérez vos événements.</p>
+          <p className="auth-subtitle">
+            Rejoignez la plateforme et gérez vos événements.
+          </p>
         </div>
 
         <div className="auth-divider" />
 
         <form className="signup-form" onSubmit={handleSubmit}>
-
-          {/* Identifiant */}
           <div className="field-wrap span-2">
             <label>CID ou Numéro Passeport</label>
             <input
@@ -95,50 +108,47 @@ export default function Signup() {
             />
           </div>
 
-          {/* Prénom + Nom */}
           <div className="field-wrap">
             <label>Prénom</label>
-            <input name="firstName" placeholder="Prénom" onChange={handleChange} required />
-          </div>
-          <div className="field-wrap">
-            <label>Nom</label>
-            <input name="lastName" placeholder="Nom" onChange={handleChange} required />
+            <input name="firstName" onChange={handleChange} required />
           </div>
 
-          {/* Date + Région */}
+          <div className="field-wrap">
+            <label>Nom</label>
+            <input name="lastName" onChange={handleChange} required />
+          </div>
+
           <div className="field-wrap">
             <label>Date de naissance</label>
             <input type="date" name="dateNaissance" onChange={handleChange} required />
           </div>
+
           <div className="field-wrap">
             <label>Région</label>
-            <input name="region" placeholder="Ex: Tunis, Sfax..." onChange={handleChange} />
+            <input name="region" onChange={handleChange} />
           </div>
 
-          {/* Téléphone */}
           <div className="field-wrap">
             <label>Téléphone</label>
-            <input type="number" name="numTel" placeholder="+216 XX XXX XXX" onChange={handleChange} />
+            <input type="number" name="numTel" onChange={handleChange} />
           </div>
 
-          {/* Genre avec Radio */}
           <div className="field-wrap">
             <label>Genre</label>
             <div className="radio-group">
               <label className="radio-option">
                 <input
                   type="radio"
-                  name="genre"
                   value="homme"
                   checked={form.genre === "homme"}
                   onChange={handleGenreChange}
                 />
                 Homme
               </label>
+
               <label className="radio-option">
                 <input
                   type="radio"
-                  name="genre"
                   value="femme"
                   checked={form.genre === "femme"}
                   onChange={handleGenreChange}
@@ -148,19 +158,16 @@ export default function Signup() {
             </div>
           </div>
 
-          {/* Email */}
           <div className="field-wrap span-2">
             <label>Email</label>
-            <input type="email" name="email" placeholder="vous@exemple.com" onChange={handleChange} required />
+            <input type="email" name="email" onChange={handleChange} required />
           </div>
 
-          {/* Mot de passe */}
           <div className="field-wrap span-2">
             <label>Mot de passe</label>
-            <input type="password" name="password" placeholder="••••••••" onChange={handleChange} required />
+            <input type="password" name="password" onChange={handleChange} required />
           </div>
 
-          {/* Rôle */}
           <div className="field-wrap span-2">
             <label>Rôle</label>
             <select name="role" onChange={handleChange}>
@@ -169,7 +176,6 @@ export default function Signup() {
             </select>
           </div>
 
-          {/* Photo */}
           <div className="field-wrap span-2">
             <label>Photo de profil</label>
             <div className="image-upload-wrap">
@@ -183,6 +189,7 @@ export default function Signup() {
                   </div>
                 )}
               </label>
+
               <input
                 id="imageInput"
                 type="file"

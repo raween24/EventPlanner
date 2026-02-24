@@ -14,9 +14,38 @@ export default function Login() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(form); // ici on connectera le backend
+
+    try {
+      const res = await fetch("http://localhost:5000/api/users/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // ✅ sauvegarder session utilisateur
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        alert(`Bienvenue ${data.user.firstname} `);
+
+        navigate("/");
+      } else {
+        alert(data.message || "Email ou mot de passe incorrect");
+      }
+    } catch (err) {
+      console.log("Erreur serveur:", err);
+      alert("Erreur serveur");
+    }
   };
 
   return (
@@ -62,9 +91,7 @@ export default function Login() {
 
         <p className="auth-link">
           Pas de compte ?{" "}
-          <span onClick={() => navigate("/signup")}>
-            S'inscrire
-          </span>
+          <span onClick={() => navigate("/signup")}>S'inscrire</span>
         </p>
       </div>
     </div>
