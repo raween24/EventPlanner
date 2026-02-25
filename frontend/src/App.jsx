@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import CreerEvenement from "./pages/CreeEvent";
 import OrganizerPage from "./pages/OrganizerPage";
 import HomePage from "./pages/HomePage";
-import Login from "./pages/login";
+import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import RessourceDetail from "./pages/RessourceDetail";
 
