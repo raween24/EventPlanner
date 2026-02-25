@@ -9,8 +9,6 @@ const api = axios.create({
 
 export default function CreerEvenement() {
   const navigate = useNavigate();
-  const [dateDebut, setDateDebut] = useState("");
-  const [dateFin, setDateFin] = useState("");
 
   const [formData, setFormData] = useState({
     title: "",
@@ -21,14 +19,22 @@ export default function CreerEvenement() {
     dateFin: "",
     nombreParticipants: "",
   });
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ✅ Validation des dates
+    if (new Date(formData.dateFin) < new Date(formData.dateDebut)) {
+      alert("La date de fin doit être après la date de début ❌");
+      return;
+    }
 
     try {
       const dataToSend = {
@@ -36,15 +42,10 @@ export default function CreerEvenement() {
         nombreParticipants: Number(formData.nombreParticipants),
       };
 
-      const response = await api.post("/event/addEvent", dataToSend);
+      await api.post("/event/addEvent", dataToSend);
 
       alert("Événement créé avec succès ✅");
-      navigate("/OrganizerPage"); // 🔥 redirection ici
-
-      console.log(response.data);
-      return (
-        <bon></bon>
-      )
+      navigate("/les_ressources");
 
     } catch (error) {
       console.error(error);
@@ -52,29 +53,29 @@ export default function CreerEvenement() {
     }
   };
 
-
   return (
-    
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
-      
+
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-slate-200 p-8"
       >
-           {/* 🔙 Bouton Retour */}
-    <div className="w-full max-w-2xl mb-4">
-      <button
-        onClick={() => navigate(-1)}
-        className="text-slate-700 hover:text-white font-medium flex items-center gap-2 px-5 py-2 rounded-xl hover:bg-blue-500 transition"      >
-        ← Retour
-      </button>
-    </div>
+
+        {/* Bouton Retour */}
+        <div className="mb-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-slate-700 hover:text-white font-medium flex items-center gap-2 px-5 py-2 rounded-xl hover:bg-blue-500 transition"
+          >
+            ← Retour
+          </button>
+        </div>
+
         <h2 className="text-2xl font-semibold text-slate-800 mb-6 border-b pb-4">
           Créer un nouvel événement
         </h2>
-       
 
         <form onSubmit={handleSubmit} className="space-y-6">
 
@@ -89,7 +90,7 @@ export default function CreerEvenement() {
               value={formData.title}
               onChange={handleChange}
               required
-              className="w-full border border-slate-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-slate-700 focus:outline-none transition"
+              className="w-full border border-slate-300 px-4 py-2 rounded-lg"
             />
           </div>
 
@@ -104,7 +105,7 @@ export default function CreerEvenement() {
               value={formData.description}
               onChange={handleChange}
               required
-              className="w-full border border-slate-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-slate-700 focus:outline-none transition"
+              className="w-full border border-slate-300 px-4 py-2 rounded-lg"
             />
           </div>
 
@@ -116,12 +117,12 @@ export default function CreerEvenement() {
               </label>
               <input
                 type="date"
-                
-                value={dateDebut}
-                onChange={(e) => setDateDebut(e.target.value)}
+                name="dateDebut"
+                value={formData.dateDebut}
+                onChange={handleChange}
                 required
                 min={new Date().toISOString().split("T")[0]}
-                className="w-full border border-slate-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-slate-700 focus:outline-none"
+                className="w-full border border-slate-300 px-4 py-2 rounded-lg"
               />
             </div>
 
@@ -131,11 +132,12 @@ export default function CreerEvenement() {
               </label>
               <input
                 type="date"
-                value={dateFin}
-                onChange={(e) => setDateFin(e.target.value)}
-                min={dateDebut}
+                name="dateFin"
+                value={formData.dateFin}
+                onChange={handleChange}
                 required
-                className="w-full border border-slate-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-slate-700 focus:outline-none"
+                min={formData.dateDebut}
+                className="w-full border border-slate-300 px-4 py-2 rounded-lg"
               />
             </div>
           </div>
@@ -150,27 +152,26 @@ export default function CreerEvenement() {
               value={formData.category}
               onChange={handleChange}
               required
-              className="w-full border border-slate-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-slate-700 focus:outline-none"
+              className="w-full border border-slate-300 px-4 py-2 rounded-lg"
             >
               <option value="">Sélectionner une catégorie</option>
               <option value="Mariage">Mariage</option>
               <option value="Conference">Conférence</option>
               <option value="Anniversaire">Anniversaire</option>
               <option value="Seminaire">Séminaire</option>
-              <option value="Autre">Autre</option>
+              <option value="autre">Autre</option>
             </select>
           </div>
 
           {/* Type + Nombre */}
           <div className="grid grid-cols-2 gap-6">
 
-            {/* Type */}
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-2">
                 Type d'événement
               </label>
               <div className="flex gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label>
                   <input
                     type="radio"
                     name="type"
@@ -180,7 +181,7 @@ export default function CreerEvenement() {
                   />
                   Public
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label>
                   <input
                     type="radio"
                     name="type"
@@ -192,7 +193,6 @@ export default function CreerEvenement() {
               </div>
             </div>
 
-            {/* Nombre de participants */}
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-2">
                 Nombre de participants
@@ -204,10 +204,10 @@ export default function CreerEvenement() {
                 onChange={handleChange}
                 required
                 min="1"
-                className="w-32 bg-slate-50 border border-slate-300 text-center px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
-                placeholder="Ex: 100"
+                className="w-full border border-slate-300 px-4 py-2 rounded-lg"
               />
             </div>
+
           </div>
 
           {/* Bouton */}
@@ -216,7 +216,7 @@ export default function CreerEvenement() {
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               type="submit"
-              className="w-full bg-slate-800 text-white py-3 rounded-lg font-medium shadow-md hover:bg-slate-900 transition"
+              className="w-full bg-slate-800 text-white py-3 rounded-lg hover:bg-slate-900 transition"
             >
               Créer l'événement
             </motion.button>
