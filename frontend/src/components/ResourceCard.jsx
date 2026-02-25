@@ -1,5 +1,7 @@
 import { MapPin, Users, Heart } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
 
 const typeLabels = {
   salle: "Salle",
@@ -16,6 +18,7 @@ const typeColors = {
 };
 
 export default function ResourceCard({ resource = {}, onBook }) {
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -117,10 +120,10 @@ export default function ResourceCard({ resource = {}, onBook }) {
 
           <button
             disabled={!isAvailable}
-            onClick={() => onBook(resource)}
+            onClick={() => navigate(`/RessourceDetail/${resource._id}`)}
             className={`px-5 py-2 rounded-xl ${isAvailable
-                ? "bg-black text-white"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              ? "bg-black text-white"
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
           >
             voir plus
