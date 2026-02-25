@@ -6,6 +6,8 @@ import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import ressourceRoutes from "./routes/ressourceRoutes.js";
+import mediaRoutes from "./routes/mediaRoutes.js";
+import dispoRoutes from "./routes/dispoRoutes.js";
 
 /* ================= CONFIG ================= */
 dotenv.config();
@@ -37,7 +39,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/users", userRoutes);
 app.use("/api/event", eventRoutes);
 app.use("/api/ressources", ressourceRoutes);
-
+app.use("/api/media", mediaRoutes);
+app.use("/api/dispo", dispoRoutes);
 /* ================= TEST ROUTE ================= */
 app.get("/", (req, res) => {
   res.send("API Event Planner fonctionne ");
