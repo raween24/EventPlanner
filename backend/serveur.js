@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-
+import googleAuthRoutes from "./routes/googleAuth.js";  
 import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
@@ -18,7 +18,7 @@ connectDB();
 
 /* ================= MIDDLEWARES ================= */
 
-// ✅ CORS (autorise ton frontend React)
+//  CORS (autorise ton frontend React)
 app.use(
   cors({
     origin: "http://localhost:5173", // Vite React (change si besoin)
@@ -26,10 +26,10 @@ app.use(
   })
 );
 
-// ✅ lire JSON body
+//  lire JSON body
 app.use(express.json());
 
-// ✅ lire form data (optionnel mais utile)
+//  lire form data (optionnel mais utile)
 app.use(express.urlencoded({ extended: true }));
 
 /* ================= ROUTES ================= */
@@ -55,5 +55,9 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);
+  console.log(` Serveur démarré sur http://localhost:${PORT}`);
 });
+
+
+// Nouvelle route Google OAuth
+app.use("/api/auth", googleAuthRoutes);

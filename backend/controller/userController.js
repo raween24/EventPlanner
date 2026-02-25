@@ -2,6 +2,7 @@ import User from "../model/user.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+
 /* ================= REGISTER ================= */
 const registerUser = async (req, res) => {
   try {
