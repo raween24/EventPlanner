@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 
 export default function ResourceDetailsPage() {
+
   const { id } = useParams()
   const navigate = useNavigate()
 
@@ -37,8 +38,10 @@ export default function ResourceDetailsPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [startDate, setStartDate] = useState(null)
   const [endDate, setEndDate] = useState(null)
-  const [availableDates, setAvailableDates] = useState([])
+  const [unavailableDates, setUnavailableDates] = useState([]) // Dates indisponibles
+  const [availabilities, setAvailabilities] = useState([]) // Périodes de disponibilité
   const [isSelecting, setIsSelecting] = useState(false)
+  const [loadingAvailability, setLoadingAvailability] = useState(false)
 
   // États pour les commentaires
   const [comments, setComments] = useState([])
@@ -63,7 +66,26 @@ export default function ResourceDetailsPage() {
         const data = await res.json()
         setResource(data)
 
-        generateAvailableDates()
+        // Récupérer les disponibilités de la ressource
+        if (data.availability && data.availability.length > 0) {
+          const unavailableDatesSet = new Set()
+
+          data.availability.forEach(period => {
+            if (!period.satut_disp) {
+              const start = new Date(period.date_deb)
+              const end = new Date(period.date_fin)
+
+              const current = new Date(start)
+
+              while (current <= end) {
+                unavailableDatesSet.add(current.toDateString())
+                current.setDate(current.getDate() + 1)
+              }
+            }
+          })
+
+          setUnavailableDates(Array.from(unavailableDatesSet))
+        }
         await fetchComments()
       } catch (error) {
         console.error("Erreur:", error)
@@ -74,6 +96,8 @@ export default function ResourceDetailsPage() {
 
     fetchData()
   }, [id])
+
+  // Récupérer les disponibilités depuis la base de données
 
   // Calculer la note moyenne
   const averageRating = comments.reduce((acc, comment) => acc + comment.nbr_stars, 0) / comments.length || 0
@@ -149,30 +173,28 @@ export default function ResourceDetailsPage() {
     }
   }
 
-  // Fonction pour générer des dates disponibles
-  const generateAvailableDates = () => {
-    const dates = []
-    const today = new Date()
-
-    for (let i = 0; i < 90; i++) {
-      const date = new Date(today)
-      date.setDate(today.getDate() + i)
-
-      // Simuler des disponibilités (70% disponibles)
-      const isAvailable = Math.random() > 0.3
-      if (isAvailable) {
-        dates.push(date.toDateString())
-      }
-    }
-
-    setAvailableDates(dates)
+  // Vérifier si une date est disponible (pas dans unavailableDates)
+  const normalizeDate = (date) => {
+    const d = new Date(date)
+    d.setHours(0, 0, 0, 0)
+    return d
   }
 
-  // Vérifier si une date est disponible
   const isDateAvailable = (date) => {
-    return availableDates.includes(date.toDateString())
-  }
+    if (!resource || !resource.availability) return false
 
+    const checkDate = normalizeDate(date)
+    const today = normalizeDate(new Date())
+
+    if (checkDate < today) return false
+
+    return resource.availability.some((period) => {
+      const start = normalizeDate(period.date_deb)
+      const end = normalizeDate(period.date_fin)
+
+      return checkDate >= start && checkDate <= end
+    })
+  }
   // Vérifier si une date est dans la période sélectionnée
   const isDateInRange = (date) => {
     if (!startDate) return false
@@ -354,50 +376,82 @@ export default function ResourceDetailsPage() {
           <div className="lg:col-span-2 space-y-6">
 
             {/* Carrousel d'images */}
-            <div className="relative group">
-              <div
-                className="relative rounded-2xl overflow-hidden bg-gray-100 shadow-lg cursor-pointer"
-                onClick={() => setShowLightbox(true)}
-              >
-                <img
-                  src={images[currentImageIndex] || "/placeholder-image.jpg"}
-                  alt={`${resource.name} - Image ${currentImageIndex + 1}`}
-                  className="w-full aspect-[16/9] object-cover transition duration-500 hover:scale-105"
-                />
+           {/* Carrousel d'images avec flèches de navigation */}
+<div className="relative group">
+  {/* Image principale */}
+  <div
+    className="relative rounded-2xl overflow-hidden bg-gray-100 shadow-lg cursor-pointer"
+    onClick={() => setShowLightbox(true)}
+  >
+    <img
+      src={images[currentImageIndex] || "/placeholder-image.jpg"}
+      alt={`${resource.name} - Image ${currentImageIndex + 1}`}
+      className="w-full aspect-[16/9] object-cover transition duration-500 hover:scale-105"
+    />
 
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <Maximize2 className="h-8 w-8 text-white drop-shadow-lg" />
-                  </div>
-                </div>
+    {/* Overlay au hover */}
+    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <Maximize2 className="h-8 w-8 text-white drop-shadow-lg" />
+      </div>
+    </div>
 
-                <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
-                  {currentImageIndex + 1} / {images.length}
-                </div>
-              </div>
+    {/* Compteur d'images */}
+    <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
+      {currentImageIndex + 1} / {images.length}
+    </div>
 
-              {images.length > 1 && (
-                <div className="mt-4 grid grid-cols-5 gap-3">
-                  {images.map((img, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`relative rounded-lg overflow-hidden aspect-[4/3] transition-all duration-300 ${index === currentImageIndex
-                        ? 'ring-2 ring-black scale-105 shadow-lg'
-                        : 'opacity-70 hover:opacity-100'
-                        }`}
-                    >
-                      <img
-                        src={img}
-                        alt={`Miniature ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+    {/* 🔥 FLÈCHES DE NAVIGATION SUR L'IMAGE PRINCIPALE */}
+    {images.length > 1 && (
+      <>
+        {/* Flèche gauche */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            prevImage()
+          }}
+          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full backdrop-blur-sm transition-all duration-300 opacity-0 group-hover:opacity-100 transform hover:scale-110"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
 
+        {/* Flèche droite */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            nextImage()
+          }}
+          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full backdrop-blur-sm transition-all duration-300 opacity-0 group-hover:opacity-100 transform hover:scale-110"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      </>
+    )}
+  </div>
+
+  {/* Miniatures (optionnelles - vous pouvez les garder ou les supprimer) */}
+  {images.length > 1 && (
+    <div className="mt-4 grid grid-cols-5 gap-3">
+      {images.map((img, index) => (
+        <button
+          key={index}
+          onClick={() => setCurrentImageIndex(index)}
+          className={`relative rounded-lg overflow-hidden aspect-[4/3] transition-all duration-300 ${
+            index === currentImageIndex
+              ? 'ring-2 ring-black scale-105 shadow-lg'
+              : 'opacity-70 hover:opacity-100'
+          }`}
+        >
+          <img
+            src={img}
+            alt={`Miniature ${index + 1}`}
+            className="w-full h-full object-cover"
+          />
+        </button>
+      ))}
+    </div>
+  )}
+</div>
             {/* Informations détaillées */}
             <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
               <div className="flex items-start justify-between">
@@ -583,8 +637,6 @@ export default function ResourceDetailsPage() {
                           </div>
 
                           <p className="text-gray-600 mb-3">{comment.contenue}</p>
-
-
                         </div>
                       </div>
                     </div>
@@ -620,8 +672,6 @@ export default function ResourceDetailsPage() {
                     )}&output=embed`}
                   ></iframe>
                 </div>
-
-
               </div>
             </div>
           </div>
@@ -636,13 +686,17 @@ export default function ResourceDetailsPage() {
                   <CalendarRange className="h-5 w-5" />
                   Sélectionner une période
                 </h3>
-                {(startDate || endDate) && (
-                  <button
-                    onClick={resetSelection}
-                    className="text-xs text-gray-500 hover:text-gray-700 underline"
-                  >
-                    Réinitialiser
-                  </button>
+                {loadingAvailability ? (
+                  <span className="text-xs text-gray-500">Chargement...</span>
+                ) : (
+                  (startDate || endDate) && (
+                    <button
+                      onClick={resetSelection}
+                      className="text-xs text-gray-500 hover:text-gray-700 underline"
+                    >
+                      Réinitialiser
+                    </button>
+                  )
                 )}
               </div>
 
@@ -700,12 +754,13 @@ export default function ResourceDetailsPage() {
                     <button
                       key={index}
                       onClick={() => currentMonth && handleDateClick(date)}
-                      disabled={!currentMonth || !isAvailable}
+                      disabled={!currentMonth || !isAvailable || loadingAvailability}
                       className={`
                         aspect-square p-1 rounded-lg text-sm transition-all duration-200 relative
                         ${bgColor}
                         ${isToday && currentMonth && isAvailable && 'font-bold border-2 border-gray-300'}
                         ${!currentMonth && 'text-gray-300'}
+                        ${loadingAvailability && 'opacity-50 cursor-wait'}
                       `}
                     >
                       <div className="flex flex-col items-center">
@@ -735,6 +790,11 @@ export default function ResourceDetailsPage() {
                       <span className="text-xs text-gray-600">Indisponible</span>
                     </div>
                   </div>
+                  {availabilities.length > 0 && (
+                    <span className="text-xs text-gray-500">
+                      {availabilities.length} période(s)
+                    </span>
+                  )}
                 </div>
 
                 {(startDate || endDate) && (
@@ -836,21 +896,23 @@ export default function ResourceDetailsPage() {
                 <button
                   className={`
                     w-full py-4 rounded-xl font-semibold transition-all duration-300
-                    ${startDate && endDate && isRangeValid()
+                    ${startDate && endDate && isRangeValid() && !loadingAvailability
                       ? 'bg-black text-white hover:bg-gray-800 transform hover:scale-[1.02] active:scale-[0.98]'
                       : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     }
                   `}
                   onClick={() => startDate && endDate && setReserved(true)}
-                  disabled={!startDate || !endDate || !isRangeValid()}
+                  disabled={!startDate || !endDate || !isRangeValid() || loadingAvailability}
                 >
-                  {!startDate
-                    ? 'Sélectionnez une date de début'
-                    : !endDate
-                      ? 'Sélectionnez une date de fin'
-                      : !isRangeValid()
-                        ? 'Période non disponible'
-                        : 'Réserver maintenant'}
+                  {loadingAvailability
+                    ? 'Chargement des disponibilités...'
+                    : !startDate
+                      ? 'Sélectionnez une date de début'
+                      : !endDate
+                        ? 'Sélectionnez une date de fin'
+                        : !isRangeValid()
+                          ? 'Période non disponible'
+                          : 'Réserver maintenant'}
                 </button>
               )}
             </div>
