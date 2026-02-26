@@ -29,7 +29,7 @@ export default function ResourceDetailsPage() {
   const [reserved, setReserved] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showLightbox, setShowLightbox] = useState(false)
-  
+
   // État pour l'utilisateur connecté
   const [currentUser, setCurrentUser] = useState(null)
 
@@ -82,7 +82,7 @@ export default function ResourceDetailsPage() {
   const fetchComments = async () => {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/comments/resource/${id}`
+        `http://localhost:5000/api/comment/ressource/${id}`
       )
       const data = await res.json()
       setComments(data)
@@ -462,7 +462,7 @@ export default function ResourceDetailsPage() {
                   <MessageCircle className="h-5 w-5" />
                   Avis ({comments.length})
                 </h2>
-                
+
                 {currentUser ? (
                   <button
                     onClick={() => setShowCommentForm(!showCommentForm)}
@@ -538,8 +538,8 @@ export default function ResourceDetailsPage() {
                     <div key={comment._id} className="border-b border-gray-100 last:border-0 pb-6 last:pb-0">
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex-shrink-0 flex items-center justify-center text-white font-semibold">
-                          {comment.C_user?.name ? (
-                            comment.C_user.name.charAt(0).toUpperCase()
+                          {comment.C_user?.firstname ? (
+                            comment.C_user.firstname.charAt(0).toUpperCase()
                           ) : (
                             <User className="h-6 w-6" />
                           )}
@@ -549,7 +549,7 @@ export default function ResourceDetailsPage() {
                           <div className="flex items-center justify-between mb-2">
                             <div>
                               <h3 className="font-semibold text-gray-900">
-                                {comment.C_user?.name || "Utilisateur"}
+                                {comment.C_user?.email || "Utilisateur"}
                               </h3>
                               <p className="text-xs text-gray-500">
                                 {new Date(comment.createdAt).toLocaleDateString('fr-FR', {
@@ -584,10 +584,7 @@ export default function ResourceDetailsPage() {
 
                           <p className="text-gray-600 mb-3">{comment.contenue}</p>
 
-                          <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-                            <ThumbsUp className="h-4 w-4" />
-                            <span>Utile</span>
-                          </button>
+
                         </div>
                       </div>
                     </div>
@@ -609,49 +606,22 @@ export default function ResourceDetailsPage() {
                   <div>
                     <p className="font-medium text-gray-900">Adresse</p>
                     <p>{resource.location}</p>
-                    <p className="text-sm text-gray-500 mt-1">Paris, France</p>
                   </div>
                 </div>
-
-                <div className="relative h-[300px] rounded-xl overflow-hidden bg-gray-100">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-gray-100">
-                    <div className="relative w-full h-full">
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                        <div className="relative">
-                          <div className="w-6 h-6 bg-red-500 rounded-full animate-ping absolute"></div>
-                          <div className="w-6 h-6 bg-red-600 rounded-full relative z-10 flex items-center justify-center">
-                            <MapPin className="h-4 w-4 text-white" />
-                          </div>
-                        </div>
-                      </div>
-
-                      <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,0,0,0.05)" strokeWidth="1" />
-                          </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill="url(#grid)" />
-                      </svg>
-
-                      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs text-gray-600">
-                        <MapPin className="h-3 w-3 inline mr-1" />
-                        {resource.location}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="absolute inset-0 bg-black/0 hover:bg-black/5 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
-                    <span className="bg-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium">
-                      Voir sur Google Maps
-                    </span>
-                  </div>
+                <div className="relative h-[300px] rounded-xl overflow-hidden">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    src={`https://www.google.com/maps?q=${encodeURIComponent(
+                      resource.location
+                    )}&output=embed`}
+                  ></iframe>
                 </div>
 
-                <button className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition flex items-center justify-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Obtenir l'itinéraire
-                </button>
+
               </div>
             </div>
           </div>

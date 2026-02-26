@@ -47,9 +47,9 @@ export const getCommentsByResource = async (req, res) => {
         const comments = await Comment.find({
             C_res: req.params.id,
         })
-            .populate("C_user", "name ")
-            .populate("C_res", "name")
-            .sort({ createdAt: -1 }); // les plus récents en premier
+            .populate("C_user", "firstname lastname email image") 
+      .populate("C_res", "name")
+      .sort({ createdAt: -1 });
 
         res.json(comments);
     } catch (error) {
