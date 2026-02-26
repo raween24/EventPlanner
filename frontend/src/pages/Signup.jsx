@@ -6,7 +6,7 @@ export default function Signup() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    identifier: "",
+    passportOrCid: "",
     firstName: "",
     lastName: "",
     dateNaissance: "",
@@ -101,7 +101,7 @@ export default function Signup() {
           <div className="field-wrap span-2">
             <label>CID ou Numéro Passeport</label>
             <input
-              name="identifier"
+              name="passportOrCid"
               placeholder="Ex: 12345678 ou AB123456"
               onChange={handleChange}
               required

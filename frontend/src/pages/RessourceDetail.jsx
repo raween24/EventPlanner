@@ -1,14 +1,23 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { 
-  MapPin, 
-  Users, 
-  ArrowLeft, 
+import {
+  MapPin,
+  Users,
+  ArrowLeft,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Maximize2,
-  X
+  X,
+  Calendar,
+  Clock,
+  CalendarRange,
+  Star,
+  MessageCircle,
+  ThumbsUp,
+  Send,
+  Map,
+  User
 } from "lucide-react"
 
 export default function ResourceDetailsPage() {
@@ -20,15 +29,42 @@ export default function ResourceDetailsPage() {
   const [reserved, setReserved] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showLightbox, setShowLightbox] = useState(false)
+  
+  // État pour l'utilisateur connecté
+  const [currentUser, setCurrentUser] = useState(null)
+
+  // États pour le calendrier
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [startDate, setStartDate] = useState(null)
+  const [endDate, setEndDate] = useState(null)
+  const [availableDates, setAvailableDates] = useState([])
+  const [isSelecting, setIsSelecting] = useState(false)
+
+  // États pour les commentaires
+  const [comments, setComments] = useState([])
+  const [newComment, setNewComment] = useState("")
+  const [newRating, setNewRating] = useState(5)
+  const [showCommentForm, setShowCommentForm] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  // Récupérer l'utilisateur connecté au chargement
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user'))
+    setCurrentUser(user)
+  }, [])
 
   useEffect(() => {
-    const fetchResource = async () => {
+    const fetchData = async () => {
       try {
+        // Récupérer les détails de la ressource
         const res = await fetch(
           `http://localhost:5000/api/ressources/get_by_id/${id}`
         )
         const data = await res.json()
         setResource(data)
+
+        generateAvailableDates()
+        await fetchComments()
       } catch (error) {
         console.error("Erreur:", error)
       } finally {
@@ -36,11 +72,215 @@ export default function ResourceDetailsPage() {
       }
     }
 
-    fetchResource()
+    fetchData()
   }, [id])
 
-  const images = resource?.media?.flatMap((m) => 
-    m.img_vd.map((img) => 
+  // Calculer la note moyenne
+  const averageRating = comments.reduce((acc, comment) => acc + comment.nbr_stars, 0) / comments.length || 0
+
+  // Récupérer les commentaires depuis la base de données
+  const fetchComments = async () => {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/comments/resource/${id}`
+      )
+      const data = await res.json()
+      setComments(data)
+    } catch (error) {
+      console.error("Erreur commentaires:", error)
+    }
+  }
+
+  // Ajouter un commentaire
+  const handleAddComment = async (e) => {
+    e.preventDefault()
+
+    if (!newComment.trim() || !currentUser) return
+
+    setSubmitting(true)
+
+    try {
+      const response = await fetch(
+        "http://localhost:5000/api/comments",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contenue: newComment,
+            nbr_stars: newRating,
+            C_user: currentUser.id,
+            C_res: id,
+          }),
+        }
+      )
+
+      if (!response.ok) throw new Error("Erreur ajout")
+
+      setNewComment("")
+      setShowCommentForm(false)
+
+      await fetchComments()
+    } catch (error) {
+      console.error("Erreur ajout commentaire:", error)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Supprimer un commentaire
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm("Voulez-vous vraiment supprimer ce commentaire ?")) return
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/comments/${commentId}`,
+        {
+          method: "DELETE",
+        }
+      )
+
+      if (!response.ok) throw new Error("Erreur suppression")
+
+      await fetchComments()
+    } catch (error) {
+      console.error("Erreur suppression commentaire:", error)
+    }
+  }
+
+  // Fonction pour générer des dates disponibles
+  const generateAvailableDates = () => {
+    const dates = []
+    const today = new Date()
+
+    for (let i = 0; i < 90; i++) {
+      const date = new Date(today)
+      date.setDate(today.getDate() + i)
+
+      // Simuler des disponibilités (70% disponibles)
+      const isAvailable = Math.random() > 0.3
+      if (isAvailable) {
+        dates.push(date.toDateString())
+      }
+    }
+
+    setAvailableDates(dates)
+  }
+
+  // Vérifier si une date est disponible
+  const isDateAvailable = (date) => {
+    return availableDates.includes(date.toDateString())
+  }
+
+  // Vérifier si une date est dans la période sélectionnée
+  const isDateInRange = (date) => {
+    if (!startDate) return false
+    if (!endDate) return date.toDateString() === startDate.toDateString()
+
+    const dateTime = date.getTime()
+    const startTime = startDate.getTime()
+    const endTime = endDate.getTime()
+
+    return dateTime >= startTime && dateTime <= endTime
+  }
+
+  // Vérifier si la période est valide
+  const isRangeValid = () => {
+    if (!startDate || !endDate) return false
+
+    const start = new Date(Math.min(startDate.getTime(), endDate.getTime()))
+    const end = new Date(Math.max(startDate.getTime(), endDate.getTime()))
+
+    const currentDate = new Date(start)
+    while (currentDate <= end) {
+      if (!isDateAvailable(currentDate)) {
+        return false
+      }
+      currentDate.setDate(currentDate.getDate() + 1)
+    }
+
+    return true
+  }
+
+  // Gérer le clic sur une date
+  const handleDateClick = (date) => {
+    if (!isDateAvailable(date)) return
+
+    if (!startDate || (startDate && endDate)) {
+      setStartDate(date)
+      setEndDate(null)
+      setIsSelecting(true)
+    } else if (startDate && !endDate) {
+      if (date.getTime() < startDate.getTime()) {
+        setEndDate(startDate)
+        setStartDate(date)
+      } else {
+        setEndDate(date)
+      }
+      setIsSelecting(false)
+    }
+  }
+
+  // Réinitialiser la sélection
+  const resetSelection = () => {
+    setStartDate(null)
+    setEndDate(null)
+    setIsSelecting(false)
+  }
+
+  // Calculer le nombre de jours
+  const getNumberOfDays = () => {
+    if (!startDate || !endDate) return 0
+    const diffTime = Math.abs(endDate - startDate)
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+    return diffDays
+  }
+
+  // Navigation du mois
+  const nextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
+  }
+
+  const prevMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
+  }
+
+  // Obtenir les jours du mois
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+
+    const days = []
+
+    const firstDayOfWeek = firstDay.getDay()
+    for (let i = 0; i < (firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1); i++) {
+      const prevDate = new Date(year, month, -i)
+      days.unshift({ date: prevDate, currentMonth: false })
+    }
+
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      const currentDate = new Date(year, month, i)
+      days.push({ date: currentDate, currentMonth: true })
+    }
+
+    const remainingDays = 42 - days.length
+    for (let i = 1; i <= remainingDays; i++) {
+      const nextDate = new Date(year, month + 1, i)
+      days.push({ date: nextDate, currentMonth: false })
+    }
+
+    return days
+  }
+
+  const days = getDaysInMonth(currentMonth)
+  const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+  const weekDays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+
+  const images = resource?.media?.flatMap((m) =>
+    m.img_vd.map((img) =>
       img.startsWith("http") ? img : `http://localhost:5000/${img}`
     )
   ) || []
@@ -98,7 +338,7 @@ export default function ResourceDetailsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        
+
         {/* Bouton retour */}
         <button
           onClick={() => navigate(-1)}
@@ -109,14 +349,13 @@ export default function ResourceDetailsPage() {
         </button>
 
         <div className="grid gap-8 lg:grid-cols-3">
-          
+
           {/* LEFT SIDE */}
           <div className="lg:col-span-2 space-y-6">
-            
+
             {/* Carrousel d'images */}
             <div className="relative group">
-              {/* Image principale */}
-              <div 
+              <div
                 className="relative rounded-2xl overflow-hidden bg-gray-100 shadow-lg cursor-pointer"
                 onClick={() => setShowLightbox(true)}
               >
@@ -125,32 +364,28 @@ export default function ResourceDetailsPage() {
                   alt={`${resource.name} - Image ${currentImageIndex + 1}`}
                   className="w-full aspect-[16/9] object-cover transition duration-500 hover:scale-105"
                 />
-                
-                {/* Overlay au hover */}
+
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <Maximize2 className="h-8 w-8 text-white drop-shadow-lg" />
                   </div>
                 </div>
 
-                {/* Compteur d'images */}
                 <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
                   {currentImageIndex + 1} / {images.length}
                 </div>
               </div>
 
-              {/* Miniatures */}
               {images.length > 1 && (
                 <div className="mt-4 grid grid-cols-5 gap-3">
                   {images.map((img, index) => (
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
-                      className={`relative rounded-lg overflow-hidden aspect-[4/3] transition-all duration-300 ${
-                        index === currentImageIndex 
-                          ? 'ring-2 ring-black scale-105 shadow-lg' 
-                          : 'opacity-70 hover:opacity-100'
-                      }`}
+                      className={`relative rounded-lg overflow-hidden aspect-[4/3] transition-all duration-300 ${index === currentImageIndex
+                        ? 'ring-2 ring-black scale-105 shadow-lg'
+                        : 'opacity-70 hover:opacity-100'
+                        }`}
                     >
                       <img
                         src={img}
@@ -166,7 +401,25 @@ export default function ResourceDetailsPage() {
             {/* Informations détaillées */}
             <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
               <div className="flex items-start justify-between">
-                <h1 className="text-3xl font-bold text-gray-900">{resource.name}</h1>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">{resource.name}</h1>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`h-5 w-5 ${star <= Math.round(averageRating)
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
+                            }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm text-gray-600">
+                      {averageRating.toFixed(1)} ({comments.length} avis)
+                    </span>
+                  </div>
+                </div>
                 <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
                   {resource.type}
                 </span>
@@ -201,16 +454,386 @@ export default function ResourceDetailsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Section Commentaires */}
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5" />
+                  Avis ({comments.length})
+                </h2>
+                
+                {currentUser ? (
+                  <button
+                    onClick={() => setShowCommentForm(!showCommentForm)}
+                    className="text-sm bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition"
+                  >
+                    {showCommentForm ? 'Annuler' : 'Donner mon avis'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="text-sm bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+                  >
+                    Connectez-vous pour commenter
+                  </button>
+                )}
+              </div>
+
+              {showCommentForm && currentUser && (
+                <form onSubmit={handleAddComment} className="mb-8 bg-gray-50 p-4 rounded-xl">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Votre note
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setNewRating(star)}
+                          className="focus:outline-none"
+                        >
+                          <Star
+                            className={`h-6 w-6 transition ${star <= newRating
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'text-gray-300'
+                              }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Votre commentaire
+                    </label>
+                    <textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      rows="3"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                      placeholder="Partagez votre expérience..."
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Send className="h-4 w-4" />
+                    {submitting ? 'Publication...' : 'Publier'}
+                  </button>
+                </form>
+              )}
+
+              <div className="space-y-6">
+                {comments.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">
+                    Aucun avis pour le moment. Soyez le premier à donner votre avis !
+                  </p>
+                ) : (
+                  comments.map((comment) => (
+                    <div key={comment._id} className="border-b border-gray-100 last:border-0 pb-6 last:pb-0">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex-shrink-0 flex items-center justify-center text-white font-semibold">
+                          {comment.C_user?.name ? (
+                            comment.C_user.name.charAt(0).toUpperCase()
+                          ) : (
+                            <User className="h-6 w-6" />
+                          )}
+                        </div>
+
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <h3 className="font-semibold text-gray-900">
+                                {comment.C_user?.name || "Utilisateur"}
+                              </h3>
+                              <p className="text-xs text-gray-500">
+                                {new Date(comment.createdAt).toLocaleDateString('fr-FR', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </p>
+                            </div>
+
+                            {currentUser && currentUser.id === comment.C_user?._id && (
+                              <button
+                                onClick={() => handleDeleteComment(comment._id)}
+                                className="text-xs text-red-500 hover:text-red-700"
+                              >
+                                Supprimer
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1 mb-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`h-4 w-4 ${star <= comment.nbr_stars
+                                  ? 'fill-yellow-400 text-yellow-400'
+                                  : 'text-gray-300'
+                                  }`}
+                              />
+                            ))}
+                          </div>
+
+                          <p className="text-gray-600 mb-3">{comment.contenue}</p>
+
+                          <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+                            <ThumbsUp className="h-4 w-4" />
+                            <span>Utile</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Section Carte */}
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                <Map className="h-5 w-5" />
+                Localisation
+              </h2>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 text-gray-600">
+                  <MapPin className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-gray-900">Adresse</p>
+                    <p>{resource.location}</p>
+                    <p className="text-sm text-gray-500 mt-1">Paris, France</p>
+                  </div>
+                </div>
+
+                <div className="relative h-[300px] rounded-xl overflow-hidden bg-gray-100">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-gray-100">
+                    <div className="relative w-full h-full">
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <div className="relative">
+                          <div className="w-6 h-6 bg-red-500 rounded-full animate-ping absolute"></div>
+                          <div className="w-6 h-6 bg-red-600 rounded-full relative z-10 flex items-center justify-center">
+                            <MapPin className="h-4 w-4 text-white" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,0,0,0.05)" strokeWidth="1" />
+                          </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#grid)" />
+                      </svg>
+
+                      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs text-gray-600">
+                        <MapPin className="h-3 w-3 inline mr-1" />
+                        {resource.location}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="absolute inset-0 bg-black/0 hover:bg-black/5 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
+                    <span className="bg-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium">
+                      Voir sur Google Maps
+                    </span>
+                  </div>
+                </div>
+
+                <button className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition flex items-center justify-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Obtenir l'itinéraire
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* RIGHT SIDE */}
-          <div className="lg:col-span-1">
+          {/* RIGHT SIDE - Calendrier et réservation */}
+          <div className="lg:col-span-1 space-y-6">
+
+            {/* Calendrier interactif avec sélection de période */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 transition-all duration-300 hover:shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <CalendarRange className="h-5 w-5" />
+                  Sélectionner une période
+                </h3>
+                {(startDate || endDate) && (
+                  <button
+                    onClick={resetSelection}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Réinitialiser
+                  </button>
+                )}
+              </div>
+
+              {/* Navigation du mois */}
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={prevMonth}
+                  className="p-1.5 hover:bg-gray-100 rounded-full transition"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="text-sm font-medium">
+                  {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                </span>
+                <button
+                  onClick={nextMonth}
+                  className="p-1.5 hover:bg-gray-100 rounded-full transition"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Jours de la semaine */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {weekDays.map((day) => (
+                  <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              {/* Grille du calendrier */}
+              <div className="grid grid-cols-7 gap-1">
+                {days.map(({ date, currentMonth }, index) => {
+                  const isAvailable = isDateAvailable(date)
+                  const isInRange = isDateInRange(date)
+                  const isStart = startDate?.toDateString() === date.toDateString()
+                  const isEnd = endDate?.toDateString() === date.toDateString()
+                  const isToday = date.toDateString() === new Date().toDateString()
+
+                  let bgColor = ''
+                  if (isInRange && currentMonth) {
+                    if (isStart || isEnd) {
+                      bgColor = 'bg-blue-600 text-white'
+                    } else {
+                      bgColor = 'bg-blue-100 text-blue-700'
+                    }
+                  } else if (currentMonth && isAvailable) {
+                    bgColor = 'hover:bg-green-50 text-gray-700'
+                  } else if (currentMonth && !isAvailable) {
+                    bgColor = 'text-red-400 cursor-not-allowed opacity-60 bg-red-50'
+                  }
+
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => currentMonth && handleDateClick(date)}
+                      disabled={!currentMonth || !isAvailable}
+                      className={`
+                        aspect-square p-1 rounded-lg text-sm transition-all duration-200 relative
+                        ${bgColor}
+                        ${isToday && currentMonth && isAvailable && 'font-bold border-2 border-gray-300'}
+                        ${!currentMonth && 'text-gray-300'}
+                      `}
+                    >
+                      <div className="flex flex-col items-center">
+                        <span>{date.getDate()}</span>
+                        {isAvailable && currentMonth && !isInRange && (
+                          <span className="text-[8px] text-green-600">●</span>
+                        )}
+                      </div>
+                      {isStart && (
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 rounded-full"></div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Légende et informations de sélection */}
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      <span className="text-xs text-gray-600">Disponible</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                      <span className="text-xs text-gray-600">Indisponible</span>
+                    </div>
+                  </div>
+                </div>
+
+                {(startDate || endDate) && (
+                  <div className="bg-gray-50 p-3 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Début :</span>
+                      <span className="font-medium">
+                        {startDate ? startDate.toLocaleDateString('fr-FR') : '-'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Fin :</span>
+                      <span className="font-medium">
+                        {endDate ? endDate.toLocaleDateString('fr-FR') : '-'}
+                      </span>
+                    </div>
+                    {startDate && endDate && (
+                      <>
+                        <div className="border-t border-gray-200 my-2"></div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500">Durée :</span>
+                          <span className="font-medium text-blue-600">
+                            {getNumberOfDays()} jour{getNumberOfDays() > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500">Total :</span>
+                          <span className="font-bold text-lg">
+                            {resource.price * getNumberOfDays()}€
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    {isSelecting && (
+                      <p className="text-xs text-blue-600 mt-2">
+                        Sélectionnez la date de fin
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Carte de réservation */}
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-6 transition-all duration-300 hover:shadow-xl">
               {/* Prix */}
               <div className="text-center pb-6 border-b border-gray-100">
                 <span className="text-4xl font-bold text-gray-900">{resource.price}€</span>
                 <span className="text-lg text-gray-500 ml-2">/jour</span>
               </div>
+
+              {/* Résumé de la réservation */}
+              {startDate && endDate && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-700">
+                      Période sélectionnée
+                    </span>
+                  </div>
+                  <div className="text-sm text-blue-600 space-y-1">
+                    <p>Du {startDate.toLocaleDateString('fr-FR')}</p>
+                    <p>Au {endDate.toLocaleDateString('fr-FR')}</p>
+                    <p className="font-medium mt-2">
+                      Total: {resource.price * getNumberOfDays()}€
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Informations */}
               <div className="py-6 space-y-4">
@@ -220,8 +843,7 @@ export default function ResourceDetailsPage() {
                     {resource.type}
                   </span>
                 </div>
-                
-                
+
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500">Capacité max</span>
                   <span className="font-medium flex items-center gap-1">
@@ -236,14 +858,29 @@ export default function ResourceDetailsPage() {
                 <div className="bg-green-50 p-4 rounded-xl text-center animate-fade-in">
                   <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto mb-2" />
                   <p className="font-medium text-green-800">Réservation confirmée !</p>
-                  <p className="text-sm text-green-600 mt-1">Un email de confirmation vous a été envoyé.</p>
+                  <p className="text-sm text-green-600 mt-1">
+                    Du {startDate?.toLocaleDateString('fr-FR')} au {endDate?.toLocaleDateString('fr-FR')}
+                  </p>
                 </div>
               ) : (
                 <button
-                  className="w-full bg-black text-white py-4 rounded-xl font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
-                  onClick={() => setReserved(true)}
+                  className={`
+                    w-full py-4 rounded-xl font-semibold transition-all duration-300
+                    ${startDate && endDate && isRangeValid()
+                      ? 'bg-black text-white hover:bg-gray-800 transform hover:scale-[1.02] active:scale-[0.98]'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    }
+                  `}
+                  onClick={() => startDate && endDate && setReserved(true)}
+                  disabled={!startDate || !endDate || !isRangeValid()}
                 >
-                  Réserver maintenant
+                  {!startDate
+                    ? 'Sélectionnez une date de début'
+                    : !endDate
+                      ? 'Sélectionnez une date de fin'
+                      : !isRangeValid()
+                        ? 'Période non disponible'
+                        : 'Réserver maintenant'}
                 </button>
               )}
             </div>
@@ -253,7 +890,7 @@ export default function ResourceDetailsPage() {
 
       {/* Lightbox */}
       {showLightbox && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center"
           onClick={() => setShowLightbox(false)}
         >
@@ -264,8 +901,7 @@ export default function ResourceDetailsPage() {
             <X className="h-8 w-8" />
           </button>
 
-          {/* Image lightbox */}
-          <div 
+          <div
             className="relative max-w-7xl mx-auto px-4"
             onClick={(e) => e.stopPropagation()}
           >
@@ -275,7 +911,6 @@ export default function ResourceDetailsPage() {
               className="max-h-[85vh] w-auto mx-auto rounded-lg shadow-2xl"
             />
 
-            {/* Contrôles de navigation */}
             {images.length > 1 && (
               <>
                 <button
@@ -297,7 +932,6 @@ export default function ResourceDetailsPage() {
                   <ChevronRight className="h-6 w-6" />
                 </button>
 
-                {/* Indicateur de position */}
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm">
                   {currentImageIndex + 1} / {images.length}
                 </div>

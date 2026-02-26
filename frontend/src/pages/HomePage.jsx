@@ -1,5 +1,5 @@
-import { Calendar, Clock, Shield, Star, Menu } from "lucide-react";
-import { useState,useEffect, useRef  } from "react";
+import { Calendar, Clock, Shield, Star, Menu, X, ChevronRight, Mail, Phone, MapPin, Send, Facebook, Twitter, Instagram, Linkedin, ArrowRight, CheckCircle, Users, Briefcase, Sparkles, LogIn, UserPlus } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import backg from "../assets/backgrouand.mp4";
 import about from "../assets/about.png";
@@ -23,6 +23,15 @@ const events = [
 
 
 export default function HomePage({ onNavigate }) {
+  const [formStatus, setFormStatus] = useState(null);
+  const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
+  const handleContactSubmit = (e) => {
+    e.preventDefault();
+    setFormStatus("success");
+    setTimeout(() => setFormStatus(null), 3000);
+    setContactForm({ name: "", email: "", message: "" });
+  };
+
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const features = [
@@ -54,8 +63,8 @@ export default function HomePage({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
-     <nav className="bg-white shadow-md fixed w-full z-50">
-     <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <nav className="bg-white shadow-md fixed w-full z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           {/* Logo */}
           <h1 className="text-3xl font-bold text-blue-600 cursor-pointer">
             EventPlanner
@@ -64,33 +73,33 @@ export default function HomePage({ onNavigate }) {
           {/* Desktop Menu */}
           <div className="hidden md:flex gap-8 items-center">
             <button
-              onClick={() =>  navigate("/")}
+              onClick={() => navigate("/")}
               className="text-gray-700  hover:text-blue-600 font-medium"
             >
               Acceuil
             </button>
             <button
-              onClick={() =>  navigate("/")}
+              onClick={() => navigate("/")}
               className="text-gray-700 hover:text-blue-600 font-medium"
             >
               evenement
             </button>
             <button
-              onClick={() =>  navigate("/")}
+              onClick={() => navigate("/")}
               className="text-gray-700 hover:text-blue-600 font-medium"
             >
               Ressources
             </button>
             <button
-              onClick={() =>  navigate("/")}
+              onClick={() => navigate("/")}
               className="text-gray-700 hover:text-blue-600 font-medium"
             >
               contacter
             </button>
             <button
-            onClick={() =>  navigate("/login")}
-             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
+              onClick={() => navigate("/login")}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
               Connexion
             </button>
           </div>
@@ -140,15 +149,15 @@ export default function HomePage({ onNavigate }) {
       <section className="relative h-screen flex items-center justify-center text-center overflow-hidden">
 
         <video
-  autoPlay
-  loop
-  muted
-  playsInline
-  preload="auto"
-  className="absolute top-0 left-0 w-full h-full object-cover"
->
-  <source src={backg} type="video/mp4" />
-</video>
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="absolute top-0 left-0 w-full h-full object-cover"
+        >
+          <source src={backg} type="video/mp4" />
+        </video>
 
         <div className="absolute inset-0 bg-black bg-opacity-60"></div>
 
@@ -167,14 +176,14 @@ export default function HomePage({ onNavigate }) {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() =>  navigate("/CreerEvenement")}
+              onClick={() => navigate("/CreerEvenement")}
               className="px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold text-lg hover:bg-blue-700 transition-all shadow-lg"
             >
               cree un evenement
             </button>
 
             <button
-              onClick={() =>  navigate("/les_ressources")}
+              onClick={() => navigate("/les_ressources")}
               className="px-8 py-4 bg-white text-blue-600 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-all shadow-lg"
             >
               voir les ressources
@@ -183,47 +192,47 @@ export default function HomePage({ onNavigate }) {
         </div>
       </section>
       <section className="py-20 bg-slate-50">
-      <h2 className="text-4xl font-bold text-center text-slate-800 mb-6">
-        À propos de Smart Event Planner
-      </h2>
-  <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+        <h2 className="text-4xl font-bold text-center text-slate-800 mb-6">
+          À propos de Smart Event Planner
+        </h2>
+        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
 
 
-   
-    <div>
-     
 
-      <p className="text-slate-600 leading-relaxed mb-4">
-        Smart Event Planner est une application web intelligente conçue
-        pour simplifier et moderniser l’organisation des événements.
-        Elle offre une plateforme centralisée permettant aux organisateurs
-        de planifier efficacement leurs projets tout en collaborant
-        avec des prestataires qualifiés.
-      </p>
+          <div>
 
-      <p className="text-slate-600 leading-relaxed mb-4">
-        Grâce à une gestion des disponibilités en temps réel et une
-        interface intuitive, notre solution réduit les conflits,
-        optimise les ressources et améliore l’expérience utilisateur.
-      </p>
 
-      <p className="text-slate-600 leading-relaxed">
-        Que ce soit pour des mariages, conférences, séminaires ou
-        événements privés, Smart Event Planner transforme vos idées
-        en expériences réussies.
-      </p>
-    </div>
-    <div>
-      <img
-        src={about}
-        alt="Smart Event Planner"
-        className="rounded-2xl shadow-lg"
-      />
-    </div>
+            <p className="text-slate-600 leading-relaxed mb-4">
+              Smart Event Planner est une application web intelligente conçue
+              pour simplifier et moderniser l’organisation des événements.
+              Elle offre une plateforme centralisée permettant aux organisateurs
+              de planifier efficacement leurs projets tout en collaborant
+              avec des prestataires qualifiés.
+            </p>
 
-  </div>
-  
-</section>
+            <p className="text-slate-600 leading-relaxed mb-4">
+              Grâce à une gestion des disponibilités en temps réel et une
+              interface intuitive, notre solution réduit les conflits,
+              optimise les ressources et améliore l’expérience utilisateur.
+            </p>
+
+            <p className="text-slate-600 leading-relaxed">
+              Que ce soit pour des mariages, conférences, séminaires ou
+              événements privés, Smart Event Planner transforme vos idées
+              en expériences réussies.
+            </p>
+          </div>
+          <div>
+            <img
+              src={about}
+              alt="Smart Event Planner"
+              className="rounded-2xl shadow-lg"
+            />
+          </div>
+
+        </div>
+
+      </section>
       <section className="py-16 px-4 bg-white">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">
@@ -257,54 +266,176 @@ export default function HomePage({ onNavigate }) {
         <div className="max-w-7xl mx-auto">
           <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">
             les evenement assurer par nous </h2>
-            <div className="py-20 bg-slate-50">
-  
+          <div className="py-20 bg-slate-50">
 
-    {/* Grid */}
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
 
-      {events.map((item, index) => (
-        <div 
-          key={index}
-          className="group relative h-64 rounded-2xl overflow-hidden shadow-lg cursor-pointer"
-        >
+            {/* Grid */}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
 
-          {/* Image */}
-          <img
-            src={item.image}
-            alt="event"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
+              {events.map((item, index) => (
+                <div
+                  key={index}
+                  className="group relative h-64 rounded-2xl overflow-hidden shadow-lg cursor-pointer"
+                >
 
-          {/* Overlay */}
-          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                  {/* Image */}
+                  <img
+                    src={item.image}
+                    alt="event"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
 
-          {/* Text */}
-          <div className="absolute bottom-6 left-6 right-6 translate-y-10 opacity-0 
+                  {/* Overlay */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition duration-500"></div>
+
+                  {/* Text */}
+                  <div className="absolute bottom-6 left-6 right-6 translate-y-10 opacity-0 
                           group-hover:translate-y-0 group-hover:opacity-100 
                           transition-all duration-500">
-            <h3 className="text-white text-xl font-semibold">
-              {item.title}
-            </h3>
+                    <h3 className="text-white text-xl font-semibold">
+                      {item.title}
+                    </h3>
+                  </div>
+
+                </div>
+              ))}
+
             </div>
 
+          </div>
+          <button
+            onClick={() => navigate("/CreerEvenement")}
+            className="block mx-auto px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold text-lg hover:bg-blue-700 transition-all shadow-lg"
+          >
+            Créer un événement
+          </button>
+
         </div>
-      ))}
 
-    </div>
-
-  </div>
-  <button
-  onClick={() => navigate("/CreerEvenement")}
-  className="block mx-auto px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold text-lg hover:bg-blue-700 transition-all shadow-lg"
->
-  Créer un événement
-</button>
-
-</div>
-      
       </section>
       <CircularEvents />
+
+      {/* Section Contact */}
+      <section id="contact" className="py-20 px-4 bg-gradient-to-br from-blue-600 to-blue-800">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Informations de contact */}
+            <div className="text-white">
+              <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                Contactez-nous
+              </h2>
+              <p className="text-xl mb-8 text-blue-100">
+                Notre équipe est à votre écoute pour répondre à toutes vos questions
+              </p>
+
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
+                    <Mail className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-200">Email</p>
+                    <p className="font-semibold">contact@eventplanner.com</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
+                    <Phone className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-200">Téléphone</p>
+                    <p className="font-semibold">+33 1 23 45 67 89</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-200">Adresse</p>
+                    <p className="font-semibold">123 Avenue des Champs-Élysées, 75008 Paris</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Réseaux sociaux */}
+              <div className="mt-8 flex gap-4">
+                <a href="#" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition">
+                  <Facebook className="h-4 w-4" />
+                </a>
+                <a href="#" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition">
+                  <Twitter className="h-4 w-4" />
+                </a>
+                <a href="#" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition">
+                  <Instagram className="h-4 w-4" />
+                </a>
+                <a href="#" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition">
+                  <Linkedin className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
+
+            {/* Formulaire de contact */}
+            <div className="bg-white rounded-2xl p-8 shadow-2xl">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Envoyez-nous un message</h3>
+
+              <form onSubmit={handleContactSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nom complet</label>
+                  <input
+                    type="text"
+                    required
+                    value={contactForm.name}
+                    onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    placeholder="Jean Dupont"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    placeholder="jean@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                  <textarea
+                    required
+                    rows="4"
+                    value={contactForm.message}
+                    onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    placeholder="Votre message..."
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2"
+                >
+                  <Send className="h-5 w-5" />
+                  Envoyer le message
+                </button>
+
+                {formStatus === "success" && (
+                  <div className="bg-green-50 text-green-700 p-3 rounded-lg text-center animate-fade-in">
+                    Message envoyé avec succès !
+                  </div>
+                )}
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
       <section className="py-16 px-4">
         <div className="max-w-5xl mx-auto bg-blue-600 rounded-2xl p-12 text-center text-white shadow-xl">
           <h2 className="text-3xl font-bold mb-4">
@@ -332,6 +463,7 @@ export default function HomePage({ onNavigate }) {
           </div>
         </div>
       </section>
+
       <Footer></Footer>
     </div>
   );
