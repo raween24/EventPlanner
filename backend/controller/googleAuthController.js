@@ -1,13 +1,13 @@
-
+// backend/controller/googleAuthController.js
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
-import User from "../model/user.js"; // Ton modèle User Mongoose
+import User from "../model/user.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const googleAuth = async (req, res) => {
   try {
-    const { token } = req.body; // token envoyé par le frontend
+    const { token } = req.body;
 
     // Vérifie le token Google
     const ticket = await client.verifyIdToken({
@@ -18,28 +18,30 @@ export const googleAuth = async (req, res) => {
     const payload = ticket.getPayload();
     const { email, name, picture, sub } = payload;
 
-    // Cherche l'utilisateur existant
+    // Cherche l'utilisateur
     let user = await User.findOne({ email });
+
     if (!user) {
+      // Crée un utilisateur Google
       user = await User.create({
-        firstname: name, // ou name.split(" ")[0] si tu veux juste prénom
+        firstname: name?.split(" ")[0] || "Utilisateur",
+        lastname: name?.split(" ")[1] || "",
         email,
         googleId: sub,
-        avatar: picture,
-        role: "user", // par défaut
+        image: picture || "",
+        password: "", // pas de mot de passe
+        role: "user",
       });
     }
 
-    // Génère JWT pour ton app
-    const appToken = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    // Génère un JWT
+    const appToken = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     res.status(200).json({ user, token: appToken });
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     res.status(401).json({ message: "Google auth failed" });
   }
 };

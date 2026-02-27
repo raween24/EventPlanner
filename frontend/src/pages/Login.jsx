@@ -22,9 +22,7 @@ export default function Login() {
     try {
       const res = await fetch("http://localhost:5000/api/users/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: form.email,
           password: form.password,
@@ -36,14 +34,13 @@ export default function Login() {
       if (res.ok) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
-
-        alert(`Bienvenue ${data.user.firstname} `);
+        alert(`Bienvenue ${data.user.firstname}`);
         navigate("/");
       } else {
         alert(data.message || "Email ou mot de passe incorrect");
       }
     } catch (err) {
-      console.log("Erreur serveur:", err);
+      console.error("Erreur serveur (login normal) :", err);
       alert("Erreur serveur");
     }
   };
@@ -56,9 +53,7 @@ export default function Login() {
           <div className="form-header">
             <span className="badge">✦ Event Planner</span>
             <h2>Connexion</h2>
-            <p className="subtitle">
-              Connectez-vous pour gérer vos événements.
-            </p>
+            <p className="subtitle">Connectez-vous pour gérer vos événements.</p>
           </div>
 
           <form className="split-form" onSubmit={handleSubmit}>
@@ -89,30 +84,38 @@ export default function Login() {
               <GoogleLogin
                 onSuccess={async (credentialResponse) => {
                   try {
+                    if (!credentialResponse?.credential) {
+                      throw new Error("Pas de token reçu de Google");
+                    }
+
+                    console.log("Token Google reçu (début) :", credentialResponse.credential.substring(0, 60) + "...");
+
                     const res = await axios.post(
-                      "http://localhost:5000/api/auth/google",
-                      {
-                        token: credentialResponse.credential,
-                      }
+                      "http://localhost:5000/api/auth/google",  
+                      { token: credentialResponse.credential }
                     );
 
-                    // Récupère l'utilisateur et JWT
+                    console.log("Réponse backend :", res.data);
+
                     localStorage.setItem("token", res.data.token);
                     localStorage.setItem("user", JSON.stringify(res.data.user));
 
-                    alert(
-                      `Bienvenue ${res.data.user.firstname || res.data.user.name}`
-                    );
+                    alert(`Bienvenue ${res.data.user.firstname || res.data.user.name || "Utilisateur"}`);
                     navigate("/");
                   } catch (err) {
-                    console.error(err);
-                    alert("Erreur lors de la connexion Google");
+                    console.error("Erreur Google Auth détaillée :", err.message);
+                    console.error("Status :", err.response?.status);
+                    console.error("Backend message :", err.response?.data?.message);
+                    console.error("Code :", err.code);
+
+                    alert("Erreur connexion Google : " + (err.response?.data?.message || err.message || "Inconnue"));
                   }
                 }}
                 onError={() => {
-                  console.log("Login Failed");
-                  alert("Connexion Google échouée");
+                  console.log("Échec GoogleLogin (onError)");
+                  alert("La connexion Google a échoué (bouton non initialisé ?)");
                 }}
+                useOneTap={false}  // désactive le prompt automatique si tu veux
               />
             </div>
 
