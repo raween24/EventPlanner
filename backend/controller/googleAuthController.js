@@ -1,4 +1,3 @@
-// backend/controller/googleAuthController.js
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import User from "../model/user.js";
@@ -30,7 +29,7 @@ export const googleAuth = async (req, res) => {
         googleId: sub,
         image: picture || "",
         password: "", // pas de mot de passe
-        role: "user",
+        role: undefined ,
       });
     }
 

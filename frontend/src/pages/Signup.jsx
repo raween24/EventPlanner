@@ -6,7 +6,7 @@ export default function Signup() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    identifier: "",
+    passportOrCid: "",
     firstName: "",
     lastName: "",
     dateNaissance: "",
@@ -32,7 +32,6 @@ export default function Signup() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = () => {
       setPreview(reader.result);
@@ -43,8 +42,6 @@ export default function Signup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // mapping frontend → backend model
     const body = {
       firstname: form.firstName,
       lastname: form.lastName,
@@ -56,24 +53,18 @@ export default function Signup() {
       password: form.password,
       role: form.role,
       image: form.image || null,
-      passportOrCid: form.identifier || null,
+      passportOrCid: form.passportOrCid || null,
     };
 
     try {
       const res = await fetch("http://localhost:5000/api/users/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-
       const data = await res.json();
-
       if (res.ok) {
-        alert("Compte créé avec succès ");
-
-        // redirection login après signup
+        alert("Compte créé avec succès");
         navigate("/login");
       } else {
         alert(data.message || "Erreur signup");
@@ -86,130 +77,147 @@ export default function Signup() {
 
   return (
     <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-card-header">
-          <span className="auth-badge">✦ Event Planner</span>
-          <h2>Créer un compte</h2>
-          <p className="auth-subtitle">
-            Rejoignez la plateforme et gérez vos événements.
-          </p>
-        </div>
 
-        <div className="auth-divider" />
+      {/* ===== LEFT — FORM ===== */}
+      <div className="auth-left">
+        <div className="form-wrapper">
 
-        <form className="signup-form" onSubmit={handleSubmit}>
-          <div className="field-wrap span-2">
-            <label>CID ou Numéro Passeport</label>
-            <input
-              name="identifier"
-              placeholder="Ex: 12345678 ou AB123456"
-              onChange={handleChange}
-              required
-            />
+          <div className="auth-card-header">
+            <span className="auth-badge">✦ Event Planner</span>
+            <h2>Créer un compte</h2>
+            <p className="auth-subtitle">
+              Rejoignez la plateforme et gérez vos événements.
+            </p>
           </div>
 
-          <div className="field-wrap">
-            <label>Prénom</label>
-            <input name="firstName" onChange={handleChange} required />
-          </div>
+          <div className="auth-divider" />
 
-          <div className="field-wrap">
-            <label>Nom</label>
-            <input name="lastName" onChange={handleChange} required />
-          </div>
+          <form className="signup-form" onSubmit={handleSubmit}>
 
-          <div className="field-wrap">
-            <label>Date de naissance</label>
-            <input type="date" name="dateNaissance" onChange={handleChange} required />
-          </div>
-
-          <div className="field-wrap">
-            <label>Région</label>
-            <input name="region" onChange={handleChange} />
-          </div>
-
-          <div className="field-wrap">
-            <label>Téléphone</label>
-            <input type="number" name="numTel" onChange={handleChange} />
-          </div>
-
-          <div className="field-wrap">
-            <label>Genre</label>
-            <div className="radio-group">
-              <label className="radio-option">
-                <input
-                  type="radio"
-                  value="homme"
-                  checked={form.genre === "homme"}
-                  onChange={handleGenreChange}
-                />
-                Homme
-              </label>
-
-              <label className="radio-option">
-                <input
-                  type="radio"
-                  value="femme"
-                  checked={form.genre === "femme"}
-                  onChange={handleGenreChange}
-                />
-                Femme
-              </label>
-            </div>
-          </div>
-
-          <div className="field-wrap span-2">
-            <label>Email</label>
-            <input type="email" name="email" onChange={handleChange} required />
-          </div>
-
-          <div className="field-wrap span-2">
-            <label>Mot de passe</label>
-            <input type="password" name="password" onChange={handleChange} required />
-          </div>
-
-          <div className="field-wrap span-2">
-            <label>Rôle</label>
-            <select name="role" onChange={handleChange}>
-              <option value="organisateur">Organisateur</option>
-              <option value="prestataire">Prestataire</option>
-            </select>
-          </div>
-
-          <div className="field-wrap span-2">
-            <label>Photo de profil</label>
-            <div className="image-upload-wrap">
-              <label className="image-upload-label" htmlFor="imageInput">
-                {preview ? (
-                  <img src={preview} alt="preview" className="image-preview" />
-                ) : (
-                  <div className="image-upload-placeholder">
-                    <span className="upload-icon">📷</span>
-                    <span>Cliquez pour choisir une photo</span>
-                  </div>
-                )}
-              </label>
-
+            <div className="field-wrap span-2">
+              <label>CID ou Numéro Passeport</label>
               <input
-                id="imageInput"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                style={{ display: "none" }}
+                name="passportOrCid"
+                placeholder="Ex: 12345678 ou AB123456"
+                onChange={handleChange}
+                required
               />
             </div>
-          </div>
 
-          <button type="submit" className="auth-btn span-2">
-            Créer le compte
-          </button>
-        </form>
+            <div className="field-wrap">
+              <label>Prénom</label>
+              <input name="firstName" onChange={handleChange} required />
+            </div>
 
-        <p className="auth-link">
-          Déjà un compte ?{" "}
-          <span onClick={() => navigate("/login")}>Se connecter</span>
-        </p>
+            <div className="field-wrap">
+              <label>Nom</label>
+              <input name="lastName" onChange={handleChange} required />
+            </div>
+
+            <div className="field-wrap">
+              <label>Date de naissance</label>
+              <input type="date" name="dateNaissance" onChange={handleChange} required />
+            </div>
+
+            <div className="field-wrap">
+              <label>Région</label>
+              <input name="region" onChange={handleChange} />
+            </div>
+
+            <div className="field-wrap">
+              <label>Téléphone</label>
+              <input type="number" name="numTel" onChange={handleChange} />
+            </div>
+
+            <div className="field-wrap">
+              <label>Genre</label>
+              <div className="radio-group">
+                <label className="radio-option">
+                  <input
+                    type="radio"
+                    value="homme"
+                    checked={form.genre === "homme"}
+                    onChange={handleGenreChange}
+                  />
+                  Homme
+                </label>
+                <label className="radio-option">
+                  <input
+                    type="radio"
+                    value="femme"
+                    checked={form.genre === "femme"}
+                    onChange={handleGenreChange}
+                  />
+                  Femme
+                </label>
+              </div>
+            </div>
+
+            <div className="field-wrap span-2">
+              <label>Email</label>
+              <input type="email" name="email" onChange={handleChange} required />
+            </div>
+
+            <div className="field-wrap span-2">
+              <label>Mot de passe</label>
+              <input type="password" name="password" onChange={handleChange} required />
+            </div>
+
+            <div className="field-wrap span-2">
+              <label>Rôle</label>
+              <select name="role" onChange={handleChange}>
+                <option value="organisateur">Organisateur</option>
+                <option value="prestataire">Prestataire</option>
+              </select>
+            </div>
+
+            <div className="field-wrap span-2">
+              <label>Photo de profil</label>
+              <div className="image-upload-wrap">
+                <label className="image-upload-label" htmlFor="imageInput">
+                  {preview ? (
+                    <img src={preview} alt="preview" className="image-preview" />
+                  ) : (
+                    <div className="image-upload-placeholder">
+                      <span className="upload-icon">📷</span>
+                      <span>Cliquez pour choisir une photo</span>
+                    </div>
+                  )}
+                </label>
+                <input
+                  id="imageInput"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  style={{ display: "none" }}
+                />
+              </div>
+            </div>
+
+            <button type="submit" className="auth-btn span-2">
+              Créer le compte
+            </button>
+
+          </form>
+
+          <p className="auth-link">
+            Déjà un compte ?{" "}
+            <span onClick={() => navigate("/login")}>Se connecter</span>
+          </p>
+
+        </div>
       </div>
+
+      {/* ===== RIGHT — IMAGE ===== */}
+      <div className="split-right">
+        <div className="image-overlay">
+          <div className="overlay-content">
+            <h1>Gérez vos événements</h1>
+            <p>Créez, planifiez et coordonnez tous vos événements en un seul endroit.</p>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
