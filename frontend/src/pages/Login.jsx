@@ -64,6 +64,14 @@ export default function Login() {
       <div className="split-left">
         <div className="form-container">
 
+          {/* ===== BACK BUTTON ===== */}
+          <button className="back-btn" onClick={() => navigate(-1)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 5l-7 7 7 7"/>
+            </svg>
+            Retour
+          </button>
+
           <div className="form-header">
             <span className="badge">✦ Event Planner</span>
             <h2>Connexion</h2>
@@ -99,7 +107,7 @@ export default function Login() {
               <span className="google-divider-text">ou continuer avec</span>
             </div>
 
-            {/* Beautiful Google Button */}
+            {/* Google Button */}
             <button type="button" className="google-custom-btn" onClick={triggerGoogle}>
               <span className="google-icon-wrap">
                 <svg width="20" height="20" viewBox="0 0 24 24">

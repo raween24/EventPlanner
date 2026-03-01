@@ -17,9 +17,10 @@
 ============================== */
 html,
 body {
-  min-height: 100%;
+  height: auto;
+  min-height: 100vh;
   font-family: 'DM Sans', sans-serif;
-  background: #EFF6FF; /* blue-50 */
+  background: #EFF6FF;
   overflow-x: hidden;
 }
 
