@@ -19,6 +19,7 @@ const UserSchema = new mongoose.Schema({
   image: { type: String },
   role: { type: String, enum: ["organisateur", "prestataire"],  },
   googleId: { type: String }, // stocke l'id Google
+  
 });
 
 export default mongoose.model("User", UserSchema);

@@ -5,6 +5,7 @@ import HomePage from "./pages/HomePage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import RessourceDetail from "./pages/RessourceDetail";
+import DocumentUpload from "./pages/document";
 
 export default function App() {
   return (

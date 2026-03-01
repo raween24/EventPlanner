@@ -11,6 +11,9 @@ import mediaRoutes from "./routes/mediaRoutes.js";
 import dispoRoutes from "./routes/dispoRoutes.js";
 import googleAuthRoutes from "./routes/googleAuthRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
+import invoiceRoutes from "./routes/invoiceRoutes.js";
+import conversationRoutes from "./routes/conversationRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -37,7 +40,7 @@ app.use(cors({
 }));
 app.use(
   cors({
-    origin: "http://localhost:5173", 
+    origin: "http://localhost:5173",
     credentials: true,
   })
 );
@@ -51,9 +54,11 @@ app.use("/api/ressources", ressourceRoutes);
 app.use("/api/media", mediaRoutes);
 app.use("/api/dispo", dispoRoutes);
 
-app.use("/api/auth", googleAuthRoutes);   
-app.use("api/document",documentRoutes);
-
+app.use("/api/auth", googleAuthRoutes);
+app.use("api/document", documentRoutes);
+app.use("api/invoice", invoiceRoutes);
+app.use("/api/conversations", conversationRoutes);
+app.use("/api/messages", messageRoutes);
 app.get("/", (req, res) => {
   res.send("API Event Planner fonctionne ");
 });
