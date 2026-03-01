@@ -10,14 +10,13 @@ import ressourceRoutes from "./routes/ressourceRoutes.js";
 import mediaRoutes from "./routes/mediaRoutes.js";
 import dispoRoutes from "./routes/dispoRoutes.js";
 import googleAuthRoutes from "./routes/googleAuthRoutes.js";
-
+import documentRoutes from "./routes/documentRoutes.js";
 dotenv.config();
 
 const app = express();
 
 connectDB();
 
-<<<<<<< HEAD
 /* ================= MIDDLEWARES ================= */
 
 //  CORS (autorise ton frontend React)
@@ -36,14 +35,12 @@ app.use(cors({
   },
   credentials: true
 }));
-=======
 app.use(
   cors({
     origin: "http://localhost:5173", 
     credentials: true,
   })
 );
->>>>>>> 876a8be65fac73266cbd7234cca327a70b25f6da
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -55,6 +52,7 @@ app.use("/api/media", mediaRoutes);
 app.use("/api/dispo", dispoRoutes);
 
 app.use("/api/auth", googleAuthRoutes);   
+app.use("api/document",documentRoutes);
 
 app.get("/", (req, res) => {
   res.send("API Event Planner fonctionne ");
