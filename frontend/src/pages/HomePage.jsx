@@ -1,5 +1,5 @@
-import { Calendar, Clock, Shield, Star, Menu, X, ChevronRight, Mail, Phone, MapPin, Send, Facebook, Twitter, Instagram, Linkedin, ArrowRight, CheckCircle, Users, Briefcase, Sparkles, LogIn, UserPlus } from "lucide-react";
-import { useState } from "react";
+import { Calendar, Clock, Shield, Star, Menu } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import backg from "../assets/backgrouand.mp4";
 import about from "../assets/about.png";
@@ -23,15 +23,6 @@ const events = [
 
 
 export default function HomePage({ onNavigate }) {
-  const [formStatus, setFormStatus] = useState(null);
-  const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
-  const handleContactSubmit = (e) => {
-    e.preventDefault();
-    setFormStatus("success");
-    setTimeout(() => setFormStatus(null), 3000);
-    setContactForm({ name: "", email: "", message: "" });
-  };
-
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const features = [
@@ -314,128 +305,6 @@ export default function HomePage({ onNavigate }) {
 
       </section>
       <CircularEvents />
-
-      {/* Section Contact */}
-      <section id="contact" className="py-20 px-4 bg-gradient-to-br from-blue-600 to-blue-800">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Informations de contact */}
-            <div className="text-white">
-              <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                Contactez-nous
-              </h2>
-              <p className="text-xl mb-8 text-blue-100">
-                Notre équipe est à votre écoute pour répondre à toutes vos questions
-              </p>
-
-              <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
-                    <Mail className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-blue-200">Email</p>
-                    <p className="font-semibold">contact@eventplanner.com</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
-                    <Phone className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-blue-200">Téléphone</p>
-                    <p className="font-semibold">+33 1 23 45 67 89</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
-                    <MapPin className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-blue-200">Adresse</p>
-                    <p className="font-semibold">123 Avenue des Champs-Élysées, 75008 Paris</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Réseaux sociaux */}
-              <div className="mt-8 flex gap-4">
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition">
-                  <Facebook className="h-4 w-4" />
-                </a>
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition">
-                  <Twitter className="h-4 w-4" />
-                </a>
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition">
-                  <Instagram className="h-4 w-4" />
-                </a>
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition">
-                  <Linkedin className="h-4 w-4" />
-                </a>
-              </div>
-            </div>
-
-            {/* Formulaire de contact */}
-            <div className="bg-white rounded-2xl p-8 shadow-2xl">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">Envoyez-nous un message</h3>
-
-              <form onSubmit={handleContactSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Nom complet</label>
-                  <input
-                    type="text"
-                    required
-                    value={contactForm.name}
-                    onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                    placeholder="Jean Dupont"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={contactForm.email}
-                    onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                    placeholder="jean@example.com"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                  <textarea
-                    required
-                    rows="4"
-                    value={contactForm.message}
-                    onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                    placeholder="Votre message..."
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2"
-                >
-                  <Send className="h-5 w-5" />
-                  Envoyer le message
-                </button>
-
-                {formStatus === "success" && (
-                  <div className="bg-green-50 text-green-700 p-3 rounded-lg text-center animate-fade-in">
-                    Message envoyé avec succès !
-                  </div>
-                )}
-              </form>
-            </div>
-          </div>
-        </div>
-      </section>
       <section className="py-16 px-4">
         <div className="max-w-5xl mx-auto bg-blue-600 rounded-2xl p-12 text-center text-white shadow-xl">
           <h2 className="text-3xl font-bold mb-4">
@@ -463,7 +332,6 @@ export default function HomePage({ onNavigate }) {
           </div>
         </div>
       </section>
-
       <Footer></Footer>
     </div>
   );

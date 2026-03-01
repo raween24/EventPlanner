@@ -22,12 +22,21 @@ connectDB();
 /* ================= MIDDLEWARES ================= */
 
 //  CORS (autorise ton frontend React)
-app.use(
-  cors({
-    origin: "http://localhost:5173", // Vite React (change si besoin)
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173"
+    ];
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
 
 //  lire JSON body
 app.use(express.json());
