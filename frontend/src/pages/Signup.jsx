@@ -78,6 +78,14 @@ export default function Signup() {
   return (
     <div className="auth-container">
 
+      {/* ===== BACK BUTTON ===== */}
+      <button className="back-btn" onClick={() => navigate(-1)}>
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+        </svg>
+        Retour
+      </button>
+
       {/* ===== LEFT — FORM ===== */}
       <div className="auth-left">
         <div className="form-wrapper">
@@ -90,10 +98,9 @@ export default function Signup() {
             </p>
           </div>
 
-          <div className="auth-divider" />
-
           <form className="signup-form" onSubmit={handleSubmit}>
 
+            {/* CID / Passeport */}
             <div className="field-wrap span-2">
               <label>CID ou Numéro Passeport</label>
               <input
@@ -104,16 +111,18 @@ export default function Signup() {
               />
             </div>
 
+            {/* Prénom + Nom */}
             <div className="field-wrap">
               <label>Prénom</label>
-              <input name="firstName" onChange={handleChange} required />
+              <input name="firstName" placeholder="Votre prénom" onChange={handleChange} required />
             </div>
 
             <div className="field-wrap">
               <label>Nom</label>
-              <input name="lastName" onChange={handleChange} required />
+              <input name="lastName" placeholder="Votre nom" onChange={handleChange} required />
             </div>
 
+            {/* Date + Région */}
             <div className="field-wrap">
               <label>Date de naissance</label>
               <input type="date" name="dateNaissance" onChange={handleChange} required />
@@ -121,48 +130,66 @@ export default function Signup() {
 
             <div className="field-wrap">
               <label>Région</label>
-              <input name="region" onChange={handleChange} />
+              <input name="region" placeholder="Votre région" onChange={handleChange} />
             </div>
 
+            {/* Téléphone + Genre */}
             <div className="field-wrap">
               <label>Téléphone</label>
-              <input type="number" name="numTel" onChange={handleChange} />
+              <input type="number" name="numTel" placeholder="Ex: 0612345678" onChange={handleChange} />
             </div>
 
+            {/* Genre — radio inline stylés */}
             <div className="field-wrap">
               <label>Genre</label>
-              <div className="radio-group">
+              <div className="radio-options">
+
                 <label className="radio-option">
                   <input
                     type="radio"
+                    name="genre"
                     value="homme"
                     checked={form.genre === "homme"}
                     onChange={handleGenreChange}
                   />
-                  Homme
+                  <span className="radio-label">
+                    <span className="radio-dot"></span>
+                    <span className="radio-icon"></span>
+                    Homme
+                  </span>
                 </label>
+
                 <label className="radio-option">
                   <input
                     type="radio"
+                    name="genre"
                     value="femme"
                     checked={form.genre === "femme"}
                     onChange={handleGenreChange}
                   />
-                  Femme
+                  <span className="radio-label">
+                    <span className="radio-dot"></span>
+                    <span className="radio-icon"></span>
+                    Femme
+                  </span>
                 </label>
+
               </div>
             </div>
 
+            {/* Email */}
             <div className="field-wrap span-2">
               <label>Email</label>
-              <input type="email" name="email" onChange={handleChange} required />
+              <input type="email" name="email" placeholder="exemple@email.com" onChange={handleChange} required />
             </div>
 
+            {/* Mot de passe */}
             <div className="field-wrap span-2">
               <label>Mot de passe</label>
-              <input type="password" name="password" onChange={handleChange} required />
+              <input type="password" name="password" placeholder="••••••••" onChange={handleChange} required />
             </div>
 
+            {/* Rôle */}
             <div className="field-wrap span-2">
               <label>Rôle</label>
               <select name="role" onChange={handleChange}>
@@ -171,29 +198,63 @@ export default function Signup() {
               </select>
             </div>
 
-            <div className="field-wrap span-2">
-              <label>Photo de profil</label>
-              <div className="image-upload-wrap">
-                <label className="image-upload-label" htmlFor="imageInput">
-                  {preview ? (
-                    <img src={preview} alt="preview" className="image-preview" />
-                  ) : (
-                    <div className="image-upload-placeholder">
-                      <span className="upload-icon">📷</span>
-                      <span>Cliquez pour choisir une photo</span>
+            {/* Photo de profil — rectangle stylé */}
+            <div className="photo-upload-wrap">
+              <label className="field-label">Photo de profil</label>
+
+              <label
+                className={`photo-upload-area ${preview ? "has-photo" : ""}`}
+                htmlFor="imageInput"
+              >
+                {/* État vide */}
+                {!preview && (
+                  <div className="photo-placeholder">
+                    <div className="photo-placeholder-icon">
+                      <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round"
+                          d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"
+                        />
+                        <path strokeLinecap="round" strokeLinejoin="round"
+                          d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z"
+                        />
+                      </svg>
                     </div>
-                  )}
-                </label>
-                <input
-                  id="imageInput"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  style={{ display: "none" }}
-                />
-              </div>
+                    <div className="photo-placeholder-text">
+                      <strong>Ajouter une photo de profil</strong>
+                      <span>Cliquez ou glissez une image ici · JPG, PNG ou WEBP — max 5 MB</span>
+                    </div>
+                    <div className="photo-upload-badge">Parcourir</div>
+                  </div>
+                )}
+
+                {/* État prévisualisation */}
+                {preview && (
+                  <div className="photo-preview-wrap">
+                    <img src={preview} alt="Photo de profil" />
+                    <div className="photo-preview-overlay">
+                      <div className="photo-change-btn">
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round"
+                            d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Z"
+                          />
+                        </svg>
+                        Changer la photo
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </label>
+
+              <input
+                id="imageInput"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                style={{ display: "none" }}
+              />
             </div>
 
+            {/* Submit */}
             <button type="submit" className="auth-btn span-2">
               Créer le compte
             </button>

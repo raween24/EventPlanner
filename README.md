@@ -7,4 +7,4 @@ remarques :
 lorsque user se connecte il saffiche la page dacceuil avec les deux button consulter ressources et creer event 
 
 note:
-dans le sign up il y a un problem lors du registre un neveau utlisateur 
+dans le sign up il y a un problem lors du registre un neveau utlisateur  **c bon**
