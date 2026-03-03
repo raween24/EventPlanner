@@ -125,7 +125,7 @@ export default function Signup() {
             {/* Date + Région */}
             <div className="field-wrap">
               <label>Date de naissance</label>
-              <input type="date" name="dateNaissance" onChange={handleChange} required />
+              <input type="date" name="dateNaissance" max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split("T")[0]} onChange={handleChange} required />
             </div>
 
             <div className="field-wrap">
@@ -136,7 +136,7 @@ export default function Signup() {
             {/* Téléphone + Genre */}
             <div className="field-wrap">
               <label>Téléphone</label>
-              <input type="number" name="numTel" placeholder="Ex: 0612345678" onChange={handleChange} />
+              <input type="number" name="numTel" maxLength="999999999" placeholder="Ex: +612 01234567" onChange={handleChange} />
             </div>
 
             {/* Genre — radio inline stylés */}

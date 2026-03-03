@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db.js";
 
-// Routes
 import userRoutes from "./routes/userRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import ressourceRoutes from "./routes/ressourceRoutes.js";
@@ -11,6 +10,7 @@ import mediaRoutes from "./routes/mediaRoutes.js";
 import dispoRoutes from "./routes/dispoRoutes.js";
 import googleAuthRoutes from "./routes/googleAuthRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
+import commentRoutes from "./routes/commentRoutes.js"
 import invoiceRoutes from "./routes/invoiceRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
@@ -53,7 +53,7 @@ app.use("/api/event", eventRoutes);
 app.use("/api/ressources", ressourceRoutes);
 app.use("/api/media", mediaRoutes);
 app.use("/api/dispo", dispoRoutes);
-
+app.use("/api/comment", commentRoutes);
 app.use("/api/auth", googleAuthRoutes);
 app.use("api/document", documentRoutes);
 app.use("api/invoice", invoiceRoutes);
