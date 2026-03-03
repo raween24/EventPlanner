@@ -63,6 +63,8 @@ app.get("/", (req, res) => {
   res.send("API Event Planner fonctionne ");
 });
 
+//pour telecharger les ilmage
+app.use("/uploads", express.static("uploads"));
 
 app.use((err, req, res, next) => {
   console.error("Erreur serveur :", err.stack);

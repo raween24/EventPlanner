@@ -40,7 +40,7 @@ const registerUser = async (req, res) => {
       numTel,
       region,
       gender,
-      image,
+      image: req.file ? req.file.path : null,
       role,
     });
 

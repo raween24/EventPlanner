@@ -10,6 +10,7 @@ root.render(
   <StrictMode>
     <GoogleOAuthProvider clientId="946117434038-gnhj3mgbkj20olsubc7qmh3optcrtadd.apps.googleusercontent.com">
       <App />
+      
     </GoogleOAuthProvider>
   </StrictMode>
 );

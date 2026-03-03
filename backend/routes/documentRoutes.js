@@ -6,7 +6,7 @@ import {
     deleteDocument
 } from "../controller/documentController.js";
 
-import upload from "../middleware/upload.js"; // Multer
+import upload from "../middleware/upload_doc.js"; // Multer
 
 const router = express.Router();
 
