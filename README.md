@@ -1,6 +1,6 @@
 page ajouter ressource (prestataire) :rawen 
 ajouter photo dans base de donnees : adem **C BON**
-page des favory : adem 
+page des favory : adem **C BON**
 template kemla rapport
 connecxion organisateur et prostataire
 remarques :
