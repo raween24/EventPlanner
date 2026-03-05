@@ -12,13 +12,12 @@ const UserSchema = new mongoose.Schema({
   region: { type: String },
   gender: { type: String },
   image: { type: String },
-  role: { type: String, enum: ["organisateur", "prestataire", "user"], default: "user" }, // ajoute "user"
-  numTel: { type: String },
-  region: { type: String },
-  gender: { type: String },
-  image: { type: String },
   role: { type: String, enum: ["organisateur", "prestataire"],  },
   googleId: { type: String }, // stocke l'id Google
+  adore:[{
+    type:mongoose.Schema.Types.ObjectId,
+    ref: "Resource"
+  }]
   
 });
 

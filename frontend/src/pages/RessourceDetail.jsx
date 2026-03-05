@@ -565,7 +565,7 @@ export default function ResourceDetailsPage() {
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Votre commentaire
@@ -580,7 +580,7 @@ export default function ResourceDetailsPage() {
                       required
                     />
                   </div>
-                  
+
                   <div className="flex justify-end">
                     <button
                       type="submit"
@@ -608,16 +608,16 @@ export default function ResourceDetailsPage() {
                   </div>
                 ) : (
                   comments.map((comment) => (
-                    <div 
-                      key={comment._id} 
+                    <div
+                      key={comment._id}
                       className="border-b border-gray-100 last:border-0 pb-6 last:pb-0 hover:bg-gray-50/50 p-4 rounded-xl transition-all duration-200"
                     >
                       <div className="flex items-start gap-4">
                         {/* Avatar de l'utilisateur */}
                         <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex-shrink-0 flex items-center justify-center text-white font-semibold shadow-md">
                           {comment.C_user?.image ? (
-                            <img 
-                              src={comment.C_user.image} 
+                            <img
+                              src={comment.C_user.image}
                               alt={comment.C_user.firstname}
                               className="w-full h-full object-cover"
                               onError={(e) => {
@@ -628,13 +628,13 @@ export default function ResourceDetailsPage() {
                             />
                           ) : (
                             <span className="text-lg">
-                              {comment.C_user?.firstname?.charAt(0).toUpperCase() || 
-                               comment.C_user?.name?.charAt(0).toUpperCase() || 
-                               'U'}
+                              {comment.C_user?.firstname?.charAt(0).toUpperCase() ||
+                                comment.C_user?.name?.charAt(0).toUpperCase() ||
+                                'U'}
                             </span>
                           )}
                         </div>
-                        
+
                         {/* Contenu du commentaire */}
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-2">
@@ -663,11 +663,10 @@ export default function ResourceDetailsPage() {
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
                                 key={star}
-                                className={`h-4 w-4 ${
-                                  star <= comment.nbr_stars
+                                className={`h-4 w-4 ${star <= comment.nbr_stars
                                     ? 'fill-yellow-400 text-yellow-400'
                                     : 'text-gray-300'
-                                }`}
+                                  }`}
                               />
                             ))}
                           </div>
@@ -951,7 +950,7 @@ export default function ResourceDetailsPage() {
                       : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     }
                   `}
-                  onClick={() => startDate && endDate && setReserved(true)}
+                  onClick={() => navigate("/panier")}
                   disabled={!startDate || !endDate || !isRangeValid() || loadingAvailability}
                 >
                   {loadingAvailability
@@ -962,7 +961,7 @@ export default function ResourceDetailsPage() {
                         ? 'Sélectionnez une date de fin'
                         : !isRangeValid()
                           ? 'Période non disponible'
-                          : 'Réserver maintenant'}
+                          : 'ajouter au panier'}
                 </button>
               )}
             </div>

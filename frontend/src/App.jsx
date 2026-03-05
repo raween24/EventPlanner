@@ -5,7 +5,7 @@ import HomePage from "./pages/HomePage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import RessourceDetail from "./pages/RessourceDetail";
-import DocumentUpload from "./pages/document";
+import PanierRessources from "./pages/panier";
 
 export default function App() {
   return (
@@ -18,6 +18,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/RessourceDetail/:id" element={<RessourceDetail />} />
+                <Route path="/panier" element={<PanierRessources />} />
 
 
       </Routes>

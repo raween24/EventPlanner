@@ -18,6 +18,7 @@ const registerUser = async (req, res) => {
       gender,
       image,
       role,
+
     } = req.body;
 
     // verifier email existant
@@ -130,4 +131,79 @@ const updateUser = async (req, res) => {
   }
 };
 
-export { registerUser, loginUser, getUser, updateUser };
+const addToAdore = async (req, res) => {
+  try {
+    const { userId, resourceId } = req.body;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    // éviter doublon
+    if (user.adore.includes(resourceId)) {
+      return res.status(400).json({ message: "Déjà dans les favoris" });
+    }
+
+    user.adore.push(resourceId);
+    await user.save();
+
+    res.status(200).json({ message: "Ajouté aux favoris", adore: user.adore });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+const getAdore = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId)
+  .populate({
+    path: "adore",
+    populate: {
+      path: "media"
+    }
+  })
+      .select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    res.status(200).json(user.adore);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+const removeFromAdore = async (req, res) => {
+  try {
+    const { userId, resourceId } = req.body;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    user.adore = user.adore.filter(
+      (id) => id.toString() !== resourceId
+    );
+
+    await user.save();
+
+    res.status(200).json({ message: "Supprimé des favoris", adore: user.adore });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export {
+  registerUser,
+  loginUser,
+  getUser,
+  updateUser,
+  addToAdore,
+  removeFromAdore,
+  getAdore
+};
