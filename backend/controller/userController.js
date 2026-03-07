@@ -81,11 +81,17 @@ const loginUser = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.status(200).json({
-      message: "Login réussi",
-      token,
-      user,
-    });
+   res.status(200).json({
+  message: "Login réussi",
+  token,
+  user: {
+    id: user._id,
+    firstname: user.firstname,
+    lastname: user.lastname,
+    email: user.email,
+    role: user.role
+  }
+});
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: error.message });

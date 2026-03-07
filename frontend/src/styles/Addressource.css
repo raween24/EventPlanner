@@ -1,0 +1,367 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+body, html {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* ==============================
+   SPLIT LAYOUT — colle à la navbar
+============================== */
+.add-resource-container {
+  font-family: 'DM Sans', sans-serif;
+  display: flex;
+  height: 100vh; /* ← simple, pas de calc */
+  min-height: calc(100vh - 64px);
+  width: 100%;
+  overflow: hidden;
+}
+
+/* ==============================
+   GAUCHE — formulaire scrollable
+============================== */
+.add-resource-left {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
+  padding: 48px 52px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.add-resource-left::-webkit-scrollbar { display: none; }
+
+/* ==============================
+   HEADING
+============================== */
+.add-resource-left h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 34px;
+  background: linear-gradient(135deg, #1a2b3c, #2b7fff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.add-resource-subtitle {
+  color: #5f7d9c;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+/* ==============================
+   FORM — 2 colonnes
+============================== */
+.add-resource-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ==============================
+   FORM GROUP
+============================== */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.form-group.span-2 {
+  grid-column: span 2;
+}
+
+.form-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-left: 4px;
+}
+
+/* ==============================
+   INPUTS / TEXTAREA / SELECT
+============================== */
+.form-group input,
+.form-group textarea,
+.form-group select {
+  padding: 13px 18px;
+  border-radius: 14px;
+  border: 2px solid #d4e2f0;
+  background: #ffffff;
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  color: #1a2b3c;
+  outline: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #a6c0da;
+  font-weight: 300;
+}
+
+.form-group input:hover,
+.form-group textarea:hover,
+.form-group select:hover {
+  border-color: #9fc9ff;
+  background: #f5faff;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: #40a4ff;
+  background: #ffffff;
+  box-shadow: 0 8px 25px rgba(64, 164, 255, 0.18);
+  transform: translateY(-2px);
+}
+
+/* Animated underline */
+.form-group::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #40a4ff, #7ac7ff);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.form-group:focus-within::after {
+  width: 100%;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+}
+
+/* Select arrow */
+.form-group select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2340a4ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 44px;
+  cursor: pointer;
+}
+
+/* File input */
+.form-group input[type="file"] {
+  padding: 11px 16px;
+  font-size: 13px;
+  color: #5f7d9c;
+  cursor: pointer;
+}
+
+.form-group input[type="file"]::file-selector-button {
+  background: linear-gradient(135deg, #40a4ff, #2b7fff);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: 14px;
+  box-shadow: 0 4px 12px rgba(64, 164, 255, 0.3);
+  transition: opacity 0.2s;
+}
+
+.form-group input[type="file"]::file-selector-button:hover {
+  opacity: 0.85;
+}
+
+/* ==============================
+   SUBMIT BUTTON
+============================== */
+.submit-btn {
+  grid-column: span 2;
+  padding: 15px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #40a4ff, #2b7fff, #1e6ae5);
+  color: white;
+  font-weight: 600;
+  font-size: 15px;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.5px;
+  box-shadow: 0 10px 25px rgba(64, 164, 255, 0.35);
+  margin-top: 4px;
+}
+
+.submit-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px rgba(64, 164, 255, 0.45);
+}
+
+.submit-btn:active {
+  transform: translateY(-1px);
+}
+
+/* ==============================
+   MESSAGE
+============================== */
+.message {
+  margin-top: 16px;
+  text-align: center;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  background: rgba(22, 163, 74, 0.08);
+  color: #16a34a;
+  border: 1.5px solid rgba(22, 163, 74, 0.2);
+}
+
+/* ==============================
+   DROITE — image sticky
+============================== */
+.add-resource-right {
+  flex: 1;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background-image: url('https://images.unsplash.com/photo-1511578314322-379afb476865?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.add-resource-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 30, 60, 0.78), rgba(0, 60, 120, 0.82));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.overlay-content {
+  text-align: center;
+  color: white;
+  max-width: 380px;
+}
+
+.overlay-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.overlay-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.overlay-content h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 38px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  line-height: 1.2;
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+}
+
+.overlay-content p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.82);
+  margin-bottom: 40px;
+}
+
+.overlay-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 20px 24px;
+}
+
+.overlay-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.overlay-stat strong {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.overlay-stat span {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.overlay-stat-divider {
+  width: 1px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ==============================
+   RESPONSIVE
+============================== */
+@media (max-width: 900px) {
+  .add-resource-container {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+  .add-resource-left {
+    padding: 32px 24px;
+  }
+  .add-resource-right {
+    height: 300px;
+    flex: none;
+  }
+  .add-resource-form {
+    grid-template-columns: 1fr;
+  }
+  .form-group.span-2,
+  .submit-btn {
+    grid-column: span 1;
+  }
+}

@@ -24,10 +24,16 @@ export default function Login() {
       });
       const data = await res.json();
       if (res.ok) {
+
+        // stocke token + user
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
+
         alert(`Bienvenue ${data.user.firstname}`);
+
+        // ✅ redirection vers Home mais RoleGuard protégera les pages
         navigate("/");
+
       } else {
         alert(data.message || "Email ou mot de passe incorrect");
       }
@@ -40,13 +46,20 @@ export default function Login() {
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       if (!credentialResponse?.credential) throw new Error("Pas de token reçu de Google");
+
       const res = await axios.post("http://localhost:5000/api/auth/google", {
         token: credentialResponse.credential,
       });
+
+      // stocke token + user
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
+
       alert(`Bienvenue ${res.data.user.firstname || res.data.user.name || "Utilisateur"}`);
+
+      //  redirection vers Home, RoleGuard fera la protection
       navigate("/");
+
     } catch (err) {
       alert("Erreur connexion Google : " + (err.response?.data?.message || err.message || "Inconnue"));
     }

@@ -19,7 +19,6 @@ import {
   Map,
   User
 } from "lucide-react"
-
 export default function ResourceDetailsPage() {
 
   const { id } = useParams()

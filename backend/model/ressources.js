@@ -54,7 +54,7 @@ const resourceSchema = new mongoose.Schema(
     
   },
   {
-    timestamps: true, // ajoute createdAt et updatedAt automatiquement
+    timestamps: true,
   }
 );
 
