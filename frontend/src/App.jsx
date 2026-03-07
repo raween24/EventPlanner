@@ -6,9 +6,7 @@ import HomePage from "./pages/HomePage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import RessourceDetail from "./pages/RessourceDetail";
-import DocumentUpload from "./pages/document";
 import AddResource from "./pages/AddResource";
-
 import RoleGuard from "./components/RoleGuard";
 
 export default function App() {
@@ -29,14 +27,7 @@ export default function App() {
             </RoleGuard>
           }
         />
-        <Route
-          path="/upload"
-          element={
-            <RoleGuard roles={["prestataire"]}>
-              <DocumentUpload />
-            </RoleGuard>
-          }
-        />
+        
         {/* ajout de la page AddResource */}
         <Route
           path="/add-resource"
