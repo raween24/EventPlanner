@@ -5,3 +5,4 @@ template kemla rapport **C BON**
 connecxion organisateur et prostataire **C BON**
 remarques :
 lorsque user se connecte il saffiche la page dacceuil avec les deux button consulter ressources et creer event
+Rawen install sa dabord dans le frontend: npm install @use-gesture/react
