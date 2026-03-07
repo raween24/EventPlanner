@@ -142,6 +142,7 @@ export default function ResourceDetailsPage() {
       if (!response.ok) throw new Error("Erreur ajout")
 
       setNewComment("")
+      setNewRating(5)
       setShowCommentForm(false)
 
       await fetchComments()
@@ -170,6 +171,12 @@ export default function ResourceDetailsPage() {
     } catch (error) {
       console.error("Erreur suppression commentaire:", error)
     }
+  }
+
+  // Formater la date
+  const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' }
+    return new Date(dateString).toLocaleDateString('fr-FR', options)
   }
 
   // Vérifier si une date est disponible (pas dans unavailableDates)
@@ -375,82 +382,81 @@ export default function ResourceDetailsPage() {
           <div className="lg:col-span-2 space-y-6">
 
             {/* Carrousel d'images */}
-           {/* Carrousel d'images avec flèches de navigation */}
-<div className="relative group">
-  {/* Image principale */}
-  <div
-    className="relative rounded-2xl overflow-hidden bg-gray-100 shadow-lg cursor-pointer"
-    onClick={() => setShowLightbox(true)}
-  >
-    <img
-      src={images[currentImageIndex] || "/placeholder-image.jpg"}
-      alt={`${resource.name} - Image ${currentImageIndex + 1}`}
-      className="w-full aspect-[16/9] object-cover transition duration-500 hover:scale-105"
-    />
+            <div className="relative group">
+              {/* Image principale */}
+              <div
+                className="relative rounded-2xl overflow-hidden bg-gray-100 shadow-lg cursor-pointer"
+                onClick={() => setShowLightbox(true)}
+              >
+                <img
+                  src={images[currentImageIndex] || "/placeholder-image.jpg"}
+                  alt={`${resource.name} - Image ${currentImageIndex + 1}`}
+                  className="w-full aspect-[16/9] object-cover transition duration-500 hover:scale-105"
+                />
 
-    {/* Overlay au hover */}
-    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <Maximize2 className="h-8 w-8 text-white drop-shadow-lg" />
-      </div>
-    </div>
+                {/* Overlay au hover */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <Maximize2 className="h-8 w-8 text-white drop-shadow-lg" />
+                  </div>
+                </div>
 
-    {/* Compteur d'images */}
-    <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
-      {currentImageIndex + 1} / {images.length}
-    </div>
+                {/* Compteur d'images */}
+                <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
+                  {currentImageIndex + 1} / {images.length}
+                </div>
 
-    {/* 🔥 FLÈCHES DE NAVIGATION SUR L'IMAGE PRINCIPALE */}
-    {images.length > 1 && (
-      <>
-        {/* Flèche gauche */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            prevImage()
-          }}
-          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full backdrop-blur-sm transition-all duration-300 opacity-0 group-hover:opacity-100 transform hover:scale-110"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </button>
+                {/* Flèches de navigation sur l'image principale */}
+                {images.length > 1 && (
+                  <>
+                    {/* Flèche gauche */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        prevImage()
+                      }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full backdrop-blur-sm transition-all duration-300 opacity-0 group-hover:opacity-100 transform hover:scale-110"
+                    >
+                      <ChevronLeft className="h-6 w-6" />
+                    </button>
 
-        {/* Flèche droite */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            nextImage()
-          }}
-          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full backdrop-blur-sm transition-all duration-300 opacity-0 group-hover:opacity-100 transform hover:scale-110"
-        >
-          <ChevronRight className="h-6 w-6" />
-        </button>
-      </>
-    )}
-  </div>
+                    {/* Flèche droite */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        nextImage()
+                      }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full backdrop-blur-sm transition-all duration-300 opacity-0 group-hover:opacity-100 transform hover:scale-110"
+                    >
+                      <ChevronRight className="h-6 w-6" />
+                    </button>
+                  </>
+                )}
+              </div>
 
-  {/* Miniatures (optionnelles - vous pouvez les garder ou les supprimer) */}
-  {images.length > 1 && (
-    <div className="mt-4 grid grid-cols-5 gap-3">
-      {images.map((img, index) => (
-        <button
-          key={index}
-          onClick={() => setCurrentImageIndex(index)}
-          className={`relative rounded-lg overflow-hidden aspect-[4/3] transition-all duration-300 ${
-            index === currentImageIndex
-              ? 'ring-2 ring-black scale-105 shadow-lg'
-              : 'opacity-70 hover:opacity-100'
-          }`}
-        >
-          <img
-            src={img}
-            alt={`Miniature ${index + 1}`}
-            className="w-full h-full object-cover"
-          />
-        </button>
-      ))}
-    </div>
-  )}
-</div>
+              {/* Miniatures */}
+              {images.length > 1 && (
+                <div className="mt-4 grid grid-cols-5 gap-3">
+                  {images.map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`relative rounded-lg overflow-hidden aspect-[4/3] transition-all duration-300 ${index === currentImageIndex
+                        ? 'ring-2 ring-black scale-105 shadow-lg'
+                        : 'opacity-70 hover:opacity-100'
+                        }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Miniature ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Informations détaillées */}
             <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
               <div className="flex items-start justify-between">
@@ -508,7 +514,7 @@ export default function ResourceDetailsPage() {
               </div>
             </div>
 
-            {/* Section Commentaires */}
+            {/* Section Commentaires - CORRIGÉE ET AMÉLIORÉE */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
@@ -533,8 +539,9 @@ export default function ResourceDetailsPage() {
                 )}
               </div>
 
+              {/* Formulaire d'ajout de commentaire */}
               {showCommentForm && currentUser && (
-                <form onSubmit={handleAddComment} className="mb-8 bg-gray-50 p-4 rounded-xl">
+                <form onSubmit={handleAddComment} className="mb-8 bg-gray-50 p-4 rounded-xl animate-fade-in">
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Votre note
@@ -545,18 +552,19 @@ export default function ResourceDetailsPage() {
                           key={star}
                           type="button"
                           onClick={() => setNewRating(star)}
-                          className="focus:outline-none"
+                          className="focus:outline-none transition transform hover:scale-110"
                         >
                           <Star
-                            className={`h-6 w-6 transition ${star <= newRating
+                            className={`h-8 w-8 transition-all duration-200 ${star <= newRating
                               ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-gray-300'
+                              : 'text-gray-300 hover:text-gray-400'
                               }`}
                           />
                         </button>
                       ))}
                     </div>
                   </div>
+
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Votre commentaire
@@ -564,78 +572,119 @@ export default function ResourceDetailsPage() {
                     <textarea
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
-                      rows="3"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                      placeholder="Partagez votre expérience..."
+                      rows="4"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 resize-none"
+                      placeholder="Partagez votre expérience... (minimum 10 caractères)"
+                      minLength="10"
                       required
                     />
                   </div>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Send className="h-4 w-4" />
-                    {submitting ? 'Publication...' : 'Publier'}
-                  </button>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={submitting || newComment.length < 10}
+                      className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Send className="h-4 w-4" />
+                      {submitting ? 'Publication...' : 'Publier mon avis'}
+                    </button>
+                  </div>
                 </form>
               )}
 
+              {/* Liste des commentaires */}
               <div className="space-y-6">
                 {comments.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">
-                    Aucun avis pour le moment. Soyez le premier à donner votre avis !
-                  </p>
+                  <div className="text-center py-12">
+                    <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-lg">
+                      Aucun avis pour le moment
+                    </p>
+                    <p className="text-gray-400 text-sm mt-2">
+                      Soyez le premier à donner votre avis sur cette ressource !
+                    </p>
+                  </div>
                 ) : (
                   comments.map((comment) => (
-                    <div key={comment._id} className="border-b border-gray-100 last:border-0 pb-6 last:pb-0">
+                    <div
+                      key={comment._id}
+                      className="border-b border-gray-100 last:border-0 pb-6 last:pb-0 hover:bg-gray-50/50 p-4 rounded-xl transition-all duration-200"
+                    >
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex-shrink-0 flex items-center justify-center text-white font-semibold">
-                          {comment.C_user?.firstname ? (
-                            comment.C_user.firstname.charAt(0).toUpperCase()
+                        {/* Avatar de l'utilisateur */}
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex-shrink-0 flex items-center justify-center text-white font-semibold shadow-md">
+                          {comment.C_user?.image ? (
+                            <img
+                              src={comment.C_user.image}
+                              alt={comment.C_user.firstname}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.style.display = 'none';
+                                e.target.parentNode.innerHTML = '<span>' + (comment.C_user?.firstname?.charAt(0).toUpperCase() || 'U') + '</span>';
+                              }}
+                            />
                           ) : (
-                            <User className="h-6 w-6" />
+                            <span className="text-lg">
+                              {comment.C_user?.firstname?.charAt(0).toUpperCase() ||
+                                comment.C_user?.name?.charAt(0).toUpperCase() ||
+                                'U'}
+                            </span>
                           )}
                         </div>
 
+                        {/* Contenu du commentaire */}
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-2">
                             <div>
-                              <h3 className="font-semibold text-gray-900">
-                                {comment.C_user?.email || "Utilisateur"}
-                              </h3>
-                              <p className="text-xs text-gray-500">
-                                {new Date(comment.createdAt).toLocaleDateString('fr-FR', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                })}
+                              <h4 className="font-semibold text-gray-900">
+                                {comment.C_user?.firstname || comment.C_user?.name || "Utilisateur"} {comment.C_user?.lastname || ""}
+                              </h4>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {formatDate(comment.createdAt)}
                               </p>
                             </div>
 
+                            {/* Bouton de suppression (visible seulement pour l'auteur) */}
                             {currentUser && currentUser.id === comment.C_user?._id && (
                               <button
                                 onClick={() => handleDeleteComment(comment._id)}
-                                className="text-xs text-red-500 hover:text-red-700"
+                                className="text-xs text-red-500 hover:text-red-700 px-3 py-1 rounded-full hover:bg-red-50 transition"
                               >
                                 Supprimer
                               </button>
                             )}
                           </div>
 
-                          <div className="flex items-center gap-1 mb-2">
+                          {/* Étoiles de notation */}
+                          <div className="flex items-center gap-1 mb-3">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
                                 key={star}
                                 className={`h-4 w-4 ${star <= comment.nbr_stars
-                                  ? 'fill-yellow-400 text-yellow-400'
-                                  : 'text-gray-300'
+                                    ? 'fill-yellow-400 text-yellow-400'
+                                    : 'text-gray-300'
                                   }`}
                               />
                             ))}
                           </div>
 
-                          <p className="text-gray-600 mb-3">{comment.contenue}</p>
+                          {/* Contenu du commentaire */}
+                          <p className="text-gray-700 leading-relaxed">
+                            {comment.contenue}
+                          </p>
+
+                          {/* Footer du commentaire avec actions */}
+                          <div className="flex items-center gap-4 mt-3">
+                            <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition">
+                              <ThumbsUp className="h-3 w-3" />
+                              <span>Utile</span>
+                            </button>
+                            <span className="text-xs text-gray-400">
+                              Il y a {Math.floor((new Date() - new Date(comment.createdAt)) / (1000 * 60 * 60 * 24))} jours
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -900,7 +949,7 @@ export default function ResourceDetailsPage() {
                       : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     }
                   `}
-                  onClick={() => startDate && endDate && setReserved(true)}
+                  onClick={() => navigate("/panier")}
                   disabled={!startDate || !endDate || !isRangeValid() || loadingAvailability}
                 >
                   {loadingAvailability
@@ -911,7 +960,7 @@ export default function ResourceDetailsPage() {
                         ? 'Sélectionnez une date de fin'
                         : !isRangeValid()
                           ? 'Période non disponible'
-                          : 'Réserver maintenant'}
+                          : 'ajouter au panier'}
                 </button>
               )}
             </div>
@@ -971,6 +1020,24 @@ export default function ResourceDetailsPage() {
           </div>
         </div>
       )}
+
+      {/* Styles d'animation */}
+      <style jsx>{`
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   )
 }
