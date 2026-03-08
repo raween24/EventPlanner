@@ -1,6 +1,9 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
+
 import connectDB from "./config/db.js";
 
 // Routes
@@ -11,58 +14,60 @@ import mediaRoutes from "./routes/mediaRoutes.js";
 import dispoRoutes from "./routes/dispoRoutes.js";
 import googleAuthRoutes from "./routes/googleAuthRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
+
 dotenv.config();
 
 const app = express();
+
+/* ================= CONFIG PATH (ESM) ================= */
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/* ================= CONNECT DB ================= */
 
 connectDB();
 
 /* ================= MIDDLEWARES ================= */
 
-//  CORS (autorise ton frontend React)
-app.use(cors({
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      "http://localhost:5173",
-      "http://127.0.0.1:5173"
-    ];
-
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true
-}));
+// CORS (autorise ton frontend React)
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
     credentials: true,
   })
 );
 
+// parser JSON
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// rendre le dossier uploads accessible
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+/* ================= ROUTES ================= */
 
 app.use("/api/users", userRoutes);
 app.use("/api/event", eventRoutes);
 app.use("/api/ressources", ressourceRoutes);
 app.use("/api/media", mediaRoutes);
 app.use("/api/dispo", dispoRoutes);
-
 app.use("/api/auth", googleAuthRoutes);
-app.use("api/document", documentRoutes);
+app.use("/api/document", documentRoutes);
+
+// test API
 app.get("/", (req, res) => {
-  res.send("API Event Planner fonctionne ");
+  res.send("API Event Planner fonctionne 🚀");
 });
 
+/* ================= ERROR HANDLER ================= */
 
 app.use((err, req, res, next) => {
   console.error("Erreur serveur :", err.stack);
   res.status(500).json({ message: "Erreur serveur interne" });
 });
 
+/* ================= SERVER ================= */
 
 const PORT = process.env.PORT || 5000;
 

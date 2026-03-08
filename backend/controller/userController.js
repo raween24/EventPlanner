@@ -41,7 +41,7 @@ const registerUser = async (req, res) => {
       numTel,
       region,
       gender,
-      image: req.file ? req.file.path : null,
+      image: req.file ? req.file.path : image || null,
       role,
     });
 
@@ -82,17 +82,18 @@ const loginUser = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-   res.status(200).json({
-  message: "Login réussi",
-  token,
-  user: {
-    id: user._id,
-    firstname: user.firstname,
-    lastname: user.lastname,
-    email: user.email,
-    role: user.role
-  }
-});
+    res.status(200).json({
+      message: "Login réussi",
+      token,
+      user: {
+        id: user._id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email,
+        role: user.role,
+        image: user.image
+      }
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: error.message });
@@ -165,12 +166,12 @@ const getAdore = async (req, res) => {
     const { userId } = req.params;
 
     const user = await User.findById(userId)
-  .populate({
-    path: "adore",
-    populate: {
-      path: "media"
-    }
-  })
+      .populate({
+        path: "adore",
+        populate: {
+          path: "media"
+        }
+      })
       .select("-password");
 
     if (!user) {
