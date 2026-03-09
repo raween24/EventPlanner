@@ -6,7 +6,7 @@ connecxion organisateur et prostataire **C BON**
 organiser lacceuil **C BON**
 tous ces taches sont ok !
 
-**les prochaines taches**
+**les prochaines taches** ( les grandes lignes )
 le dashboard prestataire ( il faut qu'on fait un design commun )
 le dashboard organisateur ( il faut qu'on fait un design commun )
 la page panier ( les favories )
