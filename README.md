@@ -3,6 +3,7 @@ ajouter photo dans base de donnees : adem **C BON**
 page des favory : adem **C BON**
 template kemla rapport **C BON**
 connecxion organisateur et prostataire **C BON**
+organiser lacceuil **C BON**
 tous ces taches sont ok !
 
 **les prochaines taches**
