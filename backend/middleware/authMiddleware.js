@@ -24,7 +24,9 @@ export const verifyToken = async (req, res, next) => {
         role: user.role,
         email: user.email,
         firstname: user.firstname,
-        lastname: user.lastname
+        lastname: user.lastname,
+        image_user:user.image,
+        provider_name: `${user.firstname} ${user.lastname}`
       };
 
       next();

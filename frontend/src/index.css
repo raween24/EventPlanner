@@ -43,21 +43,17 @@ body {
 
 ::-webkit-scrollbar-thumb {
   border-radius: 9999px;
-  background: linear-gradient(
-    180deg,
-    rgba(37, 99, 235, 0.18),
-    rgba(37, 99, 235, 0.35)
-  );
+  background: linear-gradient(180deg,
+      rgba(37, 99, 235, 0.18),
+      rgba(37, 99, 235, 0.35));
   transition: all 0.3s ease;
 }
 
 /* hover doux */
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(
-    180deg,
-    rgba(37, 99, 235, 0.45),
-    rgba(29, 78, 216, 0.70)
-  );
+  background: linear-gradient(180deg,
+      rgba(37, 99, 235, 0.45),
+      rgba(29, 78, 216, 0.70));
 }
 
 
@@ -78,4 +74,8 @@ body {
 
 .auth-scroll:hover::-webkit-scrollbar-thumb {
   opacity: 1;
+}
+
+.input {
+  @apply border rounded-xl p-3 w-full focus:ring-2 focus:ring-indigo-400 outline-none transition;
 }

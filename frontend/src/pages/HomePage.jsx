@@ -98,9 +98,9 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
     // Extraire juste le nom du fichier
     const fileName = user.image.split('\\').pop().split('/').pop();
     const imageUrl = `http://localhost:5000/uploads/${fileName}`;
-    
+
     console.log('Tentative de chargement image:', imageUrl);
-    
+
     return (
       <div className="relative">
         {loading && (
@@ -122,7 +122,7 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
           onError={(e) => {
             console.log('❌ Erreur de chargement pour:', imageUrl);
             console.log('Status de l\'erreur:', e.type);
-            
+
             // Tentative de rechargement avec un délai (max 2 tentatives)
             if (retryCount < 2) {
               setRetryCount(prev => prev + 1);
@@ -157,7 +157,7 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
       )}
     </div>
   );
-};export default function HomePage() {
+}; export default function HomePage() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -406,9 +406,7 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
             className="flex items-center space-x-2 cursor-pointer"
             onClick={() => navigate("/")}
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
+
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               EventPlanner
             </span>

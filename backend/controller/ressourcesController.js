@@ -1,45 +1,81 @@
 import Resource from "../model/ressources.js";
+import Media from "../model/media_ressources.js";
+import Dispo from "../model/disponibilite.js";
 
-// ================= AJOUTER RESSOURCE =================
 const addResource = async (req, res) => {
     try {
-        if (req.user.role !== "prestataire") {
-            return res.status(403).json({ message: "Accès refusé : seul le prestataire peut ajouter des ressources" });
+
+        const {
+            name,
+            description,
+            type,
+            price,
+            location,
+            capacity
+        } = req.body;
+
+        // récupérer le user connecté depuis middleware auth
+        const provider_name = req.user.firstName + " " + req.user.lastName;
+        const provider_email = req.user.email;
+
+        // ================= MEDIA =================
+        let mediaId = null;
+
+        if (req.files && req.files.length > 0) {
+
+            const images = req.files.map(file => file.path);
+
+            const media = await Media.create({
+                img_vd: images
+            });
+
+            mediaId = media._id;
         }
 
-        const body = req.body || {};
+        // ================= AVAILABILITY =================
+        const availabilityIds = [];
 
-        const name = body.name;
-        const description = body.description;
-        const type = body.type;
-        const price = body.price;
-        const location = body.location;
-        const capacity = body.capacity;
-        const provider_name = body.provider_name;
-        const provider_email = body.provider_email;
+        if (req.body.availability) {
 
-        if (!name || !description || !type || !price || !provider_name) {
-            return res.status(400).json({ message: "Champs obligatoires manquants : name, description, type, price, provider_name" });
+            const events = JSON.parse(req.body.availability);
+
+            for (let event of events) {
+
+                const dispo = await Dispo.create({
+                    date_deb: event.start,
+                    date_fin: event.end,
+                    satut_disp: event.type === "available"
+                });
+
+                availabilityIds.push(dispo._id);
+            }
         }
 
-        const resource = new Resource({
+        // ================= RESOURCE =================
+        const resource = await Resource.create({
+
             name,
             description,
             type,
             price,
             location,
             capacity,
+
             provider_name,
             provider_email,
+
+            media: mediaId ? [mediaId] : [],
+            availability: availabilityIds
+
         });
 
-        await resource.save();
         res.status(201).json(resource);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ message: "Erreur serveur" });
     }
 };
-
 // ================= VOIR TOUTES LES RESSOURCES =================
 const getAllResources = async (req, res) => {
     try {
