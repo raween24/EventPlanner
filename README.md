@@ -7,6 +7,7 @@ organiser lacceuil **C BON**
 tous ces taches sont ok !
 
  modifier la disponibilite chez lorganisteur (lw9t exatct dans le jour )
+ connection avec google pour prestataire seulement 
  
 
 **les prochaines taches** ( les grandes lignes )
