@@ -82,7 +82,7 @@ const PanierRessources = () => {
         <div className="mb-8 flex items-center gap-3">
           <Heart className="w-8 h-8 text-rose-500 fill-rose-500" />
           <h1 className="text-3xl font-bold text-gray-800">
-            Mes Ressources Adorées
+            Mes Ressources Favorier
           </h1>
         </div>
 

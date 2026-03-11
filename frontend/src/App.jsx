@@ -8,6 +8,7 @@ import Signup from "./pages/Signup";
 import RessourceDetail from "./pages/RessourceDetail";
 import AddResource from "./pages/AddResource";
 import RoleGuard from "./components/RoleGuard";
+import PanierRessources from "./pages/panier";
 
 export default function App() {
   return (
@@ -17,17 +18,19 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/panier" element={<PanierRessources />} />
+
 
         {/* pages prestataire uniquement */}
         <Route
           path="/CreerEvenement"
           element={
-            <RoleGuard roles={["prestataire"]}>
+            <RoleGuard roles={["organisateur"]}>
               <CreerEvenement />
             </RoleGuard>
           }
         />
-        
+
         {/* ajout de la page AddResource */}
         <Route
           path="/add-resource"
