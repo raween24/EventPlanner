@@ -6,6 +6,9 @@ connecxion organisateur et prostataire **C BON**
 organiser lacceuil **C BON**
 tous ces taches sont ok !
 
+ modifier la disponibilite chez lorganisteur (lw9t exatct dans le jour )
+ 
+
 **les prochaines taches** ( les grandes lignes )
 le dashboard prestataire ( il faut qu'on fait un design commun )
 le dashboard organisateur ( il faut qu'on fait un design commun )
