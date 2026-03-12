@@ -1,4 +1,4 @@
-import { Calendar, Clock, Shield, Star, Menu, X, ChevronRight, MapPin, Users, CreditCard, Sparkles, Mail, Phone, MapPinned, Send, ChevronDown, LogOut, User, ShoppingCart, LayoutDashboard, PlusCircle } from "lucide-react";
+import { Calendar, Clock,MessageCircle, Shield, Star, Menu, X, ChevronRight, MapPin, Users, CreditCard, Sparkles, Mail, Phone, MapPinned, Send, ChevronDown, LogOut, User, ShoppingCart, LayoutDashboard, PlusCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -269,6 +269,7 @@ export default function HomePage() {
 
             <div className="py-2">
               {[
+                 { label: "Messanger", path: "/message", icon: MessageCircle, iconColor: "text-blue-600", show: true },
                 { label: "Mon Profil", path: "/profil", icon: User, iconColor: "text-blue-600", show: true },
                 { label: "Mon Panier", path: "/panier", icon: ShoppingCart, iconColor: "text-purple-600", show: role === "organisateur", badge: "0" },
                 { label: "Tableau de bord", path: role === "organisateur" ? "/dashboard-organisateur" : "/dashboard-prestataire", icon: LayoutDashboard, iconColor: "text-green-600", show: true },
@@ -292,6 +293,7 @@ export default function HomePage() {
               ))}
 
               <div className="my-2 border-t border-gray-100"></div>
+              
 
               <motion.button
                 initial={{ opacity: 0, x: -8 }}

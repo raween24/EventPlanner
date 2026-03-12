@@ -14,6 +14,7 @@ import mediaRoutes from "./routes/mediaRoutes.js";
 import dispoRoutes from "./routes/dispoRoutes.js";
 import googleAuthRoutes from "./routes/googleAuthRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
+import commentRoutes from "./routes/commentRoutes.js";
 
 dotenv.config();
 
@@ -54,6 +55,7 @@ app.use("/api/media", mediaRoutes);
 app.use("/api/dispo", dispoRoutes);
 app.use("/api/auth", googleAuthRoutes);
 app.use("/api/document", documentRoutes);
+app.use("/api/comment",commentRoutes);
 
 // test API
 app.get("/", (req, res) => {

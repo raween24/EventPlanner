@@ -144,8 +144,6 @@ const updateUser = async (req, res) => {
 
     // update champs
     Object.assign(user, req.body);
-
-    // si password changé → rehash
     if (req.body.password) {
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(req.body.password, salt);
