@@ -67,9 +67,6 @@ const faqData = [
   }
 ];
 
-// Composant Avatar réutilisable avec gestion de l'image null
-// Composant Avatar réutilisable avec gestion de l'image null
-// Composant Avatar réutilisable avec gestion de l'image null
 const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
   const sizeClasses = {
     sm: "w-8 h-8 text-sm",
@@ -81,11 +78,7 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
   const [loading, setLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Vérifier si l'utilisateur a une image
   const hasImage = user?.image && user.image !== null && user.image !== undefined && user.image !== '';
-
-  // URL de fallback (image par défaut)
-  const defaultAvatar = "https://ui-avatars.com/api/?name=" + user?.firstname + "+" + user?.lastname + "&background=random";
 
   useEffect(() => {
     if (hasImage) {
@@ -95,11 +88,8 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
   }, [user?.image]);
 
   if (hasImage && !imageError) {
-    // Extraire juste le nom du fichier
     const fileName = user.image.split('\\').pop().split('/').pop();
     const imageUrl = `http://localhost:5000/uploads/${fileName}`;
-
-    console.log('Tentative de chargement image:', imageUrl);
 
     return (
       <div className="relative">
@@ -110,29 +100,16 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
           </div>
         )}
         <img
-          key={imageUrl} // Force le rechargement si l'URL change
+          key={imageUrl}
           src={imageUrl}
           alt={`${user.firstname} ${user.lastname}`}
           className={`${sizeClasses[size]} rounded-full object-cover border-2 border-white shadow-lg ${loading ? 'hidden' : 'block'}`}
-          onLoad={() => {
-            console.log('✅ Image chargée avec succès:', imageUrl);
-            setLoading(false);
-            setImageError(false);
-          }}
-          onError={(e) => {
-            console.log('❌ Erreur de chargement pour:', imageUrl);
-            console.log('Status de l\'erreur:', e.type);
-
-            // Tentative de rechargement avec un délai (max 2 tentatives)
+          onLoad={() => { setLoading(false); setImageError(false); }}
+          onError={() => {
             if (retryCount < 2) {
               setRetryCount(prev => prev + 1);
-              setTimeout(() => {
-                console.log(`Tentative de rechargement ${retryCount + 1}/2...`);
-                setImageError(false);
-                setLoading(true);
-              }, 1000);
+              setTimeout(() => { setImageError(false); setLoading(true); }, 1000);
             } else {
-              console.log('Nombre maximum de tentatives atteint, utilisation des initiales');
               setImageError(true);
               setLoading(false);
             }
@@ -145,7 +122,6 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
     );
   }
 
-  // Afficher les initiales
   return (
     <div className="relative">
       <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white font-semibold shadow-lg`}>
@@ -157,26 +133,23 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
       )}
     </div>
   );
-}; export default function HomePage() {
+};
+
+export default function HomePage() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
-  });
+  const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
   const [formStatus, setFormStatus] = useState('');
+  const [hoveredEvent, setHoveredEvent] = useState(null);
+  const [hoveredFeature, setHoveredFeature] = useState(null);
   const profileMenuRef = useRef(null);
 
-  // Gestion de l'utilisateur connecté
   const user = JSON.parse(localStorage.getItem("user"));
-  console.log(user);
-  const role = user?.role; // "organisateur" | "prestataire" | undefined
+  const role = user?.role;
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -185,9 +158,7 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
   };
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -199,7 +170,6 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Fermer le menu profil quand on clique en dehors
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
@@ -252,22 +222,15 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
     },
   ];
 
-  // Navigation items selon le rôle
-  const getNavLinks = () => {
-    const links = [
-      { name: "Accueil", path: "/" },
-      { name: "Événements", path: "/evenements" },
-      { name: "Ressources", path: "/les_ressources" },
-      { name: "Contact", path: "#contact" }
-    ];
+  const getNavLinks = () => [
+    { name: "Accueil", path: "/" },
+    { name: "Événements", path: "/evenements" },
+    { name: "Ressources", path: "/les_ressources" },
+    { name: "Contact", path: "#contact" }
+  ];
 
-    return links;
-  };
-
-  // Menu déroulant du profil
   const ProfileMenu = () => (
     <div className="relative" ref={profileMenuRef}>
-      {/* Avatar cliquable */}
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
@@ -275,23 +238,24 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
         className="flex items-center gap-2 focus:outline-none"
       >
         <UserAvatar user={user} size="md" showOnlineStatus={true} />
-        <span className="text-gray-700 font-medium hidden lg:block">
-          {user?.firstname}
-        </span>
-        <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+        <span className="text-gray-700 font-medium hidden lg:block">{user?.firstname}</span>
+        <motion.div
+          animate={{ rotate: isProfileMenuOpen ? 180 : 0 }}
+          transition={{ duration: 0.25, ease: "easeInOut" }}
+        >
+          <ChevronDown className="w-4 h-4 text-gray-500" />
+        </motion.div>
       </motion.button>
 
-      {/* Menu déroulant */}
       <AnimatePresence>
         {isProfileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50"
           >
-            {/* En-tête du menu avec l'avatar */}
             <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <UserAvatar user={user} size="sm" showOnlineStatus={false} />
@@ -303,83 +267,39 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
               </div>
             </div>
 
-            {/* Liens du menu */}
             <div className="py-2">
-              {/* Profil - pour tous */}
-              <motion.button
-                whileHover={{ x: 5 }}
-                onClick={() => {
-                  navigate("/profil");
-                  setIsProfileMenuOpen(false);
-                  setIsOpen(false);
-                }}
-                className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors"
-              >
-                <User className="w-5 h-5 text-blue-600" />
-                <span>Mon Profil</span>
-              </motion.button>
-
-              {/* Panier - uniquement pour organisateur */}
-              {role === "organisateur" && (
+              {[
+                { label: "Mon Profil", path: "/profil", icon: User, iconColor: "text-blue-600", show: true },
+                { label: "Mon Panier", path: "/panier", icon: ShoppingCart, iconColor: "text-purple-600", show: role === "organisateur", badge: "0" },
+                { label: "Tableau de bord", path: role === "organisateur" ? "/dashboard-organisateur" : "/dashboard-prestataire", icon: LayoutDashboard, iconColor: "text-green-600", show: true },
+                { label: "Publier une ressource", path: "/add-resource", icon: PlusCircle, iconColor: "text-orange-600", show: role === "prestataire" },
+              ].filter(item => item.show).map((item, i) => (
                 <motion.button
-                  whileHover={{ x: 5 }}
-                  onClick={() => {
-                    navigate("/panier");
-                    setIsProfileMenuOpen(false);
-                    setIsOpen(false);
-                  }}
-                  className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors"
+                  key={item.label}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05, duration: 0.2 }}
+                  whileHover={{ x: 5, backgroundColor: "rgb(239 246 255)" }}
+                  onClick={() => { navigate(item.path); setIsProfileMenuOpen(false); setIsOpen(false); }}
+                  className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 transition-colors"
                 >
-                  <ShoppingCart className="w-5 h-5 text-purple-600" />
-                  <span>Mon Panier</span>
-                  {/* Badge avec nombre d'articles (exemple) */}
-                  <span className="ml-auto bg-purple-100 text-purple-600 text-xs font-semibold px-2 py-1 rounded-full">
-                    0
-                  </span>
+                  <item.icon className={`w-5 h-5 ${item.iconColor}`} />
+                  <span>{item.label}</span>
+                  {item.badge !== undefined && (
+                    <span className="ml-auto bg-purple-100 text-purple-600 text-xs font-semibold px-2 py-1 rounded-full">{item.badge}</span>
+                  )}
                 </motion.button>
-              )}
+              ))}
 
-              {/* Dashboard - selon le rôle */}
-              <motion.button
-                whileHover={{ x: 5 }}
-                onClick={() => {
-                  navigate(role === "organisateur" ? "/dashboard-organisateur" : "/dashboard-prestataire");
-                  setIsProfileMenuOpen(false);
-                  setIsOpen(false);
-                }}
-                className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors"
-              >
-                <LayoutDashboard className="w-5 h-5 text-green-600" />
-                <span>Tableau de bord</span>
-              </motion.button>
-
-              {/* Publier une ressource - uniquement pour prestataire */}
-              {role === "prestataire" && (
-                <motion.button
-                  whileHover={{ x: 5 }}
-                  onClick={() => {
-                    navigate("/add-resource");
-                    setIsProfileMenuOpen(false);
-                    setIsOpen(false);
-                  }}
-                  className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors"
-                >
-                  <PlusCircle className="w-5 h-5 text-orange-600" />
-                  <span>Publier une ressource</span>
-                </motion.button>
-              )}
-
-              {/* Séparateur */}
               <div className="my-2 border-t border-gray-100"></div>
 
-              {/* Déconnexion */}
               <motion.button
-                whileHover={{ x: 5 }}
-                onClick={() => {
-                  handleLogout();
-                  setIsProfileMenuOpen(false);
-                }}
-                className="w-full px-4 py-3 flex items-center gap-3 text-red-600 hover:bg-red-50 transition-colors"
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.2 }}
+                whileHover={{ x: 5, backgroundColor: "rgb(254 242 242)" }}
+                onClick={() => { handleLogout(); setIsProfileMenuOpen(false); }}
+                className="w-full px-4 py-3 flex items-center gap-3 text-red-600 transition-colors"
               >
                 <LogOut className="w-5 h-5" />
                 <span>Déconnexion</span>
@@ -393,33 +313,40 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 font-sans antialiased">
-      {/* Navbar avec gestion des sessions */}
+
+      {/* ── NAVBAR ────────────────────────────────────────────────────────── */}
       <motion.nav
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white/90 backdrop-blur-lg shadow-lg py-4' : 'bg-white/80 py-6'
-          }`}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white/90 backdrop-blur-lg shadow-lg py-4' : 'bg-white/80 py-6'}`}
       >
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           <motion.div
             whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
             className="flex items-center space-x-2 cursor-pointer"
             onClick={() => navigate("/")}
           >
-
+            <motion.div
+              whileHover={{ rotate: 15 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center"
+            >
+              <Sparkles className="w-5 h-5 text-white" />
+            </motion.div>
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               EventPlanner
             </span>
           </motion.div>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             {getNavLinks().map((item, index) => (
               <motion.button
                 key={item.name}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.08, duration: 0.4 }}
                 onClick={() => {
                   if (item.path.startsWith('#')) {
                     document.getElementById(item.path.substring(1))?.scrollIntoView({ behavior: 'smooth' });
@@ -427,16 +354,16 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
                     navigate(item.path);
                   }
                 }}
-                className="relative text-gray-700 hover:text-blue-600 font-medium group"
+                className="relative text-gray-700 hover:text-blue-600 font-medium group transition-colors duration-200"
               >
                 {item.name}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 group-hover:w-full transition-all duration-300" />
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 group-hover:w-full transition-all duration-300 rounded-full" />
               </motion.button>
             ))}
 
             {!user ? (
               <motion.button
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, boxShadow: "0 8px 25px rgba(37,99,235,0.35)" }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate("/login")}
                 className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all"
@@ -448,25 +375,37 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}>
-            {isOpen ? <X className="w-6 h-6 text-gray-700" /> : <Menu className="w-6 h-6 text-gray-700" />}
-          </button>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            className="md:hidden"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            <AnimatePresence mode="wait">
+              {isOpen
+                ? <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}><X className="w-6 h-6 text-gray-700" /></motion.div>
+                : <motion.div key="open" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}><Menu className="w-6 h-6 text-gray-700" /></motion.div>
+              }
+            </AnimatePresence>
+          </motion.button>
         </div>
 
-        {/* Mobile Navigation */}
         <AnimatePresence>
           {isOpen && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
               className="md:hidden overflow-hidden bg-white/95 backdrop-blur-lg"
             >
               <div className="px-6 py-4 space-y-3">
-                {/* Afficher le profil en haut du menu mobile si connecté */}
                 {user && (
-                  <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl"
+                  >
                     <div className="flex items-center gap-3">
                       <UserAvatar user={user} size="lg" showOnlineStatus={true} />
                       <div className="flex-1">
@@ -474,97 +413,57 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
                         <p className="text-sm text-gray-500 truncate">{user?.email}</p>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
 
-                {/* Liens de navigation */}
-                {getNavLinks().map((item) => (
+                {getNavLinks().map((item, i) => (
                   <motion.button
                     key={item.name}
+                    initial={{ opacity: 0, x: -16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.06 + 0.1 }}
                     whileHover={{ x: 10 }}
                     onClick={() => {
                       if (item.path.startsWith('#')) {
                         document.getElementById(item.path.substring(1))?.scrollIntoView({ behavior: 'smooth' });
-                      } else {
-                        navigate(item.path);
-                      }
+                      } else { navigate(item.path); }
                       setIsOpen(false);
                     }}
-                    className="block w-full text-left py-2 px-4 text-gray-700 hover:bg-blue-50 rounded-lg transition"
+                    className="block w-full text-left py-2 px-4 text-gray-700 hover:bg-blue-50 rounded-lg transition-colors"
                   >
                     {item.name}
                   </motion.button>
                 ))}
 
-                {/* Options supplémentaires pour utilisateur connecté en mobile */}
                 {user && (
                   <>
                     <div className="border-t border-gray-100 my-2"></div>
-
-                    {/* Profil */}
-                    <motion.button
-                      whileHover={{ x: 10 }}
-                      onClick={() => {
-                        navigate("/profil");
-                        setIsOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg"
-                    >
-                      <User className="w-5 h-5 text-blue-600" />
-                      <span>Mon Profil</span>
-                    </motion.button>
-
-                    {/* Panier pour organisateur */}
-                    {role === "organisateur" && (
+                    {[
+                      { label: "Mon Profil", path: "/profil", icon: User, color: "text-blue-600", show: true },
+                      { label: "Mon Panier", path: "/panier", icon: ShoppingCart, color: "text-purple-600", show: role === "organisateur" },
+                      { label: "Tableau de bord", path: role === "organisateur" ? "/dashboard-organisateur" : "/dashboard-prestataire", icon: LayoutDashboard, color: "text-green-600", show: true },
+                      { label: "Publier une ressource", path: "/add-resource", icon: PlusCircle, color: "text-orange-600", show: role === "prestataire" },
+                    ].filter(i => i.show).map((item, i) => (
                       <motion.button
+                        key={item.label}
+                        initial={{ opacity: 0, x: -16 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.06 + 0.25 }}
                         whileHover={{ x: 10 }}
-                        onClick={() => {
-                          navigate("/panier");
-                          setIsOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg"
+                        onClick={() => { navigate(item.path); setIsOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition-colors"
                       >
-                        <ShoppingCart className="w-5 h-5 text-purple-600" />
-                        <span>Mon Panier</span>
+                        <item.icon className={`w-5 h-5 ${item.color}`} />
+                        <span>{item.label}</span>
                       </motion.button>
-                    )}
-
-                    {/* Dashboard */}
+                    ))}
                     <motion.button
+                      initial={{ opacity: 0, x: -16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4 }}
                       whileHover={{ x: 10 }}
-                      onClick={() => {
-                        navigate(role === "organisateur" ? "/dashboard-organisateur" : "/dashboard-prestataire");
-                        setIsOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg"
-                    >
-                      <LayoutDashboard className="w-5 h-5 text-green-600" />
-                      <span>Tableau de bord</span>
-                    </motion.button>
-
-                    {/* Publier une ressource - uniquement pour prestataire */}
-                    {role === "prestataire" && (
-                      <motion.button
-                        whileHover={{ x: 10 }}
-                        onClick={() => {
-                          navigate("/add-resource");
-                          setIsOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg"
-                      >
-                        <PlusCircle className="w-5 h-5 text-orange-600" />
-                        <span>Publier une ressource</span>
-                      </motion.button>
-                    )}
-
-                    {/* Déconnexion */}
-                    <motion.button
-                      whileHover={{ x: 10 }}
-                      onClick={() => {
-                        handleLogout();
-                        setIsOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg"
+                      onClick={() => { handleLogout(); setIsOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <LogOut className="w-5 h-5" />
                       <span>Déconnexion</span>
@@ -572,14 +471,14 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
                   </>
                 )}
 
-                {/* Bouton de connexion pour non-connecté */}
                 {!user && (
                   <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
                     whileHover={{ scale: 1.02 }}
-                    onClick={() => {
-                      navigate("/login");
-                      setIsOpen(false);
-                    }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => { navigate("/login"); setIsOpen(false); }}
                     className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold"
                   >
                     Connexion
@@ -591,9 +490,8 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
         </AnimatePresence>
       </motion.nav>
 
-      {/* Hero Section avec fond dynamique et gestion des rôles */}
+      {/* ── HERO ──────────────────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-blue-900">
-        {/* Particules animées */}
         <div className="absolute inset-0 overflow-hidden">
           {[...Array(20)].map((_, i) => (
             <motion.div
@@ -618,7 +516,6 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
           ))}
         </div>
 
-        {/* Overlay animé */}
         <motion.div
           animate={{
             background: [
@@ -633,7 +530,6 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
 
         <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-24 lg:py-32">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Colonne gauche - Texte */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -644,46 +540,32 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.5 }}
                   animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, delay: 0.3 }}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-8"
                 >
                   <Sparkles className="w-4 h-4 text-yellow-400" />
-                  <span className="text-sm font-medium text-white">
-                    Bienvenue, {user.firstname} 👋
-                  </span>
+                  <span className="text-sm font-medium text-white">Bienvenue, {user.firstname} 👋</span>
                 </motion.div>
               )}
 
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6">
-                <motion.span
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.6 }}
-                  className="block"
-                >
-                  Planifiez vos
-                </motion.span>
-                <motion.span
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.8 }}
-                  className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400"
-                >
-                  Événements
-                </motion.span>
-                <motion.span
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 1.0 }}
-                  className="block"
-                >
-                  en toute simplicité
-                </motion.span>
+                {["Planifiez vos", "Événements", "en toute simplicité"].map((line, i) => (
+                  <motion.span
+                    key={line}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.5 + i * 0.15 }}
+                    className={`block ${i === 1 ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400" : ""}`}
+                  >
+                    {line}
+                  </motion.span>
+                ))}
               </h1>
 
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 1.2 }}
+                transition={{ duration: 0.6, delay: 1.0 }}
                 className="text-lg md:text-xl text-gray-300 mb-10 max-w-2xl mx-auto lg:mx-0"
               >
                 {!user && "Créez, gérez et organisez des événements mémorables avec notre plateforme intelligente."}
@@ -691,24 +573,28 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
                 {role === "prestataire" && "Publiez vos services et gérez vos réservations facilement."}
               </motion.p>
 
-              {/* Boutons d'action selon le rôle */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 1.4 }}
+                transition={{ duration: 0.6, delay: 1.2 }}
                 className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
               >
                 {!user && (
                   <>
                     <motion.button
-                      whileHover={{ scale: 1.05 }}
+                      whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(59,130,246,0.5)" }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => navigate("/signup")}
                       className="group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-lg overflow-hidden"
                     >
                       <span className="relative z-10 flex items-center gap-2">
                         Commencer maintenant
-                        <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        <motion.span
+                          animate={{ x: [0, 4, 0] }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </motion.span>
                       </span>
                       <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600"
@@ -719,10 +605,10 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
                     </motion.button>
 
                     <motion.button
-                      whileHover={{ scale: 1.05 }}
+                      whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.2)" }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => navigate("/login")}
-                      className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-2xl font-semibold text-lg hover:bg-white/20 transition-all"
+                      className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-2xl font-semibold text-lg transition-all duration-200"
                     >
                       Se connecter
                     </motion.button>
@@ -731,49 +617,20 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
 
                 {role === "organisateur" && (
                   <>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => navigate("/les_ressources")}
-                      className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-semibold text-lg hover:bg-gray-100 transition-all"
-                    >
-                      🔍 Voir les ressources
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => navigate("/dashboard-organisateur")}
-                      className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-lg"
-                    >
-                      📊 Mon Dashboard
-                    </motion.button>
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/les_ressources")} className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-semibold text-lg hover:bg-gray-100 transition-all">🔍 Voir les ressources</motion.button>
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/dashboard-organisateur")} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-lg">📊 Mon Dashboard</motion.button>
                   </>
                 )}
 
                 {role === "prestataire" && (
                   <>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => navigate("/les_ressources")}
-                      className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-semibold text-lg hover:bg-gray-100 transition-all"
-                    >
-                      🔍 Explorer
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => navigate("/add-resource")}
-                      className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-lg"
-                    >
-                      + Publier une ressource
-                    </motion.button>
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/les_ressources")} className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-semibold text-lg hover:bg-gray-100 transition-all">🔍 Explorer</motion.button>
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/add-resource")} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-lg">+ Publier une ressource</motion.button>
                   </>
                 )}
               </motion.div>
             </motion.div>
 
-            {/* Colonne droite - Carrousel */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
@@ -784,41 +641,34 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentSlide}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.5 }}
+                    initial={{ opacity: 0, scale: 0.92, x: 20 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.92, x: -20 }}
+                    transition={{ duration: 0.5, ease: "easeInOut" }}
                     className="absolute inset-0"
                   >
                     <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl">
-                      <img
-                        src={slides[currentSlide].image}
-                        alt="Event"
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={slides[currentSlide].image} alt="Event" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                     </div>
                   </motion.div>
                 </AnimatePresence>
 
-                {/* Miniatures */}
                 <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 flex gap-3">
                   {slides.map((_, index) => (
                     <motion.button
                       key={index}
-                      whileHover={{ scale: 1.1 }}
+                      whileHover={{ scale: 1.3 }}
                       whileTap={{ scale: 0.9 }}
                       onClick={() => setCurrentSlide(index)}
-                      className={`w-2.5 h-2.5 rounded-full transition-all ${index === currentSlide
-                        ? "w-8 bg-white"
-                        : "bg-white/50 hover:bg-white/80"
-                        }`}
+                      animate={{ width: index === currentSlide ? 32 : 10 }}
+                      transition={{ duration: 0.3 }}
+                      className={`h-2.5 rounded-full transition-colors duration-300 ${index === currentSlide ? "bg-white" : "bg-white/50 hover:bg-white/80"}`}
                     />
                   ))}
                 </div>
               </div>
 
-              {/* Éléments décoratifs */}
               <motion.div
                 animate={{ y: [0, -20, 0], rotate: [0, 10, 0] }}
                 transition={{ duration: 6, repeat: Infinity }}
@@ -833,7 +683,6 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
           </div>
         </div>
 
-        {/* Indicateur de scroll */}
         <motion.div
           animate={{ y: [0, 10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
@@ -849,13 +698,14 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
         </motion.div>
       </section>
 
-      {/* Section À propos */}
+      {/* ── À PROPOS ──────────────────────────────────────────────────────── */}
       <section className="py-24 bg-gradient-to-br from-slate-50 to-white">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
@@ -870,39 +720,51 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.7 }}
             >
               <div className="space-y-6">
                 <p className="text-lg text-gray-600 leading-relaxed">
-                  Smart Event Planner est une application web intelligente conçue
-                  pour simplifier et moderniser l'organisation des événements.
-                  Elle offre une plateforme centralisée permettant aux organisateurs
-                  de planifier efficacement leurs projets tout en collaborant
-                  avec des prestataires qualifiés.
+                  Smart Event Planner est une application web intelligente conçue pour simplifier et moderniser l'organisation des événements. Elle offre une plateforme centralisée permettant aux organisateurs de planifier efficacement leurs projets tout en collaborant avec des prestataires qualifiés.
                 </p>
                 <p className="text-lg text-gray-600 leading-relaxed">
-                  Grâce à une gestion des disponibilités en temps réel et une
-                  interface intuitive, notre solution réduit les conflits,
-                  optimise les ressources et améliore l'expérience utilisateur.
+                  Grâce à une gestion des disponibilités en temps réel et une interface intuitive, notre solution réduit les conflits, optimise les ressources et améliore l'expérience utilisateur.
                 </p>
-                <div className="flex gap-4 pt-4">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.3 }}
+                  className="flex gap-4 pt-4 flex-wrap"
+                >
                   {["Innovation", "Fiabilité", "Simplicité"].map((tag, i) => (
-                    <span key={i} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-sm font-medium">
+                    <motion.span
+                      key={i}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.3 + i * 0.1 }}
+                      whileHover={{ scale: 1.08, y: -2 }}
+                      className="px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-sm font-medium cursor-default transition-colors hover:bg-blue-100"
+                    >
                       {tag}
-                    </span>
+                    </motion.span>
                   ))}
-                </div>
+                </motion.div>
               </div>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.7 }}
               className="relative"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl transform rotate-3 scale-105 opacity-10" />
-              <img
+              <motion.img
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.4 }}
                 src={about}
                 alt="Smart Event Planner"
                 className="relative rounded-3xl shadow-2xl"
@@ -912,13 +774,14 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
         </div>
       </section>
 
-      {/* Section Features */}
+      {/* ── FEATURES ──────────────────────────────────────────────────────── */}
       <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
@@ -935,15 +798,21 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
                 key={index}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                viewport={{ once: true }}
-                whileHover={{ y: -5 }}
+                transition={{ delay: index * 0.1, duration: 0.5 }}
+                viewport={{ once: true, margin: "-60px" }}
+                whileHover={{ y: -8, boxShadow: "0 20px 40px rgba(0,0,0,0.10)" }}
+                onHoverStart={() => setHoveredFeature(index)}
+                onHoverEnd={() => setHoveredFeature(null)}
                 className="group"
               >
-                <div className="p-8 rounded-3xl bg-white border border-gray-100 shadow-lg hover:shadow-xl transition-all h-full">
-                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                <div className="p-8 rounded-3xl bg-white border border-gray-100 shadow-lg hover:shadow-xl transition-shadow h-full">
+                  <motion.div
+                    animate={{ scale: hoveredFeature === index ? 1.15 : 1, rotate: hoveredFeature === index ? 5 : 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 18 }}
+                    className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${feature.color} flex items-center justify-center mb-6`}
+                  >
                     <feature.icon className="w-8 h-8 text-white" />
-                  </div>
+                  </motion.div>
                   <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
                   <p className="text-gray-600 leading-relaxed">{feature.description}</p>
                 </div>
@@ -953,13 +822,14 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
         </div>
       </section>
 
-      {/* Section Événements */}
+      {/* ── ÉVÉNEMENTS ────────────────────────────────────────────────────── */}
       <section className="py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
@@ -974,25 +844,40 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
             {events.map((item, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.92 }}
                 whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.1 }}
-                viewport={{ once: true }}
+                transition={{ delay: index * 0.08, duration: 0.5 }}
+                viewport={{ once: true, margin: "-60px" }}
                 whileHover={{ y: -10 }}
+                onHoverStart={() => setHoveredEvent(index)}
+                onHoverEnd={() => setHoveredEvent(null)}
                 className="group relative h-80 rounded-3xl overflow-hidden shadow-xl cursor-pointer"
               >
-                <img
+                <motion.img
                   src={item.image}
                   alt={item.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  animate={{ scale: hoveredEvent === index ? 1.08 : 1 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+                <motion.div
+                  animate={{ opacity: hoveredEvent === index ? 1 : 0 }}
+                  transition={{ duration: 0.35 }}
+                  className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"
+                />
+                <motion.div
+                  animate={{
+                    y: hoveredEvent === index ? 0 : 16,
+                    opacity: hoveredEvent === index ? 1 : 0,
+                  }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                  className="absolute bottom-0 left-0 right-0 p-6"
+                >
                   <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md text-white text-sm rounded-full mb-2">
                     {item.category}
                   </span>
                   <h3 className="text-2xl font-bold text-white">{item.title}</h3>
-                </div>
+                </motion.div>
               </motion.div>
             ))}
           </div>
@@ -1002,10 +887,11 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
               className="text-center mt-12"
             >
               <motion.button
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, boxShadow: "0 12px 30px rgba(37,99,235,0.35)" }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate("/CreerEvenement")}
                 className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
@@ -1017,13 +903,14 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
         </div>
       </section>
 
-      {/* Dome Gallery */}
+      {/* ── DOME GALLERY ──────────────────────────────────────────────────── */}
       <section className="relative py-16 md:py-24 overflow-hidden bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
@@ -1035,18 +922,11 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
           </motion.div>
         </div>
         <div style={{ width: '100vw', height: '80vh' }}>
-          <DomeGallery
-            fit={0.8}
-            minRadius={600}
-            maxVerticalRotationDeg={0}
-            segments={34}
-            dragDampening={2}
-            grayscale={false}
-          />
+          <DomeGallery fit={0.8} minRadius={600} maxVerticalRotationDeg={0} segments={34} dragDampening={2} grayscale={false} />
         </div>
       </section>
 
-      {/* Section CTA - Inscription */}
+      {/* ── CTA ───────────────────────────────────────────────────────────── */}
       {!user && (
         <section className="py-24 px-4 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600">
@@ -1056,27 +936,24 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.6 }}
             >
-              <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                Prêt à commencer ?
-              </h2>
+              <h2 className="text-4xl md:text-5xl font-bold mb-6">Prêt à commencer ?</h2>
               <p className="text-xl mb-10 opacity-90 max-w-2xl mx-auto">
                 Rejoignez des centaines d'organisateurs et prestataires satisfaits
               </p>
-
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.05, boxShadow: "0 12px 30px rgba(0,0,0,0.25)" }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate("/signup")}
                   className="px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl transition-all"
                 >
                   Devenir organisateur
                 </motion.button>
-
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.05, backgroundColor: "rgba(29,78,216,0.9)" }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate("/signup")}
                   className="px-8 py-4 bg-blue-700 text-white rounded-xl font-semibold text-lg backdrop-blur-md border border-white/20 hover:bg-blue-800 transition-all"
@@ -1089,13 +966,14 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
         </section>
       )}
 
-      {/* Section FAQ */}
+      {/* ── FAQ ───────────────────────────────────────────────────────────── */}
       <section className="py-24 bg-white">
         <div className="max-w-4xl mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
@@ -1112,30 +990,31 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all"
+                transition={{ delay: index * 0.07, duration: 0.45 }}
+                viewport={{ once: true, margin: "-40px" }}
+                className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow duration-300"
               >
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.995 }}
                   onClick={() => setOpenFaqIndex(openFaqIndex === index ? null : index)}
                   className="w-full px-6 py-4 flex items-center justify-between text-left"
                 >
                   <span className="font-semibold text-gray-900 text-lg">{faq.question}</span>
                   <motion.div
                     animate={{ rotate: openFaqIndex === index ? 180 : 0 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
                   >
                     <ChevronDown className="w-5 h-5 text-blue-600" />
                   </motion.div>
-                </button>
+                </motion.button>
 
-                <AnimatePresence>
+                <AnimatePresence initial={false}>
                   {openFaqIndex === index && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
                       className="overflow-hidden"
                     >
                       <div className="px-6 pb-4 text-gray-600 leading-relaxed border-t border-gray-100 pt-4">
@@ -1150,13 +1029,14 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
         </div>
       </section>
 
-      {/* Section Contact */}
+      {/* ── CONTACT ───────────────────────────────────────────────────────── */}
       <section id="contact" className="py-24 bg-gradient-to-br from-slate-50 to-white">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
@@ -1168,142 +1048,122 @@ const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
           </motion.div>
 
           <div className="grid lg:grid-cols-2 gap-12">
-            {/* Formulaire de contact */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.7 }}
               className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100"
             >
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nom complet
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                      placeholder="Jean Dupont"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                      placeholder="jean@email.com"
-                    />
-                  </div>
+                  {[
+                    { label: "Nom complet", name: "name", type: "text", placeholder: "Jean Dupont" },
+                    { label: "Email", name: "email", type: "email", placeholder: "jean@email.com" },
+                  ].map((field) => (
+                    <div key={field.name}>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{field.label}</label>
+                      <input
+                        type={field.type}
+                        name={field.name}
+                        value={formData[field.name]}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 hover:border-blue-300"
+                        placeholder={field.placeholder}
+                      />
+                    </div>
+                  ))}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sujet
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sujet</label>
                   <input
                     type="text"
                     name="subject"
                     value={formData.subject}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 hover:border-blue-300"
                     placeholder="Demande d'information"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Message
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
                   <textarea
                     name="message"
                     value={formData.message}
                     onChange={handleInputChange}
                     required
                     rows="5"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 resize-none hover:border-blue-300"
                     placeholder="Bonjour, j'aimerais en savoir plus sur..."
                   />
                 </div>
 
                 <motion.button
                   type="submit"
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(37,99,235,0.35)" }}
                   whileTap={{ scale: 0.98 }}
                   disabled={formStatus === 'sending'}
-                  className={`w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 ${formStatus === 'sending' ? 'opacity-75 cursor-not-allowed' : ''
-                    }`}
+                  className={`w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 ${formStatus === 'sending' ? 'opacity-75 cursor-not-allowed' : ''}`}
                 >
-                  {formStatus === 'sending' ? (
-                    <>Envoi en cours...</>
-                  ) : formStatus === 'success' ? (
-                    <>Message envoyé ! <Mail className="w-5 h-5" /></>
-                  ) : (
-                    <>Envoyer le message <Send className="w-5 h-5" /></>
-                  )}
+                  <AnimatePresence mode="wait">
+                    {formStatus === 'sending' && (
+                      <motion.span key="sending" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>Envoi en cours...</motion.span>
+                    )}
+                    {formStatus === 'success' && (
+                      <motion.span key="success" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                        Message envoyé ! <Mail className="w-5 h-5" />
+                      </motion.span>
+                    )}
+                    {!formStatus && (
+                      <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                        Envoyer le message <Send className="w-5 h-5" />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
                 </motion.button>
               </form>
             </motion.div>
 
-            {/* Informations de contact */}
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.7 }}
               className="space-y-6"
             >
               <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">
-                  Nos coordonnées
-                </h3>
-
+                <h3 className="text-2xl font-bold text-gray-900 mb-6">Nos coordonnées</h3>
                 <div className="space-y-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <Mail className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Email</p>
-                      <a href="mailto:contact@smarteventplanner.com" className="text-gray-900 font-medium hover:text-blue-600 transition">
-                        contact@smarteventplanner.com
-                      </a>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <Phone className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Téléphone</p>
-                      <a href="tel:+21654809630" className="text-gray-900 font-medium hover:text-purple-600 transition">
-                        +216 54 809 630
-                      </a>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
-                      <MapPinned className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Adresse</p>
-                      <p className="text-gray-900 font-medium">
-                        Sousse, Tunisie
-                      </p>
-                    </div>
-                  </div>
+                  {[
+                    { icon: Mail, bg: "bg-blue-100", color: "text-blue-600", label: "Email", value: "contact@smarteventplanner.com", href: "mailto:contact@smarteventplanner.com" },
+                    { icon: Phone, bg: "bg-purple-100", color: "text-purple-600", label: "Téléphone", value: "+216 54 809 630", href: "tel:+21654809630" },
+                    { icon: MapPinned, bg: "bg-green-100", color: "text-green-600", label: "Adresse", value: "Sousse, Tunisie", href: null },
+                  ].map((item, i) => (
+                    <motion.div
+                      key={item.label}
+                      initial={{ opacity: 0, x: 20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.1, duration: 0.4 }}
+                      whileHover={{ x: 4 }}
+                      className="flex items-start gap-4"
+                    >
+                      <div className={`w-12 h-12 rounded-xl ${item.bg} flex items-center justify-center flex-shrink-0`}>
+                        <item.icon className={`w-6 h-6 ${item.color}`} />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">{item.label}</p>
+                        {item.href
+                          ? <a href={item.href} className={`font-medium hover:${item.color} transition-colors`}>{item.value}</a>
+                          : <p className="text-gray-900 font-medium">{item.value}</p>
+                        }
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
             </motion.div>
