@@ -17,8 +17,7 @@ const registerUser = async (req, res) => {
       region,
       gender,
       image,
-      role,
-
+      role
     } = req.body;
 
     // verifier email existant
@@ -30,6 +29,17 @@ const registerUser = async (req, res) => {
     // hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+
+    // 🔹 définir le status automatiquement
+    let status = "en_attente";
+
+    if (role === "organisateur") {
+      status = "valide";
+    }
+
+    if (role === "prestataire") {
+      status = "en_attente";
+    }
 
     const user = new User({
       passportOrCid,
@@ -43,20 +53,21 @@ const registerUser = async (req, res) => {
       gender,
       image: req.file ? req.file.path : image || null,
       role,
+      status
     });
 
     await user.save();
 
     res.status(201).json({
       message: "Utilisateur créé",
-      user,
+      user
     });
+
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: error.message });
   }
 };
-
 /* ================= LOGIN ================= */
 const loginUser = async (req, res) => {
   try {
@@ -75,6 +86,14 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: "Mot de passe incorrect" });
     }
 
+    // 🚨 Vérification prestataire en attente
+    if (user.role === "prestataire" && user.status === "en_attente") {
+      return res.status(403).json({
+        message: "Votre compte est en attente de validation par l'administrateur",
+        status: "pending"
+      });
+    }
+
     // JWT
     const token = jwt.sign(
       { id: user._id, role: user.role },
@@ -91,9 +110,11 @@ const loginUser = async (req, res) => {
         lastname: user.lastname,
         email: user.email,
         role: user.role,
-        image: user.image
+        image: user.image,
+        status: user.status
       }
     });
+
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: error.message });
@@ -123,8 +144,6 @@ const updateUser = async (req, res) => {
 
     // update champs
     Object.assign(user, req.body);
-
-    // si password changé → rehash
     if (req.body.password) {
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(req.body.password, salt);

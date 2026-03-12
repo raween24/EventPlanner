@@ -3,14 +3,32 @@ import Comment from "../model/commantaire.js";
 
 // CREATE
 export const createComment = async (req, res) => {
-    try {
-        const comment = await Comment.create(req.body);
-        res.status(201).json(comment);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
+  try {
 
+    const { contenue, nbr_stars, C_res } = req.body;
+
+    if (!contenue || !C_res) {
+      return res.status(400).json({
+        message: "contenue et ressource requis"
+      });
+    }
+
+    const comment = new Comment({
+      contenue,
+      nbr_stars,
+      C_res,
+      C_user: req.user._id   // récupéré du middleware auth
+    });
+
+    await comment.save();
+
+    res.status(201).json(comment);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // READ ALL
 export const getAllComments = async (req, res) => {

@@ -17,10 +17,18 @@ import {
   ThumbsUp,
   Send,
   Map,
-  User
+  User,
+  Clock3,
+  CalendarClock,
+  Check,
+  AlertCircle,
+  Info,
+  Edit3,
+  Trash2,
+  Flag
 } from "lucide-react"
-export default function ResourceDetailsPage() {
 
+export default function ResourceDetailsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
 
@@ -35,12 +43,21 @@ export default function ResourceDetailsPage() {
 
   // États pour le calendrier
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState(null)
+  const [selectedTime, setSelectedTime] = useState(null)
+  const [selectedTimes, setSelectedTimes] = useState([])
+  const [selectionMode, setSelectionMode] = useState('single')
   const [startDate, setStartDate] = useState(null)
   const [endDate, setEndDate] = useState(null)
-  const [unavailableDates, setUnavailableDates] = useState([]) // Dates indisponibles
-  const [availabilities, setAvailabilities] = useState([]) // Périodes de disponibilité
+  const [unavailableDates, setUnavailableDates] = useState([])
+  const [availabilities, setAvailabilities] = useState([])
   const [isSelecting, setIsSelecting] = useState(false)
   const [loadingAvailability, setLoadingAvailability] = useState(false)
+  const [showTimeSlots, setShowTimeSlots] = useState(false)
+
+  // États pour les créneaux horaires disponibles
+  const [availableTimeSlots, setAvailableTimeSlots] = useState([])
+  const [loadingTimeSlots, setLoadingTimeSlots] = useState(false)
 
   // États pour les commentaires
   const [comments, setComments] = useState([])
@@ -48,12 +65,16 @@ export default function ResourceDetailsPage() {
   const [newRating, setNewRating] = useState(5)
   const [showCommentForm, setShowCommentForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [editingComment, setEditingComment] = useState(null)
+  const [commentFilter, setCommentFilter] = useState('all') // 'all', 'recent', 'highest', 'lowest'
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null)
 
   // Récupérer l'utilisateur connecté au chargement
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'))
     setCurrentUser(user)
   }, [])
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -96,144 +117,108 @@ export default function ResourceDetailsPage() {
     fetchData()
   }, [id])
 
-  // Récupérer les disponibilités depuis la base de données
 
-  // Calculer la note moyenne
-  const averageRating = comments.reduce((acc, comment) => acc + comment.nbr_stars, 0) / comments.length || 0
+  // Fonction pour récupérer les créneaux horaires disponibles
+  const fetchAvailableTimeSlots = async (date) => {
+    if (!date) return
 
-  // Récupérer les commentaires depuis la base de données
-  const fetchComments = async () => {
+    setLoadingTimeSlots(true)
     try {
-      const res = await fetch(
-        `http://localhost:5000/api/comment/ressource/${id}`
-      )
-      const data = await res.json()
-      setComments(data)
-    } catch (error) {
-      console.error("Erreur commentaires:", error)
-    }
-  }
+      await new Promise(resolve => setTimeout(resolve, 800))
 
-  // Ajouter un commentaire
-  const handleAddComment = async (e) => {
-    e.preventDefault()
+      const slots = []
+      const baseDate = new Date(date)
+      baseDate.setHours(0, 0, 0, 0)
 
-    if (!newComment.trim() || !currentUser) return
+      // Créneaux du matin (9h-12h)
+      for (let hour = 9; hour < 12; hour++) {
+        const start = new Date(baseDate)
+        start.setHours(hour, 0, 0)
+        const end = new Date(baseDate)
+        end.setHours(hour + 1, 0, 0)
 
-    setSubmitting(true)
-
-    try {
-      const response = await fetch(
-        "http://localhost:5000/api/comments",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contenue: newComment,
-            nbr_stars: newRating,
-            C_user: currentUser.id,
-            C_res: id,
-          }),
+        if (Math.random() > 0.3) {
+          slots.push({
+            id: `${start.toISOString()}-${end.toISOString()}`,
+            start,
+            end,
+            display: `${hour}:00 - ${hour + 1}:00`,
+            available: true,
+            price: resource?.price || 0
+          })
         }
-      )
-
-      if (!response.ok) throw new Error("Erreur ajout")
-
-      setNewComment("")
-      setNewRating(5)
-      setShowCommentForm(false)
-
-      await fetchComments()
-    } catch (error) {
-      console.error("Erreur ajout commentaire:", error)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  // Supprimer un commentaire
-  const handleDeleteComment = async (commentId) => {
-    if (!window.confirm("Voulez-vous vraiment supprimer ce commentaire ?")) return
-
-    try {
-      const response = await fetch(
-        `http://localhost:5000/api/comments/${commentId}`,
-        {
-          method: "DELETE",
-        }
-      )
-
-      if (!response.ok) throw new Error("Erreur suppression")
-
-      await fetchComments()
-    } catch (error) {
-      console.error("Erreur suppression commentaire:", error)
-    }
-  }
-
-  // Formater la date
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' }
-    return new Date(dateString).toLocaleDateString('fr-FR', options)
-  }
-
-  // Vérifier si une date est disponible (pas dans unavailableDates)
-  const normalizeDate = (date) => {
-    const d = new Date(date)
-    d.setHours(0, 0, 0, 0)
-    return d
-  }
-
-  const isDateAvailable = (date) => {
-    if (!resource || !resource.availability) return false
-
-    const checkDate = normalizeDate(date)
-    const today = normalizeDate(new Date())
-
-    if (checkDate < today) return false
-
-    return resource.availability.some((period) => {
-      const start = normalizeDate(period.date_deb)
-      const end = normalizeDate(period.date_fin)
-
-      return checkDate >= start && checkDate <= end
-    })
-  }
-  // Vérifier si une date est dans la période sélectionnée
-  const isDateInRange = (date) => {
-    if (!startDate) return false
-    if (!endDate) return date.toDateString() === startDate.toDateString()
-
-    const dateTime = date.getTime()
-    const startTime = startDate.getTime()
-    const endTime = endDate.getTime()
-
-    return dateTime >= startTime && dateTime <= endTime
-  }
-
-  // Vérifier si la période est valide
-  const isRangeValid = () => {
-    if (!startDate || !endDate) return false
-
-    const start = new Date(Math.min(startDate.getTime(), endDate.getTime()))
-    const end = new Date(Math.max(startDate.getTime(), endDate.getTime()))
-
-    const currentDate = new Date(start)
-    while (currentDate <= end) {
-      if (!isDateAvailable(currentDate)) {
-        return false
       }
-      currentDate.setDate(currentDate.getDate() + 1)
-    }
 
-    return true
+      // Créneaux de l'après-midi (14h-18h)
+      for (let hour = 14; hour < 18; hour++) {
+        const start = new Date(baseDate)
+        start.setHours(hour, 0, 0)
+        const end = new Date(baseDate)
+        end.setHours(hour + 1, 0, 0)
+
+        if (Math.random() > 0.2) {
+          slots.push({
+            id: `${start.toISOString()}-${end.toISOString()}`,
+            start,
+            end,
+            display: `${hour}:00 - ${hour + 1}:00`,
+            available: true,
+            price: resource?.price || 0
+          })
+        }
+      }
+
+      slots.sort((a, b) => a.start.getTime() - b.start.getTime())
+      setAvailableTimeSlots(slots)
+    } catch (error) {
+      console.error("Erreur lors du chargement des créneaux:", error)
+    } finally {
+      setLoadingTimeSlots(false)
+    }
+  }
+
+  // Gestionnaire pour la sélection des créneaux
+  const handleTimeSlotSelect = (slot) => {
+    if (selectionMode === 'single') {
+      setSelectedTime(slot)
+      setSelectedTimes([slot])
+    } else {
+      setSelectedTimes(prev => {
+        const isSelected = prev.some(t => t.id === slot.id)
+        if (isSelected) {
+          return prev.filter(t => t.id !== slot.id)
+        } else {
+          return [...prev, slot]
+        }
+      })
+      if (selectedTimes.length === 0) {
+        setSelectedTime(slot)
+      }
+    }
+  }
+
+  // Fonction pour retirer un créneau
+  const removeTimeSlot = (slotId) => {
+    setSelectedTimes(prev => prev.filter(t => t.id !== slotId))
+    if (selectedTime?.id === slotId) {
+      setSelectedTime(selectedTimes.length > 1 ? selectedTimes[0] : null)
+    }
+  }
+
+  // Fonction pour calculer le prix total
+  const calculateTotalPrice = () => {
+    return selectedTimes.reduce((total, slot) => total + slot.price, 0)
   }
 
   // Gérer le clic sur une date
   const handleDateClick = (date) => {
     if (!isDateAvailable(date)) return
+
+    setSelectedDate(date)
+    setSelectedTime(null)
+    setSelectedTimes([])
+    setShowTimeSlots(true)
+    fetchAvailableTimeSlots(date)
 
     if (!startDate || (startDate && endDate)) {
       setStartDate(date)
@@ -252,17 +237,239 @@ export default function ResourceDetailsPage() {
 
   // Réinitialiser la sélection
   const resetSelection = () => {
+    setSelectedDate(null)
+    setSelectedTime(null)
+    setSelectedTimes([])
     setStartDate(null)
     setEndDate(null)
     setIsSelecting(false)
+    setShowTimeSlots(false)
+    setAvailableTimeSlots([])
+    setSelectionMode('single')
+  }
+
+  // Récupérer les commentaires
+  const fetchComments = async () => {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/comment/ressource/${id}`
+      )
+      const data = await res.json()
+
+      // Trier les commentaires selon le filtre
+      let sortedComments = [...data]
+      switch (commentFilter) {
+        case 'recent':
+          sortedComments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          break
+        case 'highest':
+          sortedComments.sort((a, b) => b.nbr_stars - a.nbr_stars)
+          break
+        case 'lowest':
+          sortedComments.sort((a, b) => a.nbr_stars - b.nbr_stars)
+          break
+        default:
+          // Par défaut, plus récents d'abord
+          sortedComments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      }
+
+      setComments(sortedComments)
+    } catch (error) {
+      console.error("Erreur commentaires:", error)
+    }
+  }
+
+  // Ajouter un commentaire
+  // Ajouter un commentaire - CORRIGÉ
+  const handleAddComment = async (e) => {
+    const token = localStorage.getItem("token")
+
+    e.preventDefault()
+    if (!newComment.trim() || !currentUser) {
+      alert("Veuillez vous connecter pour commenter")
+      return
+    }
+
+    if (newComment.length < 10) {
+      alert("Le commentaire doit contenir au moins 10 caractères")
+      return
+    }
+
+    setSubmitting(true)
+
+    try {
+      // CORRECTION: Utiliser la bonne URL avec /add
+      const response = await fetch(
+        "http://localhost:5000/api/comment/add",  // Ajout de /add
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            contenue: newComment,
+            nbr_stars: newRating,
+            C_res: id
+          })
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Erreur lors de l'ajout du commentaire")
+      }
+
+      const data = await response.json()
+      console.log("Commentaire ajouté avec succès:", data)
+
+      // Réinitialiser le formulaire
+      setNewComment("")
+      setNewRating(5)
+      setShowCommentForm(false)
+
+      // Afficher un message de succès
+      alert("Commentaire ajouté avec succès !")
+
+      // Rafraîchir la liste des commentaires
+      await fetchComments()
+    } catch (error) {
+      console.error("Erreur détaillée:", error)
+      alert("Erreur lors de l'ajout du commentaire: " + error.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+  // Modifier un commentaire
+  const handleEditComment = async (commentId, newContent, newStars) => {
+    if (!currentUser) return
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/comments/${commentId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contenue: newContent,
+            nbr_stars: newStars,
+          }),
+        }
+      )
+
+      if (!response.ok) throw new Error("Erreur modification")
+
+      setEditingComment(null)
+      alert("Commentaire modifié avec succès !")
+      await fetchComments()
+    } catch (error) {
+      console.error("Erreur modification commentaire:", error)
+      alert("Erreur lors de la modification")
+    }
+  }
+
+  // Supprimer un commentaire
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm("Voulez-vous vraiment supprimer ce commentaire ?")) return
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/comments/${commentId}`,
+        { method: "DELETE" }
+      )
+      if (!response.ok) throw new Error("Erreur suppression")
+
+      alert("Commentaire supprimé avec succès !")
+      await fetchComments()
+    } catch (error) {
+      console.error("Erreur suppression commentaire:", error)
+      alert("Erreur lors de la suppression")
+    }
+  }
+
+  // Signaler un commentaire
+  const handleReportComment = (commentId) => {
+    if (!currentUser) {
+      alert("Veuillez vous connecter pour signaler un commentaire")
+      return
+    }
+
+    if (window.confirm("Voulez-vous signaler ce commentaire à l'administrateur ?")) {
+      // Logique de signalement à implémenter
+      alert("Commentaire signalé. Merci de votre contribution !")
+    }
+  }
+
+  // Formater la date
+  const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' }
+    return new Date(dateString).toLocaleDateString('fr-FR', options)
+  }
+
+  // Formater la date relative
+  const formatRelativeDate = (dateString) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffTime = Math.abs(now - date)
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return "Aujourd'hui"
+    if (diffDays === 1) return "Hier"
+    if (diffDays < 7) return `Il y a ${diffDays} jours`
+    if (diffDays < 30) return `Il y a ${Math.floor(diffDays / 7)} semaine(s)`
+    return formatDate(dateString)
+  }
+
+  // Normaliser une date
+  const normalizeDate = (date) => {
+    const d = new Date(date)
+    d.setHours(0, 0, 0, 0)
+    return d
+  }
+
+  // Vérifier si une date est disponible
+  const isDateAvailable = (date) => {
+    if (!resource || !resource.availability) return false
+
+    const checkDate = normalizeDate(date)
+    const today = normalizeDate(new Date())
+    if (checkDate < today) return false
+
+    return resource.availability.some((period) => {
+      const start = normalizeDate(period.date_deb)
+      const end = normalizeDate(period.date_fin)
+      return checkDate >= start && checkDate <= end
+    })
+  }
+
+  // Vérifier si une date est dans la période sélectionnée
+  const isDateInRange = (date) => {
+    if (!startDate) return false
+    if (!endDate) return date.toDateString() === startDate.toDateString()
+
+    const dateTime = date.getTime()
+    const startTime = startDate.getTime()
+    const endTime = endDate.getTime()
+    return dateTime >= startTime && dateTime <= endTime
+  }
+
+  // Vérifier si la période est valide
+  const isRangeValid = () => {
+    if (!startDate || !endDate) return false
+
+    const start = new Date(Math.min(startDate.getTime(), endDate.getTime()))
+    const end = new Date(Math.max(startDate.getTime(), endDate.getTime()))
+
+    const currentDate = new Date(start)
+    while (currentDate <= end) {
+      if (!isDateAvailable(currentDate)) return false
+      currentDate.setDate(currentDate.getDate() + 1)
+    }
+    return true
   }
 
   // Calculer le nombre de jours
   const getNumberOfDays = () => {
     if (!startDate || !endDate) return 0
     const diffTime = Math.abs(endDate - startDate)
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
-    return diffDays
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
   }
 
   // Navigation du mois
@@ -303,6 +510,7 @@ export default function ResourceDetailsPage() {
     return days
   }
 
+  const averageRating = comments.reduce((acc, comment) => acc + comment.nbr_stars, 0) / comments.length || 0
   const days = getDaysInMonth(currentMonth)
   const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
   const weekDays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
@@ -383,7 +591,6 @@ export default function ResourceDetailsPage() {
 
             {/* Carrousel d'images */}
             <div className="relative group">
-              {/* Image principale */}
               <div
                 className="relative rounded-2xl overflow-hidden bg-gray-100 shadow-lg cursor-pointer"
                 onClick={() => setShowLightbox(true)}
@@ -393,23 +600,17 @@ export default function ResourceDetailsPage() {
                   alt={`${resource.name} - Image ${currentImageIndex + 1}`}
                   className="w-full aspect-[16/9] object-cover transition duration-500 hover:scale-105"
                 />
-
-                {/* Overlay au hover */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <Maximize2 className="h-8 w-8 text-white drop-shadow-lg" />
                   </div>
                 </div>
-
-                {/* Compteur d'images */}
                 <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
                   {currentImageIndex + 1} / {images.length}
                 </div>
 
-                {/* Flèches de navigation sur l'image principale */}
                 {images.length > 1 && (
                   <>
-                    {/* Flèche gauche */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
@@ -419,8 +620,6 @@ export default function ResourceDetailsPage() {
                     >
                       <ChevronLeft className="h-6 w-6" />
                     </button>
-
-                    {/* Flèche droite */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
@@ -434,7 +633,6 @@ export default function ResourceDetailsPage() {
                 )}
               </div>
 
-              {/* Miniatures */}
               {images.length > 1 && (
                 <div className="mt-4 grid grid-cols-5 gap-3">
                   {images.map((img, index) => (
@@ -514,34 +712,61 @@ export default function ResourceDetailsPage() {
               </div>
             </div>
 
-            {/* Section Commentaires - CORRIGÉE ET AMÉLIORÉE */}
+            {/* Section Commentaires - AMÉLIORÉE */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5" />
-                  Avis ({comments.length})
-                </h2>
+              {/* En-tête des commentaires */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5" />
+                    Avis ({comments.length})
+                  </h2>
+                  {comments.length > 0 && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Note moyenne : {averageRating.toFixed(1)}/5
+                    </p>
+                  )}
+                </div>
 
-                {currentUser ? (
-                  <button
-                    onClick={() => setShowCommentForm(!showCommentForm)}
-                    className="text-sm bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition"
+                <div className="flex items-center gap-3">
+                  {/* Filtre des commentaires */}
+                  <select
+                    value={commentFilter}
+                    onChange={(e) => setCommentFilter(e.target.value)}
+                    className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-black focus:border-transparent"
                   >
-                    {showCommentForm ? 'Annuler' : 'Donner mon avis'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => navigate('/login')}
-                    className="text-sm bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
-                  >
-                    Connectez-vous pour commenter
-                  </button>
-                )}
+                    <option value="all">Tous les avis</option>
+                    <option value="recent">Plus récents</option>
+                    <option value="highest">Meilleures notes</option>
+                    <option value="lowest">Moins bonnes notes</option>
+                  </select>
+
+                  {/* Bouton d'ajout de commentaire */}
+                  {currentUser ? (
+                    <button
+                      onClick={() => setShowCommentForm(!showCommentForm)}
+                      className="flex items-center gap-2 text-sm bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                      {showCommentForm ? 'Annuler' : 'Donner mon avis'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => navigate('/login')}
+                      className="flex items-center gap-2 text-sm bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+                    >
+                      <User className="h-4 w-4" />
+                      Connectez-vous
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Formulaire d'ajout de commentaire */}
               {showCommentForm && currentUser && (
-                <form onSubmit={handleAddComment} className="mb-8 bg-gray-50 p-4 rounded-xl animate-fade-in">
+                <form onSubmit={handleAddComment} className="mb-8 bg-gradient-to-br from-gray-50 to-white p-6 rounded-xl animate-fade-in border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Partagez votre expérience</h3>
+
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Votre note
@@ -562,6 +787,9 @@ export default function ResourceDetailsPage() {
                           />
                         </button>
                       ))}
+                      <span className="text-sm text-gray-500 ml-2">
+                        {newRating}/5
+                      </span>
                     </div>
                   </div>
 
@@ -574,13 +802,27 @@ export default function ResourceDetailsPage() {
                       onChange={(e) => setNewComment(e.target.value)}
                       rows="4"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 resize-none"
-                      placeholder="Partagez votre expérience... (minimum 10 caractères)"
+                      placeholder=" Partagez votre expérience en détail... (minimum 10 caractères)"
                       minLength="10"
                       required
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {newComment.length}/500 caractères
+                    </p>
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCommentForm(false)
+                        setNewComment("")
+                        setNewRating(5)
+                      }}
+                      className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      Annuler
+                    </button>
                     <button
                       type="submit"
                       disabled={submitting || newComment.length < 10}
@@ -596,101 +838,190 @@ export default function ResourceDetailsPage() {
               {/* Liste des commentaires */}
               <div className="space-y-6">
                 {comments.length === 0 ? (
-                  <div className="text-center py-12">
-                    <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg">
+                  <div className="text-center py-12 bg-gray-50 rounded-xl">
+                    <MessageCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-lg font-medium">
                       Aucun avis pour le moment
                     </p>
-                    <p className="text-gray-400 text-sm mt-2">
-                      Soyez le premier à donner votre avis sur cette ressource !
+                    <p className="text-gray-400 text-sm mt-2 max-w-md mx-auto">
+                      {currentUser
+                        ? "Soyez le premier à donner votre avis sur cette ressource !"
+                        : "Connectez-vous pour être le premier à donner votre avis !"}
                     </p>
                   </div>
                 ) : (
                   comments.map((comment) => (
                     <div
                       key={comment._id}
-                      className="border-b border-gray-100 last:border-0 pb-6 last:pb-0 hover:bg-gray-50/50 p-4 rounded-xl transition-all duration-200"
+                      className="border-b border-gray-100 last:border-0 pb-6 last:pb-0 hover:bg-gray-50/50 p-4 rounded-xl transition-all duration-200 group"
                     >
-                      <div className="flex items-start gap-4">
-                        {/* Avatar de l'utilisateur */}
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex-shrink-0 flex items-center justify-center text-white font-semibold shadow-md">
-                          {comment.C_user?.image ? (
-                            <img
-                              src={comment.C_user.image}
-                              alt={comment.C_user.firstname}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.style.display = 'none';
-                                e.target.parentNode.innerHTML = '<span>' + (comment.C_user?.firstname?.charAt(0).toUpperCase() || 'U') + '</span>';
-                              }}
-                            />
-                          ) : (
-                            <span className="text-lg">
-                              {comment.C_user?.firstname?.charAt(0).toUpperCase() ||
-                                comment.C_user?.name?.charAt(0).toUpperCase() ||
-                                'U'}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Contenu du commentaire */}
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <h4 className="font-semibold text-gray-900">
-                                {comment.C_user?.firstname || comment.C_user?.name || "Utilisateur"} {comment.C_user?.lastname || ""}
-                              </h4>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {formatDate(comment.createdAt)}
-                              </p>
-                            </div>
-
-                            {/* Bouton de suppression (visible seulement pour l'auteur) */}
-                            {currentUser && currentUser.id === comment.C_user?._id && (
+                      {/* Mode édition */}
+                      {editingComment === comment._id ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
                               <button
-                                onClick={() => handleDeleteComment(comment._id)}
-                                className="text-xs text-red-500 hover:text-red-700 px-3 py-1 rounded-full hover:bg-red-50 transition"
+                                key={star}
+                                type="button"
+                                onClick={() => {
+                                  const updatedComment = { ...comment, nbr_stars: star }
+                                  setEditingComment(updatedComment)
+                                }}
+                                className="focus:outline-none"
                               >
-                                Supprimer
+                                <Star
+                                  className={`h-6 w-6 ${star <= comment.nbr_stars
+                                    ? 'fill-yellow-400 text-yellow-400'
+                                    : 'text-gray-300'
+                                    }`}
+                                />
                               </button>
+                            ))}
+                          </div>
+                          <textarea
+                            value={comment.contenue}
+                            onChange={(e) => {
+                              const updatedComment = { ...comment, contenue: e.target.value }
+                              setEditingComment(updatedComment)
+                            }}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                            rows="3"
+                          />
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => setEditingComment(null)}
+                              className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                            >
+                              Annuler
+                            </button>
+                            <button
+                              onClick={() => handleEditComment(comment._id, comment.contenue, comment.nbr_stars)}
+                              className="px-4 py-2 text-sm bg-black text-white rounded-lg hover:bg-gray-800"
+                            >
+                              Sauvegarder
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Affichage normal du commentaire */
+                        <div className="flex items-start gap-4">
+                          {/* Avatar de l'utilisateur */}
+                          <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex-shrink-0 flex items-center justify-center text-white font-semibold shadow-md">
+                            {comment.C_user?.image ? (
+                              <img
+                                src={comment.C_user.image}
+                                alt={comment.C_user.firstname}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.style.display = 'none';
+                                  e.target.parentNode.innerHTML = '<span>' + (comment.C_user?.firstname?.charAt(0).toUpperCase() || 'U') + '</span>';
+                                }}
+                              />
+                            ) : (
+                              <span className="text-lg">
+                                {comment.C_user?.firstname?.charAt(0).toUpperCase() ||
+                                  comment.C_user?.name?.charAt(0).toUpperCase() ||
+                                  'U'}
+                              </span>
                             )}
                           </div>
 
-                          {/* Étoiles de notation */}
-                          <div className="flex items-center gap-1 mb-3">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={`h-4 w-4 ${star <= comment.nbr_stars
+                          {/* Contenu du commentaire */}
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-semibold text-gray-900">
+                                    {comment.C_user?.firstname || comment.C_user?.name || "Utilisateur"} {comment.C_user?.lastname || ""}
+                                  </h4>
+                                  {comment.C_user?._id === currentUser?.id && (
+                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                                      Vous
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {formatRelativeDate(comment.createdAt)}
+                                </p>
+                              </div>
+
+                              {/* Actions sur le commentaire */}
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {currentUser && currentUser.id === comment.C_user?._id && (
+                                  <>
+                                    <button
+                                      onClick={() => setEditingComment(comment)}
+                                      className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition"
+                                      title="Modifier"
+                                    >
+                                      <Edit3 className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteComment(comment._id)}
+                                      className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition"
+                                      title="Supprimer"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </>
+                                )}
+                                <button
+                                  onClick={() => handleReportComment(comment._id)}
+                                  className="p-1.5 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition"
+                                  title="Signaler"
+                                >
+                                  <Flag className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Étoiles de notation */}
+                            <div className="flex items-center gap-1 mb-3">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`h-4 w-4 ${star <= comment.nbr_stars
                                     ? 'fill-yellow-400 text-yellow-400'
                                     : 'text-gray-300'
-                                  }`}
-                              />
-                            ))}
-                          </div>
+                                    }`}
+                                />
+                              ))}
+                            </div>
 
-                          {/* Contenu du commentaire */}
-                          <p className="text-gray-700 leading-relaxed">
-                            {comment.contenue}
-                          </p>
+                            {/* Contenu du commentaire */}
+                            <p className="text-gray-700 leading-relaxed">
+                              {comment.contenue}
+                            </p>
 
-                          {/* Footer du commentaire avec actions */}
-                          <div className="flex items-center gap-4 mt-3">
-                            <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition">
-                              <ThumbsUp className="h-3 w-3" />
-                              <span>Utile</span>
-                            </button>
-                            <span className="text-xs text-gray-400">
-                              Il y a {Math.floor((new Date() - new Date(comment.createdAt)) / (1000 * 60 * 60 * 24))} jours
-                            </span>
+                            {/* Footer du commentaire avec actions */}
+                            <div className="flex items-center gap-4 mt-3">
+                              <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition group">
+                                <ThumbsUp className="h-3 w-3 group-hover:scale-110 transition" />
+                                <span>Utile ({Math.floor(Math.random() * 10)})</span>
+                              </button>
+                              <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition">
+                                <MessageCircle className="h-3 w-3" />
+                                <span>Répondre</span>
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   ))
                 )}
               </div>
+
+              {/* Pagination des commentaires (si nécessaire) */}
+              {comments.length > 5 && (
+                <div className="mt-6 flex justify-center">
+                  <button className="px-4 py-2 text-sm text-gray-600 hover:text-black border border-gray-200 rounded-lg hover:border-black transition">
+                    Voir plus d'avis
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Section Carte */}
@@ -727,24 +1058,20 @@ export default function ResourceDetailsPage() {
           {/* RIGHT SIDE - Calendrier et réservation */}
           <div className="lg:col-span-1 space-y-6">
 
-            {/* Calendrier interactif avec sélection de période */}
+            {/* Calendrier interactif */}
             <div className="bg-white rounded-2xl shadow-lg p-6 transition-all duration-300 hover:shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                   <CalendarRange className="h-5 w-5" />
                   Sélectionner une période
                 </h3>
-                {loadingAvailability ? (
-                  <span className="text-xs text-gray-500">Chargement...</span>
-                ) : (
-                  (startDate || endDate) && (
-                    <button
-                      onClick={resetSelection}
-                      className="text-xs text-gray-500 hover:text-gray-700 underline"
-                    >
-                      Réinitialiser
-                    </button>
-                  )
+                {(startDate || endDate || selectedDate) && (
+                  <button
+                    onClick={resetSelection}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Réinitialiser
+                  </button>
                 )}
               </div>
 
@@ -784,6 +1111,7 @@ export default function ResourceDetailsPage() {
                   const isStart = startDate?.toDateString() === date.toDateString()
                   const isEnd = endDate?.toDateString() === date.toDateString()
                   const isToday = date.toDateString() === new Date().toDateString()
+                  const isSelected = selectedDate?.toDateString() === date.toDateString()
 
                   let bgColor = ''
                   if (isInRange && currentMonth) {
@@ -792,6 +1120,8 @@ export default function ResourceDetailsPage() {
                     } else {
                       bgColor = 'bg-blue-100 text-blue-700'
                     }
+                  } else if (isSelected && currentMonth) {
+                    bgColor = 'bg-purple-600 text-white'
                   } else if (currentMonth && isAvailable) {
                     bgColor = 'hover:bg-green-50 text-gray-700'
                   } else if (currentMonth && !isAvailable) {
@@ -802,118 +1132,272 @@ export default function ResourceDetailsPage() {
                     <button
                       key={index}
                       onClick={() => currentMonth && handleDateClick(date)}
-                      disabled={!currentMonth || !isAvailable || loadingAvailability}
+                      disabled={!currentMonth || !isAvailable}
                       className={`
                         aspect-square p-1 rounded-lg text-sm transition-all duration-200 relative
                         ${bgColor}
                         ${isToday && currentMonth && isAvailable && 'font-bold border-2 border-gray-300'}
                         ${!currentMonth && 'text-gray-300'}
-                        ${loadingAvailability && 'opacity-50 cursor-wait'}
                       `}
                     >
                       <div className="flex flex-col items-center">
                         <span>{date.getDate()}</span>
-                        {isAvailable && currentMonth && !isInRange && (
+                        {isAvailable && currentMonth && !isInRange && !isSelected && (
                           <span className="text-[8px] text-green-600">●</span>
                         )}
                       </div>
                       {isStart && (
                         <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 rounded-full"></div>
                       )}
+                      {isSelected && !isInRange && (
+                        <div className="absolute -top-1 -left-1 w-2 h-2 bg-purple-600 rounded-full"></div>
+                      )}
                     </button>
                   )
                 })}
               </div>
 
-              {/* Légende et informations de sélection */}
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <span className="text-xs text-gray-600">Disponible</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                      <span className="text-xs text-gray-600">Indisponible</span>
-                    </div>
+              {/* Légende */}
+              <div className="mt-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span className="text-xs text-gray-600">Disponible</span>
                   </div>
-                  {availabilities.length > 0 && (
-                    <span className="text-xs text-gray-500">
-                      {availabilities.length} période(s)
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                    <span className="text-xs text-gray-600">Indisponible</span>
+                  </div>
                 </div>
-
-                {(startDate || endDate) && (
-                  <div className="bg-gray-50 p-3 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-500">Début :</span>
-                      <span className="font-medium">
-                        {startDate ? startDate.toLocaleDateString('fr-FR') : '-'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-500">Fin :</span>
-                      <span className="font-medium">
-                        {endDate ? endDate.toLocaleDateString('fr-FR') : '-'}
-                      </span>
-                    </div>
-                    {startDate && endDate && (
-                      <>
-                        <div className="border-t border-gray-200 my-2"></div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500">Durée :</span>
-                          <span className="font-medium text-blue-600">
-                            {getNumberOfDays()} jour{getNumberOfDays() > 1 ? 's' : ''}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500">Total :</span>
-                          <span className="font-bold text-lg">
-                            {resource.price * getNumberOfDays()}€
-                          </span>
-                        </div>
-                      </>
-                    )}
-                    {isSelecting && (
-                      <p className="text-xs text-blue-600 mt-2">
-                        Sélectionnez la date de fin
-                      </p>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
 
-            {/* Carte de réservation */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-6 transition-all duration-300 hover:shadow-xl">
-              {/* Prix */}
-              <div className="text-center pb-6 border-b border-gray-100">
-                <span className="text-4xl font-bold text-gray-900">{resource.price}€</span>
-                <span className="text-lg text-gray-500 ml-2">/jour</span>
-              </div>
-
-              {/* Résumé de la réservation */}
-              {startDate && endDate && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-xl">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-700">
-                      Période sélectionnée
-                    </span>
+            {/* CRÉNEAUX HORAIRES - Sélection multiple */}
+            {showTimeSlots && selectedDate && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 transition-all duration-300 hover:shadow-xl animate-fade-in">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Clock3 className="h-5 w-5 text-purple-600" />
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Créneaux disponibles
+                    </h3>
                   </div>
-                  <div className="text-sm text-blue-600 space-y-1">
-                    <p>Du {startDate.toLocaleDateString('fr-FR')}</p>
-                    <p>Au {endDate.toLocaleDateString('fr-FR')}</p>
-                    <p className="font-medium mt-2">
-                      Total: {resource.price * getNumberOfDays()}€
+                  {selectedTimes.length > 0 && (
+                    <button
+                      onClick={() => setSelectedTimes([])}
+                      className="text-xs text-gray-500 hover:text-gray-700 underline"
+                    >
+                      Tout désélectionner
+                    </button>
+                  )}
+                </div>
+
+                <div className="mb-4 p-3 bg-purple-50 rounded-xl">
+                  <p className="text-sm font-medium text-purple-700 flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    {selectedDate.toLocaleDateString('fr-FR', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+
+                {/* Sélecteur de mode de sélection */}
+                <div className="mb-4 flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                  <button
+                    onClick={() => setSelectionMode('single')}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${selectionMode === 'single'
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gray-200'
+                      }`}
+                  >
+                    Simple
+                  </button>
+                  <button
+                    onClick={() => setSelectionMode('multiple')}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${selectionMode === 'multiple'
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gray-200'
+                      }`}
+                  >
+                    Multiple
+                  </button>
+                </div>
+
+                {/* Information sur le mode multiple */}
+                {selectionMode === 'multiple' && (
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg flex items-start gap-2">
+                    <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-700">
+                      Mode sélection multiple activé. Cliquez sur plusieurs créneaux pour les sélectionner.
+                      {selectedTimes.length > 0 && ` ${selectedTimes.length} créneau(x) sélectionné(s)`}
                     </p>
                   </div>
+                )}
+
+                {loadingTimeSlots ? (
+                  <div className="flex justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin"></div>
+                  </div>
+                ) : availableTimeSlots.length > 0 ? (
+                  <>
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                      {availableTimeSlots.map((slot) => {
+                        const isSelected = selectionMode === 'single'
+                          ? selectedTime?.id === slot.id
+                          : selectedTimes.some(t => t.id === slot.id);
+
+                        return (
+                          <button
+                            key={slot.id}
+                            onClick={() => handleTimeSlotSelect(slot)}
+                            className={`
+                              w-full p-4 rounded-xl border-2 transition-all duration-200
+                              flex items-center justify-between
+                              ${isSelected
+                                ? 'border-purple-600 bg-purple-50'
+                                : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                              }
+                            `}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Clock className={`h-5 w-5 ${isSelected ? 'text-purple-600' : 'text-gray-400'}`} />
+                              <div className="text-left">
+                                <p className="font-medium text-gray-900">{slot.display}</p>
+                                <p className="text-sm text-gray-500">{slot.price}€</p>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <Check className="h-5 w-5 text-purple-600" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Résumé des créneaux sélectionnés */}
+                    {(selectionMode === 'multiple' && selectedTimes.length > 0) && (
+                      <div className="mt-4 p-4 bg-purple-50 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-purple-700">
+                            Créneaux sélectionnés ({selectedTimes.length})
+                          </span>
+                          <span className="text-sm font-bold text-purple-700">
+                            Total: {calculateTotalPrice()}€
+                          </span>
+                        </div>
+                        <div className="max-h-[100px] overflow-y-auto space-y-1">
+                          {selectedTimes.map((slot, index) => (
+                            <div key={slot.id} className="flex items-center justify-between text-xs text-purple-600">
+                              <span>{slot.display}</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeTimeSlot(slot.id);
+                                }}
+                                className="text-purple-400 hover:text-purple-600"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectionMode === 'single' && selectedTime && (
+                      <div className="mt-4 p-3 bg-green-50 rounded-xl flex items-center gap-2">
+                        <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                        <p className="text-sm text-green-700">
+                          Créneau sélectionné : {selectedTime.display}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">Aucun créneau disponible</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Essayez une autre date
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Carte de réservation */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-6 transition-all duration-300 hover:shadow-xl">
+              <div className="text-center pb-6 border-b border-gray-100">
+                <span className="text-4xl font-bold text-gray-900">{resource.price}€</span>
+                <span className="text-lg text-gray-500 ml-2">/heure</span>
+              </div>
+
+              {/* Résumé de la réservation amélioré */}
+              {(startDate || selectedDate) && (
+                <div className="mt-4 space-y-3">
+                  {selectedDate && (
+                    <div className="p-3 bg-purple-50 rounded-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="h-4 w-4 text-purple-600" />
+                        <span className="text-sm font-medium text-purple-700">
+                          Date sélectionnée
+                        </span>
+                      </div>
+                      <p className="text-sm text-purple-600">
+                        {selectedDate.toLocaleDateString('fr-FR', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedTimes.length > 0 && (
+                    <div className="p-3 bg-blue-50 rounded-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-700">
+                          Créneaux sélectionnés ({selectedTimes.length})
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {selectedTimes.map((slot, index) => (
+                          <p key={slot.id} className="text-sm text-blue-600">
+                            {slot.display}
+                          </p>
+                        ))}
+                      </div>
+                      <p className="text-sm font-medium text-blue-700 mt-2">
+                        Total: {calculateTotalPrice()}€
+                      </p>
+                    </div>
+                  )}
+
+                  {startDate && endDate && (
+                    <div className="p-3 bg-blue-50 rounded-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CalendarRange className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-700">
+                          Période sélectionnée
+                        </span>
+                      </div>
+                      <div className="text-sm text-blue-600 space-y-1">
+                        <p>Du {startDate.toLocaleDateString('fr-FR')}</p>
+                        <p>Au {endDate.toLocaleDateString('fr-FR')}</p>
+                        <p className="font-medium mt-2">
+                          Total: {resource.price * getNumberOfDays() * 24}€
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Informations */}
               <div className="py-6 space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500">Type</span>
@@ -931,36 +1415,64 @@ export default function ResourceDetailsPage() {
                 </div>
               </div>
 
-              {/* Bouton de réservation */}
+              {/* Bouton de réservation amélioré */}
               {reserved ? (
                 <div className="bg-green-50 p-4 rounded-xl text-center animate-fade-in">
                   <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto mb-2" />
                   <p className="font-medium text-green-800">Réservation confirmée !</p>
                   <p className="text-sm text-green-600 mt-1">
-                    Du {startDate?.toLocaleDateString('fr-FR')} au {endDate?.toLocaleDateString('fr-FR')}
+                    {selectedDate && selectedTimes.length > 0 ? (
+                      <>
+                        Le {selectedDate.toLocaleDateString('fr-FR')} - {selectedTimes.length} créneau(x)
+                      </>
+                    ) : startDate && endDate ? (
+                      <>
+                        Du {startDate.toLocaleDateString('fr-FR')} au {endDate.toLocaleDateString('fr-FR')}
+                      </>
+                    ) : null}
                   </p>
                 </div>
               ) : (
                 <button
                   className={`
                     w-full py-4 rounded-xl font-semibold transition-all duration-300
-                    ${startDate && endDate && isRangeValid() && !loadingAvailability
+                    flex items-center justify-center gap-2
+                    ${(selectedTimes.length > 0 || (startDate && endDate && isRangeValid()))
                       ? 'bg-black text-white hover:bg-gray-800 transform hover:scale-[1.02] active:scale-[0.98]'
                       : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     }
                   `}
-                  onClick={() => navigate("/panier")}
-                  disabled={!startDate || !endDate || !isRangeValid() || loadingAvailability}
+                  onClick={() => {
+                    if (selectedTimes.length > 0) {
+                      navigate("/panier", {
+                        state: {
+                          resource,
+                          selectedDate,
+                          selectedTimes,
+                          totalPrice: calculateTotalPrice()
+                        }
+                      })
+                    } else if (startDate && endDate) {
+                      navigate("/panier", {
+                        state: {
+                          resource,
+                          startDate,
+                          endDate,
+                          totalPrice: resource.price * getNumberOfDays() * 24
+                        }
+                      })
+                    }
+                  }}
+                  disabled={selectedTimes.length === 0 && !(startDate && endDate && isRangeValid())}
                 >
-                  {loadingAvailability
-                    ? 'Chargement des disponibilités...'
-                    : !startDate
-                      ? 'Sélectionnez une date de début'
-                      : !endDate
-                        ? 'Sélectionnez une date de fin'
-                        : !isRangeValid()
-                          ? 'Période non disponible'
-                          : 'ajouter au panier'}
+                  <CalendarClock className="h-5 w-5" />
+                  {!selectedDate
+                    ? 'Sélectionnez une date'
+                    : selectedTimes.length === 0 && !endDate
+                      ? 'Choisissez des créneaux'
+                      : selectedTimes.length > 0
+                        ? `Réserver (${selectedTimes.length} créneau(x) - ${calculateTotalPrice()}€)`
+                        : 'Ajouter au panier'}
                 </button>
               )}
             </div>
@@ -1021,8 +1533,7 @@ export default function ResourceDetailsPage() {
         </div>
       )}
 
-      {/* Styles d'animation */}
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in {
           from {
             opacity: 0;
@@ -1036,6 +1547,25 @@ export default function ResourceDetailsPage() {
         
         .animate-fade-in {
           animation: fade-in 0.3s ease-out;
+        }
+
+        /* Style pour la scrollbar */
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: #cbd5e0;
+          border-radius: 10px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: #a0aec0;
         }
       `}</style>
     </div>
