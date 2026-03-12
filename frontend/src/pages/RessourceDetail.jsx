@@ -337,6 +337,7 @@ export default function ResourceDetailsPage() {
       setSubmitting(false)
     }
   }
+  
   // Modifier un commentaire
   const handleEditComment = async (commentId, newContent, newStars) => {
     if (!currentUser) return

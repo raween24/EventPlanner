@@ -37,27 +37,14 @@ export default function Signup() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      setPreview(reader.result);
-      setForm({ ...form, image: reader.result });
+      setPreview(URL.createObjectURL(file));
+      setForm({ ...form, image: file });
     };
     reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const body = {
-      firstname: form.firstName,
-      lastname: form.lastName,
-      date_de_naissance: form.dateNaissance,
-      region: form.region || null,
-      numTel: form.numTel || null,
-      gender: form.genre,
-      email: form.email,
-      password: form.password,
-      role: form.role,
-      image: form.image || null,
-      passportOrCid: form.passportOrCid || null,
-    };
     const formData = new FormData();
 
     formData.append("firstname", form.firstName);
@@ -74,11 +61,11 @@ export default function Signup() {
     if (form.image) {
       formData.append("image", form.image);
     }
+
     try {
       const res = await fetch("http://localhost:5000/api/users/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: formData,
       });
       const data = await res.json();
       if (res.ok) {
@@ -145,7 +132,7 @@ export default function Signup() {
             {/* Date + Région */}
             <div className="field-wrap">
               <label>Date de naissance</label>
-              <input type="date" name="dateNaissance" onChange={handleChange} required />
+              <input type="date" name="dateNaissance" max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split("T")[0]} onChange={handleChange} required />
             </div>
 
             <div className="field-wrap">
@@ -156,7 +143,7 @@ export default function Signup() {
             {/* Téléphone + Genre */}
             <div className="field-wrap">
               <label>Téléphone</label>
-              <input type="number" name="numTel" placeholder="Ex: 0612345678" onChange={handleChange} />
+              <input type="number" name="numTel" maxLength="999999999" placeholder="Ex: +612 01234567" onChange={handleChange} />
             </div>
 
             {/* Genre — radio inline stylés */}
@@ -363,35 +350,25 @@ export default function Signup() {
 
                 {/* Animated progress bar */}
                 {/* Barre de progression - Option 2 : Pulsation */}
+                {/* Barre de progression - Option 3 : Segments animés */}
                 <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: '0%' }}
-                    animate={{ width: '100%' }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      repeatType: "reverse",
-                      ease: "easeInOut"
-                    }}
-                    className="absolute h-full bg-gradient-to-r from-yellow-400 via-indigo-400 to-yellow-400 rounded-full"
-                  />
+                  <div className="absolute inset-0 flex">
+                    <motion.div
+                      animate={{ x: ['-100%', '400%'] }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                      className="w-1/3 h-full bg-gradient-to-r from-yellow-400 via-indigo-400 to-yellow-400"
+                    />
+                  </div>
                 </div>
 
                 {/* Info icons */}
                 <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
-                  <div className="flex items-center space-x-1 animate-bounce-gentle">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    <span>Email</span>
-                  </div>
-                  <span className="text-gray-300">•</span>
-                  <div className="flex items-center space-x-1 animate-bounce-gentle delay-200">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                    <span>Notification</span>
-                  </div>
+                  
+                 
                 </div>
               </div>
 
