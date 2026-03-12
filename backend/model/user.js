@@ -28,14 +28,7 @@ const UserSchema = new mongoose.Schema({
   googleId: { type: String}, // stocke l'id Google
   gender: { type: String, required: true },
 
-  role: {
-    type: String,
-    enum: ["organisateur", "prestataire"],
-    default: "organisateur",
-    required: true
-  },
 
-  googleId: { type: String },
 
   status: {
     type: String,
