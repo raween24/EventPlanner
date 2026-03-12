@@ -1,12 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Calendar, Wrench, FileText, User,
   Bell, Search, Users, CheckCircle, Upload, Eye, Trash2,
   Plus, Download, Shield, Package, Star, LogOut
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+const API = "http://localhost:5000/api/admin";
+
+const getToken = () => localStorage.getItem("token");
+
+// ─── Mock Data (fallback) ─────────────────────────────────────────────────────
 const mockEvents = [
   { id: 1, name: "Conférence Tech 2026", date: "2026-04-15", lieu: "Paris – Palais des Congrès", participants: 350, statut: "Confirmé" },
   { id: 2, name: "Séminaire Marketing Digital", date: "2026-05-02", lieu: "Lyon – Centre des Congrès", participants: 120, statut: "Confirmé" },
@@ -20,12 +25,10 @@ const mockEvents = [
 const mockResources = [
   { id: 1, nom: "Vidéoprojecteur HD", type: "Équipement", quantite: 5, statut: "Disponible", description: "Projecteur 4K avec connectique HDMI/USB-C" },
   { id: 2, nom: "Système de sonorisation", type: "Équipement", quantite: 3, statut: "Réservé", description: "Enceintes + micro sans fil" },
-  { id: 3, nom: "Tables rondes (lot de 10)", type: "Équipement", quantite: 4, statut: "Disponible", description: "Tables pliantes 150cm de diamètre" },
-  { id: 4, nom: "Chaises empilables (lot de 50)", type: "Équipement", quantite: 8, statut: "Disponible", description: "Chaises rembourrées noires" },
-  { id: 5, nom: "Salle Alpha", type: "Salle", quantite: 1, statut: "Réservé", description: "Salle de réunion 20 places" },
-  { id: 6, nom: "Salle Beta", type: "Salle", quantite: 1, statut: "Disponible", description: "Salle de formation 40 places" },
-  { id: 7, nom: "Salle Gamma", type: "Salle", quantite: 1, statut: "En maintenance", description: "Salle de conférence 100 places" },
-  { id: 8, nom: "Technicien son", type: "Personnel", quantite: 2, statut: "Disponible", description: "Ingénieur son professionnel" },
+  { id: 3, nom: "Salle Alpha", type: "Salle", quantite: 1, statut: "Réservé", description: "Salle de réunion 20 places" },
+  { id: 4, nom: "Salle Beta", type: "Salle", quantite: 1, statut: "Disponible", description: "Salle de formation 40 places" },
+  { id: 5, nom: "Salle Gamma", type: "Salle", quantite: 1, statut: "En maintenance", description: "Salle de conférence 100 places" },
+  { id: 6, nom: "Technicien son", type: "Personnel", quantite: 2, statut: "Disponible", description: "Ingénieur son professionnel" },
 ];
 
 const mockDocuments = [
@@ -33,8 +36,7 @@ const mockDocuments = [
   { id: 2, nom: "Devis_traiteur_gala.pdf", type: "Devis", uploadePar: "Jean Dupont", date: "2026-03-05", taille: "1.1 MB", statut: "En cours de vérification IA" },
   { id: 3, nom: "Plan_securite_forum.pdf", type: "Plan", uploadePar: "Marc Leroy", date: "2026-03-08", taille: "3.8 MB", statut: "Validé" },
   { id: 4, nom: "Assurance_evenement.pdf", type: "Assurance", uploadePar: "Claire Moreau", date: "2026-03-10", taille: "890 KB", statut: "Rejeté" },
-  { id: 5, nom: "Liste_participants_hackathon.xlsx", type: "Liste", uploadePar: "Ahmed Benali", date: "2026-03-11", taille: "540 KB", statut: "En cours de vérification IA" },
-  { id: 6, nom: "Budget_previsionnel_2026.pdf", type: "Budget", uploadePar: "Sophie Martin", date: "2026-03-12", taille: "1.7 MB", statut: "Validé" },
+  { id: 5, nom: "Budget_previsionnel_2026.pdf", type: "Budget", uploadePar: "Sophie Martin", date: "2026-03-12", taille: "1.7 MB", statut: "Validé" },
 ];
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -73,12 +75,18 @@ const TH = ({ children }) => (
   <th style={{ padding: "12px 20px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#94a3b8", fontFamily: "inherit" }}>{children}</th>
 );
 
+// ─── Skeleton loader ──────────────────────────────────────────────────────────
+const Skeleton = ({ w = "100%", h = 32, radius = 8 }) => (
+  <div style={{ width: w, height: h, borderRadius: radius, background: "linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite" }} />
+);
+
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "evenements", label: "Événements", icon: Calendar },
   { id: "ressources", label: "Ressources", icon: Wrench },
   { id: "documents", label: "Documents", icon: FileText },
+  { id: "profil", label: "Profil", icon: User },
 ];
 
 const Sidebar = ({ active, setActive, onLogout }) => (
@@ -145,26 +153,58 @@ const TopBar = ({ title }) => (
   </div>
 );
 
-// ─── Pages ────────────────────────────────────────────────────────────────────
+// ─── DASHBOARD PAGE (DYNAMIC) ─────────────────────────────────────────────────
 const DashboardPage = () => {
-  const stats = [
-    { label: "Événements totaux", value: "24", change: "+12%", icon: Calendar, color: "#3b82f6", bg: "#eff6ff" },
-    { label: "Ressources actives", value: "142", change: "+5%", icon: Package, color: "#8b5cf6", bg: "#f5f3ff" },
-    { label: "Documents validés", value: "38", change: "+8%", icon: FileText, color: "#10b981", bg: "#ecfdf5" },
-    { label: "Utilisateurs", value: "1 247", change: "+23%", icon: Users, color: "#f59e0b", bg: "#fffbeb" },
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        const { data } = await axios.get(`${API}/stats`, {
+          headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        setStats(data);
+      } catch (err) {
+        setError("Impossible de charger les statistiques");
+        // Fallback to mock data
+        setStats({ users: 1247, events: 24, resources: 142, documents: 38 });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const statCards = [
+    { label: "Événements totaux", value: stats?.events, change: "+12%", icon: Calendar, color: "#3b82f6", bg: "#eff6ff" },
+    { label: "Ressources actives", value: stats?.resources, change: "+5%", icon: Package, color: "#8b5cf6", bg: "#f5f3ff" },
+    { label: "Documents validés", value: stats?.documents, change: "+8%", icon: FileText, color: "#10b981", bg: "#ecfdf5" },
+    { label: "Utilisateurs", value: stats?.users, change: "+23%", icon: Users, color: "#f59e0b", bg: "#fffbeb" },
   ];
+
   return (
     <div>
+      <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+
+      {/* Stats cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 20, marginBottom: 28 }}>
-        {stats.map((s, i) => (
-          <div key={i} style={{ background: "white", borderRadius: 16, padding: 20, border: "1px solid #f1f5f9" }}>
+        {statCards.map((s, i) => (
+          <div key={i} style={{ background: "white", borderRadius: 16, padding: 20, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500, marginBottom: 6 }}>{s.label}</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: "#0f172a" }}>{s.value}</div>
-                <div style={{ fontSize: 12, color: "#10b981", marginTop: 4, fontWeight: 600 }}>↑ {s.change} ce mois</div>
+                {loading
+                  ? <Skeleton w="80px" h={36} radius={6} />
+                  : <div style={{ fontSize: 28, fontWeight: 800, color: "#0f172a" }}>
+                      {s.value?.toLocaleString("fr-FR") ?? "—"}
+                    </div>
+                }
+                <div style={{ fontSize: 12, color: "#10b981", marginTop: 6, fontWeight: 600 }}>↑ {s.change} ce mois</div>
               </div>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <s.icon size={20} color={s.color} />
               </div>
             </div>
@@ -172,6 +212,13 @@ const DashboardPage = () => {
         ))}
       </div>
 
+      {error && (
+        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 16px", color: "#dc2626", fontSize: 13, marginBottom: 20 }}>
+          ⚠️ {error} — affichage des données de démonstration
+        </div>
+      )}
+
+      {/* Two columns */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 20 }}>
         <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
           <div style={{ padding: "18px 24px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -196,21 +243,33 @@ const DashboardPage = () => {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 20 }}>
             <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Répartition événements</h3>
-            {[{ label: "Confirmé", count: 4, color: "#10b981", pct: 57 }, { label: "En attente", count: 2, color: "#f59e0b", pct: 29 }, { label: "Annulé", count: 1, color: "#ef4444", pct: 14 }].map(s => (
-              <div key={s.label} style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ fontSize: 13, color: "#475569" }}>{s.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{s.count}</span>
-                </div>
-                <div style={{ height: 6, background: "#f1f5f9", borderRadius: 6 }}>
-                  <div style={{ height: "100%", width: `${s.pct}%`, background: s.color, borderRadius: 6 }} />
-                </div>
-              </div>
-            ))}
+            {loading
+              ? [1,2,3].map(i => <div key={i} style={{ marginBottom: 14 }}><Skeleton h={8} radius={6} /></div>)
+              : [
+                  { label: "Confirmé", count: 4, color: "#10b981", pct: 57 },
+                  { label: "En attente", count: 2, color: "#f59e0b", pct: 29 },
+                  { label: "Annulé", count: 1, color: "#ef4444", pct: 14 },
+                ].map(s => (
+                  <div key={s.label} style={{ marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 13, color: "#475569" }}>{s.label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{s.count}</span>
+                    </div>
+                    <div style={{ height: 6, background: "#f1f5f9", borderRadius: 6 }}>
+                      <div style={{ height: "100%", width: `${s.pct}%`, background: s.color, borderRadius: 6 }} />
+                    </div>
+                  </div>
+                ))
+            }
           </div>
+
           <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 20 }}>
             <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Actions rapides</h3>
-            {[{ label: "Valider documents en attente", icon: CheckCircle, color: "#10b981" }, { label: "Vérifier ressources", icon: Package, color: "#3b82f6" }, { label: "Gérer utilisateurs", icon: Users, color: "#8b5cf6" }].map((a, i) => (
+            {[
+              { label: "Valider documents en attente", icon: CheckCircle, color: "#10b981" },
+              { label: "Vérifier ressources", icon: Package, color: "#3b82f6" },
+              { label: "Gérer utilisateurs", icon: Users, color: "#8b5cf6" },
+            ].map((a, i) => (
               <button key={i} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, marginBottom: 6, background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", fontSize: 13, color: "#475569", fontFamily: "inherit", fontWeight: 500 }}>
                 <a.icon size={16} color={a.color} />{a.label}
               </button>
@@ -222,6 +281,7 @@ const DashboardPage = () => {
   );
 };
 
+// ─── EVENTS PAGE ──────────────────────────────────────────────────────────────
 const EvenementsPage = () => {
   const [filter, setFilter] = useState("Tous");
   const filters = ["Tous", "Confirmé", "En attente", "Annulé"];
@@ -254,6 +314,7 @@ const EvenementsPage = () => {
   );
 };
 
+// ─── RESOURCES PAGE ───────────────────────────────────────────────────────────
 const RessourcesPage = () => {
   const [filter, setFilter] = useState("Tous");
   const types = ["Tous", "Équipement", "Salle", "Personnel"];
@@ -291,6 +352,7 @@ const RessourcesPage = () => {
   );
 };
 
+// ─── DOCUMENTS PAGE ───────────────────────────────────────────────────────────
 const DocumentsPage = () => (
   <div>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -323,9 +385,45 @@ const DocumentsPage = () => (
   </div>
 );
 
+// ─── PROFIL PAGE ──────────────────────────────────────────────────────────────
+const ProfilPage = () => {
+  const user = JSON.parse(localStorage.getItem("user"));
+  return (
+    <div style={{ maxWidth: 760 }}>
+      <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 28, marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <div style={{ width: 72, height: 72, borderRadius: "50%", background: "linear-gradient(135deg,#ef4444,#f97316)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Shield size={30} color="white" />
+          </div>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a" }}>{user?.firstname} {user?.lastname}</div>
+            <div style={{ color: "#64748b", fontSize: 14 }}>{user?.email}</div>
+            <span style={{ display: "inline-block", marginTop: 6, background: "#fef2f2", color: "#ef4444", padding: "3px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>ADMIN</span>
+          </div>
+        </div>
+      </div>
+      <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 28 }}>
+        <h3 style={{ margin: "0 0 24px", fontSize: 17, fontWeight: 700, color: "#0f172a" }}>Informations</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          {[
+            { label: "Nom complet", value: `${user?.firstname} ${user?.lastname}` },
+            { label: "Email", value: user?.email },
+            { label: "Téléphone", value: user?.numTel || "—" },
+            { label: "Rôle", value: "Administrateur" },
+          ].map((item, i) => (
+            <div key={i}>
+              <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{item.label}</div>
+              <div style={{ fontSize: 15, color: "#0f172a", fontWeight: 500 }}>{item.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
-const pageTitles = { dashboard: "Dashboard", evenements: "Événements", ressources: "Gestion des ressources", documents: "Documents" };
+const pageTitles = { dashboard: "Dashboard", evenements: "Événements", ressources: "Gestion des ressources", documents: "Documents", profil: "Mon profil" };
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -337,7 +435,13 @@ export default function AdminDashboard() {
     navigate("/");
   };
 
-  const pages = { dashboard: <DashboardPage />, evenements: <EvenementsPage />, ressources: <RessourcesPage />, documents: <DocumentsPage /> };
+  const pages = {
+    dashboard: <DashboardPage />,
+    evenements: <EvenementsPage />,
+    ressources: <RessourcesPage />,
+    documents: <DocumentsPage />,
+    profil: <ProfilPage />,
+  };
 
   return (
     <div style={{ fontFamily: "'Inter',-apple-system,sans-serif", background: "#f8fafc", minHeight: "100vh" }}>
