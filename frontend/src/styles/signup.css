@@ -12,7 +12,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   font-family: 'DM Sans', sans-serif;
   height: auto;
   overflow-x: hidden;
@@ -96,8 +97,15 @@ html, body {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-3px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
 }
 
 .auth-card-header h2 {
@@ -195,8 +203,15 @@ html, body {
 }
 
 @keyframes slideIn {
-  from { width: 0; opacity: 0; }
-  to   { width: 100%; opacity: 1; }
+  from {
+    width: 0;
+    opacity: 0;
+  }
+
+  to {
+    width: 100%;
+    opacity: 1;
+  }
 }
 
 /* ==============================
@@ -279,19 +294,19 @@ html, body {
   color: #2b7fff;
 }
 
-.radio-option input[type="radio"]:checked + .radio-label {
+.radio-option input[type="radio"]:checked+.radio-label {
   border-color: #40a4ff;
   background: linear-gradient(135deg, rgba(64, 164, 255, 0.08), rgba(43, 127, 255, 0.04));
   color: #2b7fff;
   box-shadow: 0 6px 20px rgba(64, 164, 255, 0.18);
 }
 
-.radio-option input[type="radio"]:checked + .radio-label .radio-dot {
+.radio-option input[type="radio"]:checked+.radio-label .radio-dot {
   border-color: #2b7fff;
   background: linear-gradient(135deg, #40a4ff, #2b7fff);
 }
 
-.radio-option input[type="radio"]:checked + .radio-label .radio-dot::after {
+.radio-option input[type="radio"]:checked+.radio-label .radio-dot::after {
   transform: translate(-50%, -50%) scale(1);
 }
 
@@ -567,8 +582,13 @@ html, body {
   transition: width 0.3s ease;
 }
 
-.auth-link span:hover { color: #2b7fff; }
-.auth-link span:hover::after { width: 100%; }
+.auth-link span:hover {
+  color: #2b7fff;
+}
+
+.auth-link span:hover::after {
+  width: 100%;
+}
 
 /* ==============================
    RIGHT PANEL — sticky
@@ -620,26 +640,68 @@ html, body {
    RESPONSIVE
 ============================== */
 @media (max-width: 968px) {
-  html, body { overflow: auto; }
-  .auth-container { flex-direction: column; height: auto; overflow: visible; }
+
+  html,
+  body {
+    overflow: auto;
+  }
+
+  .auth-container {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
   .auth-left {
     overflow-y: visible;
     padding: 40px 30px;
     align-items: flex-start;
   }
-  .split-right { position: relative; height: 300px; flex: none; }
-  .form-wrapper { margin: 0; }
-  .auth-card-header h2 { font-size: 32px; }
-  .overlay-content h1 { font-size: 30px; }
-  .back-btn { top: 16px; left: 16px; }
+
+  .split-right {
+    position: relative;
+    height: 300px;
+    flex: none;
+  }
+
+  .form-wrapper {
+    margin: 0;
+  }
+
+  .auth-card-header h2 {
+    font-size: 32px;
+  }
+
+  .overlay-content h1 {
+    font-size: 30px;
+  }
+
+  .back-btn {
+    top: 16px;
+    left: 16px;
+  }
 }
 
 @media (max-width: 600px) {
-  .signup-form { grid-template-columns: 1fr; }
+  .signup-form {
+    grid-template-columns: 1fr;
+  }
+
   .span-2,
   .auth-btn,
-  .photo-upload-wrap { grid-column: span 1; }
-  .auth-left { padding: 30px 20px; }
-  .auth-card-header h2 { font-size: 28px; }
-  .overlay-content h1 { font-size: 24px; }
+  .photo-upload-wrap {
+    grid-column: span 1;
+  }
+
+  .auth-left {
+    padding: 30px 20px;
+  }
+
+  .auth-card-header h2 {
+    font-size: 28px;
+  }
+
+  .overlay-content h1 {
+    font-size: 24px;
+  }
 }

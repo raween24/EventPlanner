@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+
 import "../styles/signup.css";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const [showPendingPopup, setShowPendingPopup] = useState(false);
 
   const [form, setForm] = useState({
     passportOrCid: "",
@@ -42,22 +45,22 @@ export default function Signup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-     const formData = new FormData();
+    const formData = new FormData();
 
-  formData.append("firstname", form.firstName);
-  formData.append("lastname", form.lastName);
-  formData.append("date_de_naissance", form.dateNaissance);
-  formData.append("region", form.region || "");
-  formData.append("numTel", form.numTel || "");
-  formData.append("gender", form.genre);
-  formData.append("email", form.email);
-  formData.append("password", form.password);
-  formData.append("role", form.role);
-  formData.append("passportOrCid", form.passportOrCid || "");
+    formData.append("firstname", form.firstName);
+    formData.append("lastname", form.lastName);
+    formData.append("date_de_naissance", form.dateNaissance);
+    formData.append("region", form.region || "");
+    formData.append("numTel", form.numTel || "");
+    formData.append("gender", form.genre);
+    formData.append("email", form.email);
+    formData.append("password", form.password);
+    formData.append("role", form.role);
+    formData.append("passportOrCid", form.passportOrCid || "");
 
-  if (form.image) {
-    formData.append("image", form.image);
-  }
+    if (form.image) {
+      formData.append("image", form.image);
+    }
 
     try {
       const res = await fetch("http://localhost:5000/api/users/register", {
@@ -66,10 +69,12 @@ export default function Signup() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert("Compte créé avec succès");
-        navigate("/login");
-      } else {
-        alert(data.message || "Erreur signup");
+        if (data.user.status === "en_attente") {
+          setShowPendingPopup(true);
+        } else {
+          alert("Compte créé avec succès");
+          navigate("/login");
+        }
       }
     } catch (err) {
       console.log("Erreur serveur:", err);
@@ -280,6 +285,142 @@ export default function Signup() {
           </div>
         </div>
       </div>
+      {showPendingPopup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4 animate-fadeIn">
+
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[420px] overflow-hidden relative animate-slideUp">
+
+            {/* Animated background elements */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute -top-20 -right-20 w-64 h-64 bg-yellow-200 rounded-full opacity-20 animate-pulse-slow"></div>
+              <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-indigo-200 rounded-full opacity-20 animate-pulse-slower"></div>
+            </div>
+
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setShowPendingPopup(false);
+                navigate("/login");
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 hover:rotate-90 transition-all duration-300 z-10"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Content */}
+            <div className="relative p-8">
+
+              {/* Animated Icon */}
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  {/* Pulsing ring */}
+                  <div className="absolute inset-0 bg-yellow-400 rounded-full animate-ping opacity-20"></div>
+
+                  {/* Rotating ring */}
+                  <div className="absolute inset-0 border-2 border-yellow-400 rounded-full animate-spin-slow"></div>
+
+                  {/* Main icon */}
+                  <div className="relative bg-gradient-to-br from-yellow-400 to-yellow-500 text-white rounded-2xl p-5 shadow-lg shadow-yellow-200 animate-float">
+                    <div className="animate-spin-slow">
+                      ⏳
+                    </div>
+                  </div>
+
+                  {/* Success checkmark */}
+                  <div className="absolute -bottom-2 -right-2 bg-green-500 text-white rounded-full p-1.5 shadow-lg animate-bounce-in">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Title with gradient */}
+              <h3 className="text-2xl font-bold text-center mb-3 bg-gradient-to-r from-yellow-600 to-indigo-600 bg-clip-text text-transparent animate-slideDown">
+                Demande envoyée !
+              </h3>
+
+              {/* Message */}
+              <div className="space-y-4 mb-6">
+                <p className="text-gray-600 text-center leading-relaxed animate-slideUp delay-100">
+                  Votre compte prestataire est en cours de validation par l'administrateur.
+                </p>
+
+                {/* Animated progress bar */}
+                {/* Barre de progression - Option 2 : Pulsation */}
+                <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: '0%' }}
+                    animate={{ width: '100%' }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      repeatType: "reverse",
+                      ease: "easeInOut"
+                    }}
+                    className="absolute h-full bg-gradient-to-r from-yellow-400 via-indigo-400 to-yellow-400 rounded-full"
+                  />
+                </div>
+
+                {/* Info icons */}
+                <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+                  <div className="flex items-center space-x-1 animate-bounce-gentle">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span>Email</span>
+                  </div>
+                  <span className="text-gray-300">•</span>
+                  <div className="flex items-center space-x-1 animate-bounce-gentle delay-200">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <span>Notification</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Estimated time */}
+              <div className="bg-gradient-to-r from-yellow-50 to-indigo-50 rounded-xl p-4 mb-6 animate-scaleUp">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Temps estimé</span>
+                  <span className="font-semibold text-indigo-600 animate-pulse">
+                    24-48 heures
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
+                  <span>Début</span>
+                  <div className="flex space-x-1">
+                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"></div>
+                    <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse delay-100"></div>
+                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse delay-200"></div>
+                  </div>
+                  <span>Finalisation</span>
+                </div>
+              </div>
+
+              {/* Main button */}
+              <button
+                onClick={() => {
+                  setShowPendingPopup(false);
+                  navigate("/login");
+                }}
+                className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold py-3.5 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group"
+              >
+                <span className="relative z-10">J'ai compris</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-700 to-indigo-800 transform translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
+              </button>
+
+              {/* Footer note */}
+              <p className="text-xs text-center text-gray-400 mt-4 animate-fadeIn delay-500">
+                Vous recevrez une confirmation une fois votre demande approuvée
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
