@@ -9,23 +9,20 @@ export const verifyToken = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(" ")[1];
 
-      // Décoder le token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Récupérer l'utilisateur depuis la DB
       const user = await User.findById(decoded.id).select("-password");
       if (!user) {
         return res.status(401).json({ message: "Utilisateur non trouvé" });
       }
 
-      // Ajouter info utilisateur à req.user
       req.user = {
         id: user._id,
         role: user.role,
         email: user.email,
         firstname: user.firstname,
         lastname: user.lastname,
-        image_user:user.image,
+        image_user: user.image,
         provider_name: `${user.firstname} ${user.lastname}`
       };
 
@@ -36,4 +33,11 @@ export const verifyToken = async (req, res, next) => {
   } else {
     return res.status(401).json({ message: "Non autorisé, pas de token" });
   }
+};
+
+export const isAdmin = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({ message: "Accès refusé — Admin uniquement" });
+  }
+  next();
 };

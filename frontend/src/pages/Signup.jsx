@@ -34,35 +34,33 @@ export default function Signup() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      setPreview(URL.createObjectURL(file));
-      setForm({ ...form, image: file });
+      setPreview(reader.result);
+      setForm({ ...form, image: reader.result });
     };
     reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-     const formData = new FormData();
-
-  formData.append("firstname", form.firstName);
-  formData.append("lastname", form.lastName);
-  formData.append("date_de_naissance", form.dateNaissance);
-  formData.append("region", form.region || "");
-  formData.append("numTel", form.numTel || "");
-  formData.append("gender", form.genre);
-  formData.append("email", form.email);
-  formData.append("password", form.password);
-  formData.append("role", form.role);
-  formData.append("passportOrCid", form.passportOrCid || "");
-
-  if (form.image) {
-    formData.append("image", form.image);
-  }
+    const body = {
+      firstname: form.firstName,
+      lastname: form.lastName,
+      date_de_naissance: form.dateNaissance,
+      region: form.region || null,
+      numTel: form.numTel || null,
+      gender: form.genre,
+      email: form.email,
+      password: form.password,
+      role: form.role,
+      image: form.image || null,
+      passportOrCid: form.passportOrCid || null,
+    };
 
     try {
       const res = await fetch("http://localhost:5000/api/users/register", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (res.ok) {
@@ -127,7 +125,7 @@ export default function Signup() {
             {/* Date + Région */}
             <div className="field-wrap">
               <label>Date de naissance</label>
-              <input type="date" name="dateNaissance" max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split("T")[0]} onChange={handleChange} required />
+              <input type="date" name="dateNaissance" onChange={handleChange} required />
             </div>
 
             <div className="field-wrap">
@@ -138,7 +136,7 @@ export default function Signup() {
             {/* Téléphone + Genre */}
             <div className="field-wrap">
               <label>Téléphone</label>
-              <input type="number" name="numTel" maxLength="999999999" placeholder="Ex: +612 01234567" onChange={handleChange} />
+              <input type="number" name="numTel" placeholder="Ex: 0612345678" onChange={handleChange} />
             </div>
 
             {/* Genre — radio inline stylés */}
