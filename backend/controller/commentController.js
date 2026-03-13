@@ -17,7 +17,7 @@ export const createComment = async (req, res) => {
       contenue,
       nbr_stars,
       C_res,
-      C_user: req.user._id   // récupéré du middleware auth
+      C_user: req.user.id   // récupéré du middleware auth
     });
 
     await comment.save();

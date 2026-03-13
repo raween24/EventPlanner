@@ -13,9 +13,7 @@ const addResource = async (req, res) => {
             location,
             capacity
         } = req.body;
-
-        // récupérer le user connecté depuis middleware auth
-        const provider_name = req.user.firstName + " " + req.user.lastName;
+        const provider_name = req.user.firstname + " " + req.user.lastname;
         const provider_email = req.user.email;
 
         // ================= MEDIA =================

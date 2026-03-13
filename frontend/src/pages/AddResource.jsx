@@ -3,23 +3,26 @@ import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FiUpload, FiDollarSign, 
+import {
+  FiUpload, FiDollarSign,
   FiMapPin, FiUsers, FiMail, FiUser, FiTag,
   FiInfo, FiCheckCircle, FiXCircle, FiClock,
   FiMousePointer, FiCalendar, FiChevronLeft, FiChevronRight,
-  FiSun, FiMoon, FiCloud, FiStar, FiHeart, FiGift
+  FiSun, FiMoon, FiCloud, FiStar, FiHeart, FiGift,
+  FiArrowLeft
 } from 'react-icons/fi';
+import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 import axios from 'axios';
 
-// Setup calendar localizer with time support
+// Configuration du calendrier
 const localizer = momentLocalizer(moment);
 
-// Custom Tooltip Component
+// Composant Tooltip (identique)
 const Tooltip = ({ children, text }) => (
   <div className="relative group">
     {children}
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-50"
@@ -30,7 +33,7 @@ const Tooltip = ({ children, text }) => (
   </div>
 );
 
-// Custom Toolbar Component with centered date and arrow navigation
+// Custom Toolbar Component (identique)
 const CustomToolbar = (toolbar) => {
   const goToBack = () => {
     toolbar.onNavigate('PREV');
@@ -58,14 +61,13 @@ const CustomToolbar = (toolbar) => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100"
     >
-      {/* Left side - Today button */}
       <motion.button
-        whileHover={{ scale: 1.05, rotate: [0, -5, 5, -5, 0] }}
+        whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={goToToday}
         className="px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors duration-200"
@@ -73,7 +75,6 @@ const CustomToolbar = (toolbar) => {
         Aujourd'hui
       </motion.button>
 
-      {/* Center - Date navigation with arrows */}
       <div className="flex items-center space-x-4">
         <motion.button
           whileHover={{ scale: 1.1, x: -3 }}
@@ -83,8 +84,8 @@ const CustomToolbar = (toolbar) => {
         >
           <FiChevronLeft className="w-5 h-5" />
         </motion.button>
-        
-        <motion.span 
+
+        <motion.span
           key={toolbar.date}
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -92,7 +93,7 @@ const CustomToolbar = (toolbar) => {
         >
           {label()}
         </motion.span>
-        
+
         <motion.button
           whileHover={{ scale: 1.1, x: 3 }}
           whileTap={{ scale: 0.9 }}
@@ -103,17 +104,15 @@ const CustomToolbar = (toolbar) => {
         </motion.button>
       </div>
 
-      {/* Right side - View selector */}
       <div className="flex items-center space-x-2">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={goToWeekView}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-            toolbar.view === 'week' 
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' 
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${toolbar.view === 'week'
+            ? 'bg-purple-600 text-white shadow-lg shadow-purple-200'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
         >
           Semaine
         </motion.button>
@@ -121,11 +120,10 @@ const CustomToolbar = (toolbar) => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={goToDayView}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-            toolbar.view === 'day' 
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' 
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${toolbar.view === 'day'
+            ? 'bg-purple-600 text-white shadow-lg shadow-purple-200'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
         >
           Jour
         </motion.button>
@@ -134,10 +132,10 @@ const CustomToolbar = (toolbar) => {
   );
 };
 
-// Availability Event Component with time display and animations
+// Availability Event Component (identique)
 const AvailabilityEvent = ({ event }) => {
   const [isHovered, setIsHovered] = useState(false);
-  
+
   return (
     <motion.div
       initial={{ scale: 0.8, opacity: 0 }}
@@ -146,13 +144,12 @@ const AvailabilityEvent = ({ event }) => {
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       transition={{ type: "spring", stiffness: 500, damping: 30 }}
-      className={`h-full w-full rounded-md px-2 py-1 text-xs font-medium relative overflow-hidden ${
-        event.type === 'available' 
-          ? 'bg-gradient-to-r from-green-100 to-green-50 text-green-800 border-l-4 border-green-500' 
-          : 'bg-gradient-to-r from-red-100 to-red-50 text-red-800 border-l-4 border-red-500'
-      }`}
+      className={`h-full w-full rounded-md px-2 py-1 text-xs font-medium relative overflow-hidden ${event.type === 'available'
+        ? 'bg-gradient-to-r from-green-100 to-green-50 text-green-800 border-l-4 border-green-500'
+        : 'bg-gradient-to-r from-red-100 to-red-50 text-red-800 border-l-4 border-red-500'
+        }`}
     >
-      <motion.div 
+      <motion.div
         className="absolute inset-0 bg-white opacity-0"
         animate={{ opacity: isHovered ? 0.1 : 0 }}
         transition={{ duration: 0.2 }}
@@ -178,7 +175,7 @@ const AvailabilityEvent = ({ event }) => {
   );
 };
 
-// Custom Time Slot Component with click animation
+// Custom Time Slot Component (identique)
 const TimeSlotWrapper = ({ children, value, onSelectSlot }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
@@ -188,14 +185,13 @@ const TimeSlotWrapper = ({ children, value, onSelectSlot }) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     setRipple({ show: true, x, y });
     setTimeout(() => setRipple({ show: false, x: 0, y: 0 }), 500);
-    
+
     setIsClicked(true);
     setTimeout(() => setIsClicked(false), 300);
-    
-    // Create a slot selection for this specific time
+
     const endTime = moment(value).add(30, 'minutes').toDate();
     onSelectSlot({ start: value, end: endTime });
   };
@@ -238,7 +234,7 @@ const TimeSlotWrapper = ({ children, value, onSelectSlot }) => {
   );
 };
 
-// Custom Time Column Header with animation
+// Custom Time Column Header (identique)
 const TimeColumnWrapper = ({ children, value }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -260,7 +256,7 @@ const TimeColumnWrapper = ({ children, value }) => {
   );
 };
 
-// Custom Date Cell with animation
+// Custom Date Cell (identique)
 const DateCellWrapper = ({ children, value }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -284,10 +280,10 @@ const DateCellWrapper = ({ children, value }) => {
 };
 
 const AddResourceForm = () => {
-  // Get token from localStorage
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  // Form state matching your backend structure
+  // Form state
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -307,15 +303,15 @@ const AddResourceForm = () => {
   const [dragActive, setDragActive] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Calendar state with time support
+  // Calendar state
   const [availabilityEvents, setAvailabilityEvents] = useState([]);
   const [selectedRange, setSelectedRange] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calendarView, setCalendarView] = useState('week');
   const [showSelectionTooltip, setShowSelectionTooltip] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
-  
-  // NOUVEAUX USESTATE POUR LES ANIMATIONS ET BACKGROUND
+
+  // Animation states
   const [backgroundTheme, setBackgroundTheme] = useState('gradient');
   const [showConfetti, setShowConfetti] = useState(false);
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
@@ -325,7 +321,39 @@ const AddResourceForm = () => {
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [floatingIcons, setFloatingIcons] = useState([]);
   const [isNightMode, setIsNightMode] = useState(false);
-  const [weatherEffect, setWeatherEffect] = useState('clear');
+
+  // CORRECTION: Récupérer les informations utilisateur depuis localStorage
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    console.log("Données utilisateur du localStorage:", user);
+
+    if (token && user) {
+      try {
+        // Utiliser les données du localStorage qui contiennent maintenant les infos
+        setFormData(prev => ({
+          ...prev,
+          provider_name: `${user.lastname} ${user.firstname}`,
+          provider_email: user.email || ""
+        }));
+      } catch (error) {
+        console.error("Erreur lors de la récupération des données utilisateur:", error);
+
+        // Fallback: essayer de décoder le token
+        try {
+          const decoded = jwtDecode(token);
+          setFormData(prev => ({
+            ...prev,
+            provider_name: decoded.name || "",
+            provider_email: decoded.email || ""
+          }));
+        } catch (decodeError) {
+          console.error("Erreur de décodage du token:", decodeError);
+        }
+      }
+    }
+  }, []);
 
   // Effet pour les icônes flottantes
   useEffect(() => {
@@ -348,7 +376,7 @@ const AddResourceForm = () => {
   // Calculer la progression du formulaire
   useEffect(() => {
     const totalFields = Object.keys(formData).length;
-    const filledFields = Object.values(formData).filter(value => 
+    const filledFields = Object.values(formData).filter(value =>
       value && value.toString().trim() !== ''
     ).length;
     const progress = (filledFields / totalFields) * 100;
@@ -358,13 +386,12 @@ const AddResourceForm = () => {
   // Update form date fields when calendar events change
   useEffect(() => {
     if (availabilityEvents.length > 0) {
-      // Find the earliest start date and latest end date
       const startDates = availabilityEvents.map(e => e.start);
       const endDates = availabilityEvents.map(e => e.end);
-      
+
       const minDate = new Date(Math.min(...startDates));
       const maxDate = new Date(Math.max(...endDates));
-      
+
       setFormData(prev => ({
         ...prev,
         date_deb: moment(minDate).format('YYYY-MM-DD'),
@@ -378,7 +405,7 @@ const AddResourceForm = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle drag events for media upload
+  // Handle drag events
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -389,12 +416,12 @@ const AddResourceForm = () => {
     }
   };
 
-  // Handle drop event for media
+  // Handle drop event
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
     handleFiles(files);
   };
@@ -408,17 +435,15 @@ const AddResourceForm = () => {
   // Process files
   const handleFiles = (files) => {
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
-    
-    // Update mediaFiles for FormData
+
     setMediaFiles(prev => [...prev, ...imageFiles]);
-    
-    // Create previews for display
+
     const newPreviews = imageFiles.map(file => ({
       file,
       preview: URL.createObjectURL(file),
       id: Math.random().toString(36).substr(2, 9)
     }));
-    
+
     setMediaPreviews(prev => [...prev, ...newPreviews]);
   };
 
@@ -428,7 +453,6 @@ const AddResourceForm = () => {
       const file = prev.find(f => f.id === id);
       if (file) {
         URL.revokeObjectURL(file.preview);
-        // Also remove from mediaFiles
         setMediaFiles(current => current.filter(f => f !== file.file));
       }
       return prev.filter(f => f.id !== id);
@@ -442,13 +466,13 @@ const AddResourceForm = () => {
     setTimeout(() => setShowSelectionTooltip(false), 2000);
   };
 
-  // Add availability range with type
+  // Add availability range
   const addAvailabilityRange = (type) => {
     if (!selectedRange) return;
 
     const newEvent = {
       id: Math.random().toString(36).substr(2, 9),
-      title: type === 'available' ? 'Available' : 'Unavailable',
+      title: type === 'available' ? 'Disponible' : 'Indisponible',
       start: selectedRange.start,
       end: selectedRange.end,
       type: type,
@@ -470,6 +494,11 @@ const AddResourceForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!token) {
+      setMessage("Vous devez être connecté pour ajouter une ressource");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setShowConfetti(true);
@@ -477,25 +506,28 @@ const AddResourceForm = () => {
 
       const resourceData = new FormData();
 
+      // Ajouter les champs du formulaire
       Object.keys(formData).forEach((key) => {
-        resourceData.append(key, formData[key]);
+        if (formData[key]) {
+          resourceData.append(key, formData[key]);
+        }
       });
 
-      for (let i = 0; i < mediaFiles.length; i++) {
-        resourceData.append("media", mediaFiles[i]);
-      }
+      // Ajouter les médias
+      mediaFiles.forEach((file) => {
+        resourceData.append("media", file);
+      });
 
-      resourceData.append(
-        "availability",
-        JSON.stringify(availabilityEvents)
-      );
+      // Ajouter les disponibilités
+      resourceData.append("availability", JSON.stringify(availabilityEvents));
 
       const response = await axios.post(
         "http://localhost:5000/api/ressources/add_ressource",
         resourceData,
         {
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
           }
         }
       );
@@ -503,7 +535,7 @@ const AddResourceForm = () => {
       console.log("Ressource ajoutée :", response.data);
       setMessage("Ressource ajoutée avec succès !");
       setShowSuccessAnimation(true);
-      
+
       setTimeout(() => {
         setShowSuccessAnimation(false);
         // Reset form
@@ -514,8 +546,8 @@ const AddResourceForm = () => {
           price: "",
           location: "",
           capacity: "",
-          provider_name: "",
-          provider_email: "",
+          provider_name: formData.provider_name, // Garder le nom du prestataire
+          provider_email: formData.provider_email, // Garder l'email
           date_deb: "",
           date_fin: ""
         });
@@ -537,7 +569,7 @@ const AddResourceForm = () => {
     setCurrentDate(newDate);
   };
 
-  // Calendar components with animations and custom toolbar
+  // Calendar components
   const CalendarComponents = {
     event: AvailabilityEvent,
     timeSlotWrapper: (props) => (
@@ -548,7 +580,7 @@ const AddResourceForm = () => {
     toolbar: CustomToolbar
   };
 
-  // Custom calendar messages
+  // Calendar messages
   const messages = {
     date: 'Date',
     time: 'Heure',
@@ -570,8 +602,8 @@ const AddResourceForm = () => {
     if (isNightMode) {
       return 'bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900';
     }
-    
-    switch(backgroundTheme) {
+
+    switch (backgroundTheme) {
       case 'gradient':
         return 'bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50';
       case 'ocean':
@@ -587,8 +619,16 @@ const AddResourceForm = () => {
 
   return (
     <div className={`min-h-screen ${getBackgroundClass()} p-6 relative overflow-hidden transition-colors duration-1000`}>
-      
-      {/* Icônes flottantes animées */}
+      {/* Bouton retour */}
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-6 flex items-center gap-2 text-gray-600 hover:text-black transition group"
+      >
+        <FiArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition" />
+        Retour
+      </button>
+
+      {/* Icônes flottantes */}
       {floatingIcons.map(({ id, Icon, x, y, duration, delay, size }) => (
         <motion.div
           key={id}
@@ -662,8 +702,8 @@ const AddResourceForm = () => {
         )}
       </AnimatePresence>
 
-      {/* Barre de progression du formulaire */}
-      <motion.div 
+      {/* Barre de progression */}
+      <motion.div
         className="fixed top-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 z-50"
         initial={{ width: 0 }}
         animate={{ width: `${formProgress}%` }}
@@ -680,7 +720,7 @@ const AddResourceForm = () => {
         >
           {isNightMode ? <FiSun className="w-5 h-5 text-yellow-500" /> : <FiMoon className="w-5 h-5 text-indigo-500" />}
         </motion.button>
-        
+
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -695,14 +735,14 @@ const AddResourceForm = () => {
         </motion.button>
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="max-w-7xl mx-auto relative z-10"
       >
-        {/* Header avec animation */}
-        <motion.div 
+        {/* Header */}
+        <motion.div
           className="mb-8"
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -729,13 +769,11 @@ const AddResourceForm = () => {
                   onHoverStart={() => setHoveredField('name')}
                   onHoverEnd={() => setHoveredField(null)}
                   animate={{
-                    scale: hoveredField === 'name' ? 1.02 : 1,
-                    boxShadow: hoveredField === 'name' ? '0 10px 30px -10px rgba(139, 92, 246, 0.3)' : 'none'
+                    scale: hoveredField === 'name' ? 1.02 : 1
                   }}
-                  transition={{ type: "spring", stiffness: 300 }}
                 >
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nom
+                    Nom de la ressource
                   </label>
                   <input
                     type="text"
@@ -743,7 +781,7 @@ const AddResourceForm = () => {
                     value={formData.name}
                     onChange={handleChange}
                     className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
-                    placeholder="e.g., Grande Salle de Bal"
+                    placeholder="Ex: Grande Salle de Bal"
                     required
                   />
                 </motion.div>
@@ -805,7 +843,7 @@ const AddResourceForm = () => {
                     }}
                   >
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Prix
+                      Prix (par heure)
                     </label>
                     <div className="relative">
                       <FiDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -832,7 +870,7 @@ const AddResourceForm = () => {
                     }}
                   >
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Location
+                      Localisation
                     </label>
                     <div className="relative">
                       <FiMapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -854,7 +892,7 @@ const AddResourceForm = () => {
                     }}
                   >
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Capacité
+                      Capacité max
                     </label>
                     <div className="relative">
                       <FiUsers className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -864,13 +902,13 @@ const AddResourceForm = () => {
                         value={formData.capacity}
                         onChange={handleChange}
                         className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
-                        placeholder="Max personnes"
+                        placeholder="Nombre de personnes"
                       />
                     </div>
                   </motion.div>
                 </div>
 
-                {/* Provider Info */}
+                {/* Provider Info - Maintenant pré-rempli avec les données du localStorage */}
                 <div className="grid grid-cols-2 gap-4">
                   <motion.div
                     onHoverStart={() => setHoveredField('provider_name')}
@@ -889,9 +927,10 @@ const AddResourceForm = () => {
                         name="provider_name"
                         value={formData.provider_name}
                         onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
+                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:border-purple-400 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
                         placeholder="John Doe"
                         required
+                        readOnly // Optionnel: rendre readonly car c'est automatique
                       />
                     </div>
                   </motion.div>
@@ -912,8 +951,10 @@ const AddResourceForm = () => {
                         name="provider_email"
                         value={formData.provider_email}
                         onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
+                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:border-purple-400 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
                         placeholder="john@example.com"
+                        required
+                        readOnly // Optionnel: rendre readonly car c'est automatique
                       />
                     </div>
                   </motion.div>
@@ -965,11 +1006,10 @@ const AddResourceForm = () => {
                       scale: dragActive ? 1.02 : 1,
                       borderColor: dragActive ? '#a78bfa' : '#d1d5db'
                     }}
-                    className={`relative border-2 border-dashed rounded-xl p-6 transition-all duration-300 ${
-                      dragActive 
-                        ? 'border-purple-400 bg-purple-50' 
-                        : 'border-gray-300 hover:border-purple-300 hover:bg-purple-50/50'
-                    }`}
+                    className={`relative border-2 border-dashed rounded-xl p-6 transition-all duration-300 ${dragActive
+                      ? 'border-purple-400 bg-purple-50'
+                      : 'border-gray-300 hover:border-purple-300 hover:bg-purple-50/50'
+                      }`}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
                     onDragOver={handleDrag}
@@ -1001,7 +1041,7 @@ const AddResourceForm = () => {
                   {/* Image Previews */}
                   <AnimatePresence>
                     {mediaPreviews.length > 0 && (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
@@ -1043,11 +1083,10 @@ const AddResourceForm = () => {
                       initial={{ opacity: 0, y: -10, scale: 0.9 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                      className={`p-3 rounded-lg ${
-                        message.includes("succès") 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-red-100 text-red-700'
-                      }`}
+                      className={`p-3 rounded-lg ${message.includes("succès")
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-700'
+                        }`}
                     >
                       {message}
                     </motion.div>
@@ -1093,7 +1132,7 @@ const AddResourceForm = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <motion.div 
+            <motion.div
               animate={{
                 height: isCalendarExpanded ? 'auto' : '60px',
                 overflow: isCalendarExpanded ? 'visible' : 'hidden'
@@ -1102,7 +1141,7 @@ const AddResourceForm = () => {
               className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 sticky top-6 hover:shadow-2xl transition-shadow duration-300"
             >
               <div className="flex items-center justify-between mb-6">
-                <motion.h2 
+                <motion.h2
                   animate={{ x: isCalendarExpanded ? 0 : -10 }}
                   className="text-xl font-semibold text-gray-800"
                 >
@@ -1111,7 +1150,7 @@ const AddResourceForm = () => {
                 <div className="flex items-center space-x-2">
                   <Tooltip text="Marquer comme disponible">
                     <motion.button
-                      whileHover={{ scale: 1.1, rotate: [0, -5, 5, -5, 0] }}
+                      whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                       onClick={() => addAvailabilityRange('available')}
                       disabled={!selectedRange}
@@ -1130,7 +1169,7 @@ const AddResourceForm = () => {
                   </Tooltip>
                   <Tooltip text="Marquer comme indisponible">
                     <motion.button
-                      whileHover={{ scale: 1.1, rotate: [0, -5, 5, -5, 0] }}
+                      whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                       onClick={() => addAvailabilityRange('unavailable')}
                       disabled={!selectedRange}
@@ -1179,8 +1218,8 @@ const AddResourceForm = () => {
                 )}
               </AnimatePresence>
 
-              {/* Time-based Calendar with Custom Toolbar */}
-              <motion.div 
+              {/* Calendar */}
+              <motion.div
                 className="calendar-container rounded-lg overflow-hidden border border-gray-200"
                 animate={{
                   scale: isCalendarExpanded ? 1 : 0.8,
@@ -1198,7 +1237,7 @@ const AddResourceForm = () => {
                   components={CalendarComponents}
                   className="bg-white"
                   popup
-                  tooltipAccessor={(event) => 
+                  tooltipAccessor={(event) =>
                     `${event.type === 'available' ? 'Disponible' : 'Indisponible'}: ${moment(event.start).format('MMM DD, YYYY HH:mm')} - ${moment(event.end).format('HH:mm')}`
                   }
                   views={['week', 'day']}
@@ -1217,7 +1256,7 @@ const AddResourceForm = () => {
               </motion.div>
 
               {/* Legend and Selected Range Info */}
-              <motion.div 
+              <motion.div
                 className="mt-4 flex items-center justify-between"
                 animate={{
                   y: isCalendarExpanded ? 0 : -20,
@@ -1225,11 +1264,11 @@ const AddResourceForm = () => {
                 }}
               >
                 <div className="flex items-center space-x-6">
-                  <motion.div 
+                  <motion.div
                     className="flex items-center space-x-2"
                     whileHover={{ scale: 1.05 }}
                   >
-                    <motion.div 
+                    <motion.div
                       animate={{
                         scale: [1, 1.1, 1],
                       }}
@@ -1242,11 +1281,11 @@ const AddResourceForm = () => {
                     />
                     <span className="text-sm text-gray-600">Disponible</span>
                   </motion.div>
-                  <motion.div 
+                  <motion.div
                     className="flex items-center space-x-2"
                     whileHover={{ scale: 1.05 }}
                   >
-                    <motion.div 
+                    <motion.div
                       animate={{
                         scale: [1, 1.1, 1],
                       }}
@@ -1261,7 +1300,7 @@ const AddResourceForm = () => {
                     <span className="text-sm text-gray-600">Indisponible</span>
                   </motion.div>
                 </div>
-                
+
                 {selectedRange && (
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
@@ -1296,9 +1335,8 @@ const AddResourceForm = () => {
                             exit={{ opacity: 0, x: 20 }}
                             layout
                             whileHover={{ scale: 1.02, x: 5 }}
-                            className={`flex items-center justify-between p-2 rounded-lg ${
-                              event.type === 'available' ? 'bg-green-50' : 'bg-red-50'
-                            }`}
+                            className={`flex items-center justify-between p-2 rounded-lg ${event.type === 'available' ? 'bg-green-50' : 'bg-red-50'
+                              }`}
                           >
                             <div className="flex items-center space-x-2">
                               {event.type === 'available' ? (

@@ -1,4 +1,4 @@
-import { Calendar, Clock, Shield, Star, Menu, X, ChevronRight, MapPin, Users, CreditCard, Sparkles, Mail, Phone, MapPinned, Send, ChevronDown, LogOut, User, ShoppingCart, LayoutDashboard, PlusCircle } from "lucide-react";
+import { Calendar, Clock, Shield, MessageCircle, Star, Menu, X, ChevronRight, MapPin, Users, CreditCard, Sparkles, Mail, Phone, MapPinned, Send, ChevronDown, LogOut, User, ShoppingCart, LayoutDashboard, PlusCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -172,6 +172,7 @@ export default function HomePage() {
   };
 
   const features = [
+
     { icon: Calendar, title: "Réservation intelligente", description: "Réservez vos salles, traiteurs et décorateurs en un clic grâce à notre système intuitif.", color: "from-blue-500 to-cyan-500" },
     { icon: Sparkles, title: "Recommandation AI", description: "Notre IA vous suggère les meilleures ressources selon votre budget et localisation.", color: "from-purple-500 to-pink-500" },
     { icon: Clock, title: "Agenda interactif", description: "Visualisez les disponibilités en temps réel et évitez les conflits de planning.", color: "from-orange-500 to-red-500" },
@@ -270,7 +271,15 @@ export default function HomePage() {
                   <span className="ml-auto bg-purple-100 text-purple-600 text-xs font-semibold px-2 py-1 rounded-full">0</span>
                 </motion.button>
               )}
-
+              {!isAdmin && (
+                <motion.button whileHover={{ x: 10 }}
+                  onClick={() => { navigate("/profil"); setIsOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg"
+                >
+                  <MessageCircle className="w-5 h-5 text-blue-600" />
+                  <span>Messanger</span>
+                </motion.button>
+              )}
               {/* Dashboard — organisateur ou prestataire */}
               {(role === "organisateur" || role === "prestataire") && (
                 <motion.button
@@ -330,9 +339,7 @@ export default function HomePage() {
             className="flex items-center space-x-2 cursor-pointer"
             onClick={() => navigate("/")}
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
+
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">EventPlanner</span>
           </motion.div>
 
@@ -366,6 +373,7 @@ export default function HomePage() {
             ) : (
               <ProfileMenu />
             )}
+
           </div>
 
           <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}>
@@ -440,6 +448,15 @@ export default function HomePage() {
                         <span>Mon Profil</span>
                       </motion.button>
                     )}
+                    {!isAdmin && (
+                      <motion.button whileHover={{ x: 10 }}
+                        onClick={() => { navigate("/profil"); setIsOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg"
+                      >
+                        <MessageCircle className="w-5 h-5 text-blue-600" />
+                        <span>Mon Profil</span>
+                      </motion.button>
+                    )}
 
                     {role === "organisateur" && (
                       <motion.button whileHover={{ x: 10 }}
@@ -450,6 +467,7 @@ export default function HomePage() {
                         <span>Mon Panier</span>
                       </motion.button>
                     )}
+
 
                     {(role === "organisateur" || role === "prestataire") && (
                       <motion.button whileHover={{ x: 10 }}

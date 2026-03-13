@@ -73,7 +73,9 @@ export default function ResourceDetailsPage() {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'))
     setCurrentUser(user)
+      console.log(user);
   }, [])
+
 
 
   useEffect(() => {
@@ -283,7 +285,7 @@ export default function ResourceDetailsPage() {
   // Ajouter un commentaire - CORRIGÉ
   const handleAddComment = async (e) => {
     const token = localStorage.getItem("token")
-
+    
     e.preventDefault()
     if (!newComment.trim() || !currentUser) {
       alert("Veuillez vous connecter pour commenter")
@@ -337,7 +339,7 @@ export default function ResourceDetailsPage() {
       setSubmitting(false)
     }
   }
-  
+
   // Modifier un commentaire
   const handleEditComment = async (commentId, newContent, newStars) => {
     if (!currentUser) return
