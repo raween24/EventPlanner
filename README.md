@@ -1,4 +1,4 @@
-page ajouter ressource (prestataire) :rawen  **C BON**
+
  modifier la disponibilite chez lorganisteur (lw9t exatct dans le jour )
  connection avec google pour prestataire seulement 
  supprimer date from create event 
