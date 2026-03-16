@@ -4,7 +4,6 @@ page des favory : adem **C BON**
 template kemla rapport **C BON**
 connecxion organisateur et prostataire **C BON**
 organiser lacceuil **C BON**
-tous ces taches sont ok !
 
  modifier la disponibilite chez lorganisteur (lw9t exatct dans le jour )
  connection avec google pour prestataire seulement 
