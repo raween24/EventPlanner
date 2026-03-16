@@ -1,5 +1,4 @@
 
- modifier la disponibilite chez lorganisteur (lw9t exatct dans le jour )
  connection avec google pour prestataire seulement 
  supprimer date from create event 
  supprimer champs email from creer ressource 
