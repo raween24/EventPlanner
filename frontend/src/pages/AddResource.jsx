@@ -1148,7 +1148,7 @@ const AddResourceForm = () => {
                   Calendrier de disponibilité
                 </motion.h2>
                 <div className="flex items-center space-x-2">
-                  <Tooltip text="Marquer comme disponible">
+              
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
@@ -1166,8 +1166,7 @@ const AddResourceForm = () => {
                         />
                       )}
                     </motion.button>
-                  </Tooltip>
-                  <Tooltip text="Marquer comme indisponible">
+               
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
@@ -1185,7 +1184,7 @@ const AddResourceForm = () => {
                         />
                       )}
                     </motion.button>
-                  </Tooltip>
+              
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
