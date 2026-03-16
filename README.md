@@ -1,7 +1,6 @@
 page ajouter ressource (prestataire) :rawen  **C BON**
 ajouter photo dans base de donnees : adem **C BON**
 page des favory : adem **C BON**
-template kemla rapport **C BON*
  modifier la disponibilite chez lorganisteur (lw9t exatct dans le jour )
  connection avec google pour prestataire seulement 
  supprimer date from create event 
