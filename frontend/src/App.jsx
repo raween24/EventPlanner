@@ -9,8 +9,7 @@ import RessourceDetail from "./pages/RessourceDetail";
 import AddResource from "./pages/AddResource";
 import RoleGuard from "./components/RoleGuard";
 import PanierRessources from "./pages/panier";
-import AdminDashboard from "./pages/Admindashboard"; 
-
+import AdminDashboard from "./pages/Admindashboard";
 export default function App() {
   return (
     <BrowserRouter>
@@ -40,6 +39,7 @@ export default function App() {
             </RoleGuard>
           }
         />
+      
 
         {/* ajout de la page AddResource */}
         <Route

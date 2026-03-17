@@ -14,8 +14,13 @@ const EventSchema = new mongoose.Schema(
         ressources_utiliser:[ {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Resource"
-        }]
+        }],
+          organisateur_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",required: true
+  },
     },
+  
     { timestamps: true }
 );
 

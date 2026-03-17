@@ -25,26 +25,25 @@ const addEvent = async (req, res) => {
       dateDebut,
       dateFin,
       nombreParticipants,
-      ressources_utiliser
+      ressources_utiliser,
+      organisateur_id: req.user.id
     });
 
     await event.save();
 
-    // Populate avant retour
     const populatedEvent = await Event.findById(event._id)
       .populate({
         path: "ressources_utiliser",
         populate: ["media", "availability"]
       });
 
+
     res.status(201).json(populatedEvent);
 
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // ============================
 // ✅ GET ALL EVENTS
@@ -71,11 +70,13 @@ const get_all_Event = async (req, res) => {
 // ============================
 const get_event_by_id = async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id)
-      .populate({
-        path: "ressources_utiliser",
-        populate: ["media", "availability"]
-      });
+    const event = await Event.findOne({
+      _id: req.params.id,
+      organisateur_id: req.user._id
+    }).populate({
+      path: "ressources_utiliser",
+      populate: ["media", "availability"]
+    });
 
     if (!event) {
       return res.status(404).json({ message: "Événement non trouvé" });
@@ -84,12 +85,9 @@ const get_event_by_id = async (req, res) => {
     res.status(200).json(event);
 
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: error.message });
   }
 };
-
-
 // ============================
 // ✅ UPDATE EVENT
 // ============================
@@ -97,20 +95,16 @@ const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const event = await Event.findById(id);
+    const event = await Event.findOne({
+      _id: id,
+      organisateur_id: req.user._id
+    });
 
     if (!event) {
       return res.status(404).json({ message: "Événement non trouvé" });
     }
 
-    event.title = req.body.title ?? event.title;
-    event.description = req.body.description ?? event.description;
-    event.category = req.body.category ?? event.category;
-    event.type = req.body.type ?? event.type;
-    event.dateDebut = req.body.dateDebut ?? event.dateDebut;
-    event.dateFin = req.body.dateFin ?? event.dateFin;
-    event.nombreParticipants = req.body.nombreParticipants ?? event.nombreParticipants;
-    event.ressources_utiliser = req.body.ressources_utiliser ?? event.ressources_utiliser;
+    Object.assign(event, req.body);
 
     await event.save();
 
@@ -130,24 +124,38 @@ const updateEvent = async (req, res) => {
   }
 };
 
-
 // ============================
 // ✅ DELETE EVENT
 // ============================
 const deleteEvent = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const event = await Event.findByIdAndDelete(id);
+    const event = await Event.findOneAndDelete({
+      _id: req.params.id,
+      organisateur_id: req.user._id
+    });
 
     if (!event) {
       return res.status(404).json({ message: "Événement non trouvé" });
     }
 
-    res.status(200).json({ message: "Événement supprimé avec succès" });
+    res.status(200).json({ message: "Événement supprimé" });
 
   } catch (error) {
-    console.log(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const get_Event_by_user = async (req, res) => {
+  try {
+    const events = await Event.find({ organisateur_id: req.user._id })
+      .populate({
+        path: "ressources_utiliser",
+        populate: ["media", "availability"]
+      });
+
+    res.status(200).json(events);
+
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
@@ -157,6 +165,6 @@ export {
   addEvent,
   get_all_Event,
   get_event_by_id,
-  updateEvent,
+  updateEvent, get_Event_by_user,
   deleteEvent
 };
