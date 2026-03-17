@@ -19,7 +19,7 @@ const UserSchema = new mongoose.Schema({
 
   region: { type: String },
 
-  gender: { type: String ,required: true},
+  gender: { type: String, required: true },
 
   role: {
     type: String,
@@ -27,13 +27,20 @@ const UserSchema = new mongoose.Schema({
     default: "organisateur",
     required: true,
   },
-  googleId: { type: String}, // stocke l'id Google
+
+  googleId: { type: String },
+
   status: {
     type: String,
-    enum: ["valide", "en_attente"]
-  }
+    enum: ["valide", "en_attente", "rejected"],
+    default: "en_attente",
+  },
+
+  // ← panier/favoris de l'organisateur
+  adore: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Resource"
+  }],
 });
-
-
 
 export default mongoose.model("User", UserSchema);

@@ -2,39 +2,82 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/login.css";
 import { GoogleLogin } from "@react-oauth/google";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
+import { CheckCircle, XCircle, Info, X, AlertTriangle } from "lucide-react";
 
+// ─── Toast system ─────────────────────────────────────────────────────────────
+const ToastContainer = ({ toasts, removeToast }) => (
+  <div style={{ position: "fixed", top: 20, right: 20, zIndex: 9999, display: "flex", flexDirection: "column", gap: 10, pointerEvents: "none" }}>
+    <AnimatePresence>
+      {toasts.map(t => {
+        const cfg = {
+          success: { bg: "#f0fdf4", border: "#86efac", color: "#16a34a", icon: <CheckCircle size={18} /> },
+          error:   { bg: "#fef2f2", border: "#fca5a5", color: "#dc2626", icon: <XCircle size={18} /> },
+          info:    { bg: "#eff6ff", border: "#93c5fd", color: "#2563eb", icon: <Info size={18} /> },
+          warning: { bg: "#fffbeb", border: "#fcd34d", color: "#d97706", icon: <AlertTriangle size={18} /> },
+        }[t.type] || {};
+        return (
+          <motion.div
+            key={t.id}
+            initial={{ opacity: 0, x: 60 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 60 }}
+            transition={{ duration: 0.3 }}
+            style={{ display: "flex", alignItems: "center", gap: 10, background: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 14, padding: "13px 16px", minWidth: 300, maxWidth: 380, boxShadow: "0 4px 24px rgba(0,0,0,.1)", pointerEvents: "all" }}
+          >
+            <span style={{ color: cfg.color, flexShrink: 0 }}>{cfg.icon}</span>
+            <span style={{ fontSize: 13, color: "#1e293b", fontWeight: 500, flex: 1, lineHeight: 1.4 }}>{t.message}</span>
+            <button onClick={() => removeToast(t.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, flexShrink: 0, pointerEvents: "all" }}>
+              <X size={14} />
+            </button>
+          </motion.div>
+        );
+      })}
+    </AnimatePresence>
+  </div>
+);
+
+const useToast = () => {
+  const [toasts, setToasts] = useState([]);
+  const add = (message, type = "info", duration = 4000) => {
+    const id = Date.now();
+    setToasts(p => [...p, { id, message, type }]);
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), duration);
+  };
+  const remove = (id) => setToasts(p => p.filter(t => t.id !== id));
+  return {
+    toasts, remove,
+    success: (m) => add(m, "success"),
+    error:   (m) => add(m, "error"),
+    info:    (m) => add(m, "info"),
+    warning: (m) => add(m, "warning"),
+  };
+};
+
+// ─── Login ────────────────────────────────────────────────────────────────────
 export default function Login() {
   const [showPendingPopup, setShowPendingPopup] = useState(false);
-
   const navigate = useNavigate();
   const googleBtnRef = useRef(null);
+  const toast = useToast();
 
   const [form, setForm] = useState({ email: "", password: "" });
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       const res = await fetch("http://localhost:5000/api/users/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email, password: form.password }),
       });
 
       const data = await res.json();
 
-      // 🚨 prestataire en attente
+      // Prestataire en attente
       if (res.status === 403) {
         setShowPendingPopup(true);
         return;
@@ -43,15 +86,15 @@ export default function Login() {
       if (res.ok) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
-
-        navigate("/");
+        toast.success(`Bienvenue ${data.user.firstname} ! 👋`);
+        setTimeout(() => navigate("/"), 800);
       } else {
-        alert(data.message);
+        toast.error(data.message || "Email ou mot de passe incorrect");
       }
 
     } catch (err) {
       console.error(err);
-      alert("Erreur serveur");
+      toast.error("Erreur serveur — veuillez réessayer");
     }
   };
 
@@ -63,17 +106,14 @@ export default function Login() {
         token: credentialResponse.credential,
       });
 
-      // stocke token + user
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      alert(`Bienvenue ${res.data.user.firstname || res.data.user.name || "Utilisateur"}`);
-
-      //  redirection vers Home, RoleGuard fera la protection
-      navigate("/");
+      toast.success(`Bienvenue ${res.data.user.firstname || res.data.user.name || "Utilisateur"} ! 👋`);
+      setTimeout(() => navigate("/"), 800);
 
     } catch (err) {
-      alert("Erreur connexion Google : " + (err.response?.data?.message || err.message || "Inconnue"));
+      toast.error("Erreur connexion Google : " + (err.response?.data?.message || err.message || "Inconnue"));
     }
   };
 
@@ -85,11 +125,13 @@ export default function Login() {
   return (
     <div className="split-container">
 
+      {/* Toast notifications */}
+      <ToastContainer toasts={toast.toasts} removeToast={toast.remove} />
+
       {/* ===== LEFT — FORM ===== */}
       <div className="split-left">
         <div className="form-container">
 
-          {/* ===== BACK BUTTON ===== */}
           <button className="back-btn" onClick={() => navigate("/")}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 5l-7 7 7 7" />
@@ -107,32 +149,18 @@ export default function Login() {
 
             <div className="input-group">
               <label>Email</label>
-              <input
-                type="email"
-                name="email"
-                placeholder="vous@exemple.com"
-                onChange={handleChange}
-                required
-              />
+              <input type="email" name="email" placeholder="vous@exemple.com" onChange={handleChange} required />
             </div>
 
             <div className="input-group">
               <label>Mot de passe</label>
-              <input
-                type="password"
-                name="password"
-                placeholder="••••••••"
-                onChange={handleChange}
-                required
-              />
+              <input type="password" name="password" placeholder="••••••••" onChange={handleChange} required />
             </div>
 
-            {/* Divider */}
             <div className="google-divider-wrap">
               <span className="google-divider-text">ou continuer avec</span>
             </div>
 
-            {/* Google Button */}
             <button type="button" className="google-custom-btn" onClick={triggerGoogle}>
               <span className="google-icon-wrap">
                 <svg width="20" height="20" viewBox="0 0 24 24">
@@ -149,14 +177,12 @@ export default function Login() {
             <div className="google-hidden" ref={googleBtnRef}>
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
-                onError={() => alert("La connexion Google a échoué")}
+                onError={() => toast.error("La connexion Google a échoué")}
                 useOneTap={false}
               />
             </div>
 
-            <button type="submit" className="submit-btn">
-              Se connecter
-            </button>
+            <button type="submit" className="submit-btn">Se connecter</button>
 
           </form>
 
@@ -178,50 +204,30 @@ export default function Login() {
         </div>
       </div>
 
+      {/* ===== PENDING POPUP ===== */}
       {showPendingPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4 animate-fadeIn">
-
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[420px] overflow-hidden relative animate-slideUp">
 
-            {/* Animated background elements */}
             <div className="absolute inset-0 overflow-hidden">
               <div className="absolute -top-20 -right-20 w-64 h-64 bg-yellow-200 rounded-full opacity-20 animate-pulse-slow"></div>
               <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-indigo-200 rounded-full opacity-20 animate-pulse-slower"></div>
             </div>
 
-            {/* Close button */}
-            <button
-              onClick={() => {
-                setShowPendingPopup(false);
-                navigate("/login");
-              }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 hover:rotate-90 transition-all duration-300 z-10"
-            >
+            <button onClick={() => { setShowPendingPopup(false); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 hover:rotate-90 transition-all duration-300 z-10">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
 
-            {/* Content */}
             <div className="relative p-8">
-
-              {/* Animated Icon */}
               <div className="flex justify-center mb-6">
                 <div className="relative">
-                  {/* Pulsing ring */}
                   <div className="absolute inset-0 bg-yellow-400 rounded-full animate-ping opacity-20"></div>
-
-                  {/* Rotating ring */}
                   <div className="absolute inset-0 border-2 border-yellow-400 rounded-full animate-spin-slow"></div>
-
-                  {/* Main icon */}
                   <div className="relative bg-gradient-to-br from-yellow-400 to-yellow-500 text-white rounded-2xl p-5 shadow-lg shadow-yellow-200 animate-float">
-                    <div className="animate-spin-slow">
-                      ⏳
-                    </div>
+                    <div className="animate-spin-slow">⏳</div>
                   </div>
-
-                  {/* Success checkmark */}
                   <div className="absolute -bottom-2 -right-2 bg-green-500 text-white rounded-full p-1.5 shadow-lg animate-bounce-in">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -230,46 +236,29 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Title with gradient */}
               <h3 className="text-2xl font-bold text-center mb-3 bg-gradient-to-r from-yellow-600 to-indigo-600 bg-clip-text text-transparent animate-slideDown">
                 Demande en cours de traitement !
               </h3>
 
-              {/* Message */}
               <div className="space-y-4 mb-6">
                 <p className="text-gray-600 text-center leading-relaxed animate-slideUp delay-100">
                   Votre compte prestataire est en cours de validation par l'administrateur.
                 </p>
-
-                {/* Animated progress bar */}
-                {/* Barre de progression - Option 3 : Segments animés */}
                 <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div className="absolute inset-0 flex">
                     <motion.div
                       animate={{ x: ['-100%', '400%'] }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "linear"
-                      }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                       className="w-1/3 h-full bg-gradient-to-r from-yellow-400 via-indigo-400 to-yellow-400"
                     />
                   </div>
                 </div>
-                {/* Info icons */}
-                <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
-
-                   
-                </div>
               </div>
 
-              {/* Estimated time */}
               <div className="bg-gradient-to-r from-yellow-50 to-indigo-50 rounded-xl p-4 mb-6 animate-scaleUp">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Temps estimé</span>
-                  <span className="font-semibold text-indigo-600 animate-pulse">
-                    24-48 heures
-                  </span>
+                  <span className="font-semibold text-indigo-600 animate-pulse">24-48 heures</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
                   <span>Début</span>
@@ -282,19 +271,14 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Main button */}
               <button
-                onClick={() => {
-                  setShowPendingPopup(false);
-                  navigate("/login");
-                }}
+                onClick={() => setShowPendingPopup(false)}
                 className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold py-3.5 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group"
               >
                 <span className="relative z-10">J'ai compris</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-700 to-indigo-800 transform translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
               </button>
 
-              {/* Footer note */}
               <p className="text-xs text-center text-gray-400 mt-4 animate-fadeIn delay-500">
                 Vous recevrez une confirmation une fois votre demande approuvée
               </p>

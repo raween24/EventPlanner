@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import {
   LayoutDashboard, Users, Wrench, Bell, Search,
   Shield, Star, LogOut, CheckCircle, XCircle,
-  Eye, Trash2, ChevronDown, RefreshCw, Package,
-  Calendar, UserCheck, Clock, AlertCircle
+  Eye, Trash2, ChevronDown, Package,
+  Calendar, Clock, AlertCircle, AlertTriangle, Info, X
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -12,19 +12,84 @@ const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
 const authHeaders = () => ({ Authorization: `Bearer ${getToken()}` });
 
+// ═══════════════════════════════════════════════════════════════
+// MODAL SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+const Toast = ({ toasts, removeToast }) => (
+  <div style={{ position: "fixed", top: 20, right: 20, zIndex: 9999, display: "flex", flexDirection: "column", gap: 10 }}>
+    {toasts.map(t => {
+      const cfg = {
+        success: { bg: "#f0fdf4", border: "#86efac", color: "#16a34a", icon: <CheckCircle size={16} /> },
+        error:   { bg: "#fef2f2", border: "#fca5a5", color: "#dc2626", icon: <XCircle size={16} /> },
+        info:    { bg: "#eff6ff", border: "#93c5fd", color: "#2563eb", icon: <Info size={16} /> },
+      }[t.type] || {};
+      return (
+        <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 10, background: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 12, padding: "12px 16px", minWidth: 280, boxShadow: "0 4px 20px rgba(0,0,0,.1)", animation: "slideIn .3s ease" }}>
+          <span style={{ color: cfg.color, flexShrink: 0 }}>{cfg.icon}</span>
+          <span style={{ fontSize: 13, color: "#1e293b", fontWeight: 500, flex: 1 }}>{t.message}</span>
+          <button onClick={() => removeToast(t.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, flexShrink: 0 }}><X size={14} /></button>
+        </div>
+      );
+    })}
+  </div>
+);
+
+const ConfirmModal = ({ modal, onConfirm, onCancel }) => {
+  if (!modal) return null;
+  const cfg = {
+    danger:  { icon: <Trash2 size={24} />,       iconBg: "#fef2f2", iconColor: "#ef4444", btnBg: "linear-gradient(135deg,#ef4444,#dc2626)" },
+    warning: { icon: <AlertTriangle size={24} />, iconBg: "#fffbeb", iconColor: "#f59e0b", btnBg: "linear-gradient(135deg,#f59e0b,#d97706)" },
+    info:    { icon: <Info size={24} />,          iconBg: "#eff6ff", iconColor: "#3b82f6", btnBg: "linear-gradient(135deg,#3b82f6,#2563eb)" },
+  }[modal.type] || {};
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.5)", backdropFilter: "blur(4px)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: "white", borderRadius: 20, padding: 32, maxWidth: 420, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,.2)", animation: "popIn .25s ease" }}>
+        <div style={{ width: 56, height: 56, borderRadius: 16, background: cfg.iconBg, display: "flex", alignItems: "center", justifyContent: "center", color: cfg.iconColor, margin: "0 auto 20px" }}>{cfg.icon}</div>
+        <h3 style={{ textAlign: "center", fontSize: 18, fontWeight: 700, color: "#0f172a", margin: "0 0 10px" }}>{modal.title}</h3>
+        <p style={{ textAlign: "center", fontSize: 14, color: "#64748b", margin: "0 0 28px", lineHeight: 1.6 }}>{modal.message}</p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onCancel} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "1px solid #e2e8f0", background: "white", color: "#475569", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Annuler</button>
+          <button onClick={onConfirm} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "none", background: cfg.btnBg, color: "white", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(0,0,0,.15)" }}>{modal.confirmLabel || "Confirmer"}</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const useToast = () => {
+  const [toasts, setToasts] = useState([]);
+  const addToast = (message, type = "info") => {
+    const id = Date.now();
+    setToasts(p => [...p, { id, message, type }]);
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 4000);
+  };
+  const removeToast = (id) => setToasts(p => p.filter(t => t.id !== id));
+  return { toasts, removeToast, success: m => addToast(m, "success"), error: m => addToast(m, "error"), info: m => addToast(m, "info") };
+};
+
+const useConfirm = () => {
+  const [modal, setModal] = useState(null);
+  const [resolve, setResolve] = useState(null);
+  const confirm = (opts) => new Promise(res => { setModal(opts); setResolve(() => res); });
+  const handleConfirm = () => { setModal(null); resolve(true); };
+  const handleCancel  = () => { setModal(null); resolve(false); };
+  return { modal, confirm, handleConfirm, handleCancel };
+};
+
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 const StatusBadge = ({ statut }) => {
   const map = {
-    valide:      { bg: "#dcfce7", color: "#16a34a", label: "Validé" },
-    en_attente:  { bg: "#fef9c3", color: "#ca8a04", label: "En attente" },
-    rejected:    { bg: "#fee2e2", color: "#dc2626", label: "Rejeté" },
-    organisateur:{ bg: "#eff6ff", color: "#3b82f6", label: "Organisateur" },
-    prestataire: { bg: "#f5f3ff", color: "#8b5cf6", label: "Prestataire" },
-    admin:       { bg: "#fef2f2", color: "#ef4444", label: "Admin" },
-    salle:       { bg: "#ecfdf5", color: "#10b981", label: "Salle" },
-    materiel:    { bg: "#eff6ff", color: "#3b82f6", label: "Matériel" },
-    decoration:  { bg: "#fdf4ff", color: "#a855f7", label: "Décoration" },
-    traiteur:    { bg: "#fff7ed", color: "#f97316", label: "Traiteur" },
+    valide:       { bg: "#dcfce7", color: "#16a34a", label: "Validé" },
+    en_attente:   { bg: "#fef9c3", color: "#ca8a04", label: "En attente" },
+    rejected:     { bg: "#fee2e2", color: "#dc2626", label: "Rejeté" },
+    organisateur: { bg: "#eff6ff", color: "#3b82f6", label: "Organisateur" },
+    prestataire:  { bg: "#f5f3ff", color: "#8b5cf6", label: "Prestataire" },
+    admin:        { bg: "#fef2f2", color: "#ef4444", label: "Admin" },
+    salle:        { bg: "#ecfdf5", color: "#10b981", label: "Salle" },
+    materiel:     { bg: "#eff6ff", color: "#3b82f6", label: "Matériel" },
+    decoration:   { bg: "#fdf4ff", color: "#a855f7", label: "Décoration" },
+    traiteur:     { bg: "#fff7ed", color: "#f97316", label: "Traiteur" },
   };
   const s = map[statut] || { bg: "#f1f5f9", color: "#64748b", label: statut };
   return (
@@ -38,32 +103,28 @@ const StatusBadge = ({ statut }) => {
 const TH = ({ children }) => (
   <th style={{ padding: "12px 20px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#94a3b8", fontFamily: "inherit", whiteSpace: "nowrap" }}>{children}</th>
 );
-
 const TD = ({ children, style }) => (
   <td style={{ padding: "14px 20px", fontSize: 13, color: "#475569", fontFamily: "inherit", ...style }}>{children}</td>
 );
-
 const Skeleton = ({ w = "100%", h = 32, radius = 8 }) => (
   <div style={{ width: w, height: h, borderRadius: radius, background: "linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite" }} />
 );
-
 const EmptyState = ({ icon: Icon, message }) => (
   <div style={{ padding: "60px 20px", textAlign: "center", color: "#94a3b8" }}>
     <Icon size={40} style={{ margin: "0 auto 12px", opacity: 0.4 }} />
     <div style={{ fontSize: 14 }}>{message}</div>
   </div>
 );
-
-const ActionBtn = ({ icon: Icon, label, color, bg, border, onClick, disabled }) => (
-  <button onClick={onClick} disabled={disabled} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: border || "none", background: disabled ? "#f1f5f9" : bg, color: disabled ? "#cbd5e1" : color, cursor: disabled ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", transition: "opacity .2s" }}>
+const ActionBtn = ({ icon: Icon, label, color, bg, onClick, disabled }) => (
+  <button onClick={onClick} disabled={disabled} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "none", background: disabled ? "#f1f5f9" : bg, color: disabled ? "#cbd5e1" : color, cursor: disabled ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
     <Icon size={13} />{label}
   </button>
 );
 
-// ─── Sidebar ──────────────────────────────────────────────────────────────────
+// ─── Sidebar ─────────────────────────────────────────────────────────────────
 const navItems = [
-  { id: "dashboard",  label: "Dashboard",           icon: LayoutDashboard },
-  { id: "comptes",    label: "Gestion des comptes",  icon: Users },
+  { id: "dashboard",  label: "Dashboard",            icon: LayoutDashboard },
+  { id: "comptes",    label: "Gestion des comptes",   icon: Users },
   { id: "ressources", label: "Gestion des ressources", icon: Wrench },
 ];
 
@@ -120,9 +181,7 @@ const TopBar = ({ title }) => (
         <Search size={15} color="#94a3b8" />
         <input placeholder="Rechercher..." style={{ border: "none", background: "transparent", outline: "none", fontSize: 13, color: "#475569", width: 180, fontFamily: "inherit" }} />
       </div>
-      <div style={{ position: "relative", cursor: "pointer" }}>
-        <Bell size={20} color="#64748b" />
-      </div>
+      <Bell size={20} color="#64748b" style={{ cursor: "pointer" }} />
       <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#ef4444,#f97316)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Shield size={16} color="white" />
       </div>
@@ -139,43 +198,45 @@ const DashboardPage = () => {
   const [roleData, setRoleData] = useState([]);
 
   useEffect(() => {
-    const fetch = async () => {
+    const load = async () => {
       try {
         const { data } = await axios.get(`${API}/admin/stats`, { headers: authHeaders() });
         setStats(data);
-
-        // Calcul répartition rôles depuis les users
         const usersRes = await axios.get(`${API}/admin/users`, { headers: authHeaders() });
         const users = usersRes.data;
-        const orga = users.filter(u => u.role === "organisateur").length;
+        const orga  = users.filter(u => u.role === "organisateur").length;
         const prest = users.filter(u => u.role === "prestataire").length;
+        const pend  = users.filter(u => u.role === "prestataire" && u.status === "en_attente").length;
         const total = users.length || 1;
         setRoleData([
-          { label: "Organisateurs", count: orga, color: "#3b82f6", pct: Math.round(orga / total * 100) },
-          { label: "Prestataires",  count: prest, color: "#8b5cf6", pct: Math.round(prest / total * 100) },
-          { label: "En attente validation", count: users.filter(u => u.role === "prestataire" && u.status === "en_attente").length, color: "#f59e0b", pct: Math.round(users.filter(u => u.role === "prestataire" && u.status === "en_attente").length / total * 100) },
+          { label: "Organisateurs",        count: orga,  color: "#3b82f6", pct: Math.round(orga  / total * 100) },
+          { label: "Prestataires",          count: prest, color: "#8b5cf6", pct: Math.round(prest / total * 100) },
+          { label: "En attente validation", count: pend,  color: "#f59e0b", pct: Math.round(pend  / total * 100) },
         ]);
       } catch {
-        setStats({ users: 0, events: 0, resources: 0, documents: 0 });
+        setStats({ users: 0, events: 0, resources: 0, pending: 0 });
       } finally {
         setLoading(false);
       }
     };
-    fetch();
+    load();
   }, []);
 
   const cards = [
-    { label: "Utilisateurs total",       value: stats?.users,     icon: Users,       color: "#3b82f6", bg: "#eff6ff" },
-    { label: "Ressources publiées",       value: stats?.resources, icon: Package,     color: "#8b5cf6", bg: "#f5f3ff" },
-    { label: "Événements",               value: stats?.events,    icon: Calendar,    color: "#10b981", bg: "#ecfdf5" },
-    { label: "Prestataires en attente",  value: stats?.pending,   icon: Clock,       color: "#f59e0b", bg: "#fffbeb" },
+    { label: "Utilisateurs total",      value: stats?.users,     icon: Users,    color: "#3b82f6", bg: "#eff6ff" },
+    { label: "Ressources publiées",      value: stats?.resources, icon: Package,  color: "#8b5cf6", bg: "#f5f3ff" },
+    { label: "Événements",              value: stats?.events,    icon: Calendar, color: "#10b981", bg: "#ecfdf5" },
+    { label: "Prestataires en attente", value: stats?.pending,   icon: Clock,    color: "#f59e0b", bg: "#fffbeb" },
   ];
 
   return (
     <div>
-      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+      <style>{`
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes slideIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
+        @keyframes popIn   { from{transform:scale(.85);opacity:0} to{transform:scale(1);opacity:1} }
+      `}</style>
 
-      {/* Stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 20, marginBottom: 28 }}>
         {cards.map((c, i) => (
           <div key={i} style={{ background: "white", borderRadius: 16, padding: 20, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,.04)" }}>
@@ -183,8 +244,7 @@ const DashboardPage = () => {
               <div style={{ flex: 1 }}>
                 <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500, marginBottom: 8 }}>{c.label}</div>
                 {loading ? <Skeleton w="70px" h={34} radius={6} /> :
-                  <div style={{ fontSize: 30, fontWeight: 800, color: "#0f172a" }}>{c.value ?? 0}</div>
-                }
+                  <div style={{ fontSize: 30, fontWeight: 800, color: "#0f172a" }}>{c.value ?? 0}</div>}
               </div>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <c.icon size={20} color={c.color} />
@@ -194,10 +254,7 @@ const DashboardPage = () => {
         ))}
       </div>
 
-      {/* Charts row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-
-        {/* Répartition rôles */}
         <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 24 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Répartition des utilisateurs</h3>
           {loading ? [1,2,3].map(i => <div key={i} style={{ marginBottom: 16 }}><Skeleton h={10} radius={6} /></div>) :
@@ -215,19 +272,17 @@ const DashboardPage = () => {
           }
         </div>
 
-        {/* Répartition ressources */}
         <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 24 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Types de ressources</h3>
           {loading ? [1,2,3,4].map(i => <div key={i} style={{ marginBottom: 16 }}><Skeleton h={10} radius={6} /></div>) :
             [
-              { label: "Salle",       color: "#10b981", key: "salle" },
-              { label: "Matériel",    color: "#3b82f6", key: "materiel" },
-              { label: "Décoration",  color: "#a855f7", key: "decoration" },
-              { label: "Traiteur",    color: "#f97316", key: "traiteur" },
+              { label: "Salle",      color: "#10b981", key: "salle" },
+              { label: "Matériel",   color: "#3b82f6", key: "materiel" },
+              { label: "Décoration", color: "#a855f7", key: "decoration" },
+              { label: "Traiteur",   color: "#f97316", key: "traiteur" },
             ].map(t => {
               const count = stats?.resourcesByType?.[t.key] || 0;
-              const total = stats?.resources || 1;
-              const pct = Math.round(count / total * 100);
+              const pct   = Math.round(count / (stats?.resources || 1) * 100);
               return (
                 <div key={t.key} style={{ marginBottom: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
@@ -256,64 +311,72 @@ const ComptesPage = () => {
   const [filter, setFilter] = useState("tous");
   const [actionLoading, setActionLoading] = useState(null);
   const [search, setSearch] = useState("");
+  const toast = useToast();
+  const { modal, confirm, handleConfirm, handleCancel } = useConfirm();
 
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
       const { data } = await axios.get(`${API}/admin/users`, { headers: authHeaders() });
       setUsers(data);
-    } catch {
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
+    } catch { setUsers([]); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
-  const handleValidate = async (userId) => {
+  const handleValidate = async (userId, name) => {
     try {
       setActionLoading(userId + "_validate");
       await axios.patch(`${API}/admin/users/${userId}/status`, { status: "valide" }, { headers: authHeaders() });
       setUsers(prev => prev.map(u => u._id === userId ? { ...u, status: "valide" } : u));
-    } catch (e) {
-      alert("Erreur lors de la validation");
-    } finally {
-      setActionLoading(null);
-    }
+      toast.success(`✅ Compte de ${name} validé avec succès`);
+    } catch {
+      toast.error("Erreur lors de la validation du compte");
+    } finally { setActionLoading(null); }
   };
 
-  const handleReject = async (userId) => {
-    if (!window.confirm("Rejeter ce compte ?")) return;
+  const handleReject = async (userId, name) => {
+    const ok = await confirm({
+      type: "warning",
+      title: "Rejeter ce compte ?",
+      message: `Le prestataire "${name}" ne pourra pas accéder à la plateforme. Cette action peut être annulée plus tard.`,
+      confirmLabel: "Oui, rejeter",
+    });
+    if (!ok) return;
     try {
       setActionLoading(userId + "_reject");
       await axios.patch(`${API}/admin/users/${userId}/status`, { status: "rejected" }, { headers: authHeaders() });
       setUsers(prev => prev.map(u => u._id === userId ? { ...u, status: "rejected" } : u));
+      toast.info(`Compte de ${name} rejeté`);
     } catch {
-      alert("Erreur lors du rejet");
-    } finally {
-      setActionLoading(null);
-    }
+      toast.error("Erreur lors du rejet du compte");
+    } finally { setActionLoading(null); }
   };
 
-  const handleDelete = async (userId) => {
-    if (!window.confirm("Supprimer définitivement ce compte ?")) return;
+  const handleDelete = async (userId, name) => {
+    const ok = await confirm({
+      type: "danger",
+      title: "Supprimer ce compte ?",
+      message: `Le compte de "${name}" sera définitivement supprimé. Cette action est irréversible.`,
+      confirmLabel: "Supprimer",
+    });
+    if (!ok) return;
     try {
       setActionLoading(userId + "_delete");
       await axios.delete(`${API}/admin/users/${userId}`, { headers: authHeaders() });
       setUsers(prev => prev.filter(u => u._id !== userId));
+      toast.success(`Compte de ${name} supprimé`);
     } catch {
-      alert("Erreur lors de la suppression");
-    } finally {
-      setActionLoading(null);
-    }
+      toast.error("Erreur lors de la suppression du compte");
+    } finally { setActionLoading(null); }
   };
 
   const filters = [
-    { key: "tous",        label: "Tous" },
-    { key: "prestataire", label: "Prestataires" },
-    { key: "organisateur",label: "Organisateurs" },
-    { key: "en_attente",  label: "En attente" },
+    { key: "tous",         label: "Tous" },
+    { key: "prestataire",  label: "Prestataires" },
+    { key: "organisateur", label: "Organisateurs" },
+    { key: "en_attente",   label: "En attente" },
   ];
 
   const filtered = users.filter(u => {
@@ -328,7 +391,9 @@ const ComptesPage = () => {
 
   return (
     <div>
-      {/* Alert prestataires en attente */}
+      <ConfirmModal modal={modal} onConfirm={handleConfirm} onCancel={handleCancel} />
+      <Toast toasts={toast.toasts} removeToast={toast.removeToast} />
+
       {pendingCount > 0 && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 12, padding: "12px 18px", marginBottom: 20, fontSize: 13, color: "#92400e" }}>
           <AlertCircle size={16} color="#f59e0b" />
@@ -336,7 +401,6 @@ const ComptesPage = () => {
         </div>
       )}
 
-      {/* Filters + search */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", gap: 8 }}>
           {filters.map(f => (
@@ -351,7 +415,6 @@ const ComptesPage = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
         {loading ? (
           <div style={{ padding: 24 }}>{[1,2,3,4,5].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={40} radius={8} /></div>)}</div>
@@ -361,58 +424,72 @@ const ComptesPage = () => {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#f8fafc" }}>
-                <TH>Utilisateur</TH>
-                <TH>Email</TH>
-                <TH>Téléphone</TH>
-                <TH>Rôle</TH>
-                <TH>Statut</TH>
-                <TH>Actions</TH>
+                <TH>Utilisateur</TH><TH>Email</TH><TH>Téléphone</TH><TH>Rôle</TH><TH>Statut</TH><TH>Actions</TH>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(u => (
-                <tr key={u._id} style={{ borderTop: "1px solid #f8fafc", transition: "background .15s" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "#fafafa"}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-
-                  {/* Avatar + nom */}
-                  <TD>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: u.role === "prestataire" ? "linear-gradient(135deg,#8b5cf6,#a855f7)" : "linear-gradient(135deg,#3b82f6,#60a5fa)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
-                        {u.image ? <img src={`http://localhost:5000/uploads/${u.image}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> :
-                          <span style={{ color: "white", fontSize: 13, fontWeight: 700 }}>{u.firstname?.[0]}{u.lastname?.[0]}</span>}
+              {filtered.map(u => {
+                const name = `${u.firstname} ${u.lastname}`;
+                const isPrest = u.role === "prestataire";
+                return (
+                  <tr key={u._id} style={{ borderTop: "1px solid #f8fafc" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#fafafa"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <TD>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: isPrest ? "linear-gradient(135deg,#8b5cf6,#a855f7)" : "linear-gradient(135deg,#3b82f6,#60a5fa)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+                          {u.image
+                            ? <img src={`http://localhost:5000/uploads/${u.image}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            : <span style={{ color: "white", fontSize: 13, fontWeight: 700 }}>{u.firstname?.[0]}{u.lastname?.[0]}</span>}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 13 }}>{name}</div>
+                          <div style={{ fontSize: 11, color: "#94a3b8" }}>{u.region || "—"}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 13 }}>{u.firstname} {u.lastname}</div>
-                        <div style={{ fontSize: 11, color: "#94a3b8" }}>{u.region || "—"}</div>
+                    </TD>
+                    <TD>{u.email}</TD>
+                    <TD>{u.numTel || "—"}</TD>
+                    <TD><StatusBadge statut={u.role} /></TD>
+                    <TD>
+                      {isPrest
+                        ? <StatusBadge statut={u.status || "en_attente"} />
+                        : <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>
+                      }
+                    </TD>
+                    <TD>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+
+                        {/* ✅ Valider — seulement si en_attente ou rejected */}
+                        {isPrest && u.status === "en_attente" && (
+                          <ActionBtn icon={CheckCircle} label="Valider" color="#16a34a" bg="#dcfce7"
+                            onClick={() => handleValidate(u._id, name)}
+                            disabled={actionLoading === u._id + "_validate"} />
+                        )}
+
+                        {/* ❌ Rejeter — seulement si en_attente */}
+                        {isPrest && u.status === "en_attente" && (
+                          <ActionBtn icon={XCircle} label="Rejeter" color="#dc2626" bg="#fee2e2"
+                            onClick={() => handleReject(u._id, name)}
+                            disabled={actionLoading === u._id + "_reject"} />
+                        )}
+
+                        {/* ↩️ Ré-activer — seulement si rejected */}
+                        {isPrest && u.status === "rejected" && (
+                          <ActionBtn icon={CheckCircle} label="Ré-activer" color="#16a34a" bg="#dcfce7"
+                            onClick={() => handleValidate(u._id, name)}
+                            disabled={actionLoading === u._id + "_validate"} />
+                        )}
+
+                        {/* 🗑 Supprimer — toujours visible */}
+                        <ActionBtn icon={Trash2} label="Supprimer" color="#64748b" bg="#f1f5f9"
+                          onClick={() => handleDelete(u._id, name)}
+                          disabled={actionLoading === u._id + "_delete"} />
                       </div>
-                    </div>
-                  </TD>
-
-                  <TD>{u.email}</TD>
-                  <TD>{u.numTel || "—"}</TD>
-                  <TD><StatusBadge statut={u.role} /></TD>
-                  <TD>
-                    {u.role === "prestataire"
-                      ? <StatusBadge statut={u.status || "en_attente"} />
-                      : <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>
-                    }
-                  </TD>
-
-                  {/* Actions */}
-                  <TD>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {u.role === "prestataire" && u.status !== "valide" && (
-                        <ActionBtn icon={CheckCircle} label="Valider" color="#16a34a" bg="#dcfce7" onClick={() => handleValidate(u._id)} disabled={actionLoading === u._id + "_validate"} />
-                      )}
-                      {u.role === "prestataire" && u.status !== "rejected" && (
-                        <ActionBtn icon={XCircle} label="Rejeter" color="#dc2626" bg="#fee2e2" onClick={() => handleReject(u._id)} disabled={actionLoading === u._id + "_reject"} />
-                      )}
-                      <ActionBtn icon={Trash2} label="Supprimer" color="#64748b" bg="#f1f5f9" onClick={() => handleDelete(u._id)} disabled={actionLoading === u._id + "_delete"} />
-                    </div>
-                  </TD>
-                </tr>
-              ))}
+                    </TD>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -431,6 +508,8 @@ const RessourcesPage = () => {
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState(null);
   const [paniers, setPaniers] = useState({});
+  const toast = useToast();
+  const { modal, confirm, handleConfirm, handleCancel } = useConfirm();
 
   useEffect(() => {
     const load = async () => {
@@ -438,18 +517,14 @@ const RessourcesPage = () => {
         setLoading(true);
         const { data } = await axios.get(`${API}/admin/resources`, { headers: authHeaders() });
         setResources(data);
-      } catch {
-        setResources([]);
-      } finally {
-        setLoading(false);
-      }
+      } catch { setResources([]); }
+      finally { setLoading(false); }
     };
     load();
   }, []);
 
-  // Charger qui a mis en panier cette ressource
   const loadPanier = async (resourceId) => {
-    if (paniers[resourceId]) {
+    if (paniers[resourceId] !== undefined) {
       setExpanded(expanded === resourceId ? null : resourceId);
       return;
     }
@@ -463,26 +538,35 @@ const RessourcesPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Supprimer cette ressource ?")) return;
+  const handleDelete = async (id, name) => {
+    const ok = await confirm({
+      type: "danger",
+      title: "Supprimer cette ressource ?",
+      message: `La ressource "${name}" sera définitivement supprimée. Cette action est irréversible.`,
+      confirmLabel: "Supprimer",
+    });
+    if (!ok) return;
     try {
       await axios.delete(`${API}/admin/resources/${id}`, { headers: authHeaders() });
       setResources(prev => prev.filter(r => r._id !== id));
+      toast.success(`Ressource "${name}" supprimée`);
     } catch {
-      alert("Erreur lors de la suppression");
+      toast.error("Erreur lors de la suppression de la ressource");
     }
   };
 
   const types = ["tous", "salle", "materiel", "decoration", "traiteur"];
   const filtered = resources.filter(r => {
-    const matchType = filter === "tous" || r.type === filter;
+    const matchType   = filter === "tous" || r.type === filter;
     const matchSearch = search === "" || `${r.name} ${r.provider_name}`.toLowerCase().includes(search.toLowerCase());
     return matchType && matchSearch;
   });
 
   return (
     <div>
-      {/* Filters + search */}
+      <ConfirmModal modal={modal} onConfirm={handleConfirm} onCancel={handleCancel} />
+      <Toast toasts={toast.toasts} removeToast={toast.removeToast} />
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {types.map(t => (
@@ -497,7 +581,6 @@ const RessourcesPage = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
         {loading ? (
           <div style={{ padding: 24 }}>{[1,2,3,4].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={48} radius={8} /></div>)}</div>
@@ -507,13 +590,7 @@ const RessourcesPage = () => {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#f8fafc" }}>
-                <TH>Ressource</TH>
-                <TH>Type</TH>
-                <TH>Prix</TH>
-                <TH>Prestataire</TH>
-                <TH>Localisation</TH>
-                <TH>Paniers</TH>
-                <TH>Actions</TH>
+                <TH>Ressource</TH><TH>Type</TH><TH>Prix</TH><TH>Prestataire</TH><TH>Localisation</TH><TH>Paniers</TH><TH>Actions</TH>
               </tr>
             </thead>
             <tbody>
@@ -537,11 +614,10 @@ const RessourcesPage = () => {
                       </button>
                     </TD>
                     <TD>
-                      <ActionBtn icon={Trash2} label="Supprimer" color="#dc2626" bg="#fee2e2" onClick={() => handleDelete(r._id)} />
+                      <ActionBtn icon={Trash2} label="Supprimer" color="#dc2626" bg="#fee2e2" onClick={() => handleDelete(r._id, r.name)} />
                     </TD>
                   </tr>
 
-                  {/* Expanded: users who added to panier */}
                   {expanded === r._id && (
                     <tr key={r._id + "_exp"}>
                       <td colSpan={7} style={{ padding: "0 20px 16px", background: "#faf9ff" }}>
@@ -553,11 +629,7 @@ const RessourcesPage = () => {
                             <div style={{ padding: "14px 16px", fontSize: 13, color: "#94a3b8" }}>Aucun organisateur n'a ajouté cette ressource à son panier.</div>
                           ) : (
                             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                              <thead>
-                                <tr style={{ background: "#f8fafc" }}>
-                                  <TH>Nom</TH><TH>Email</TH><TH>Téléphone</TH><TH>Région</TH>
-                                </tr>
-                              </thead>
+                              <thead><tr style={{ background: "#f8fafc" }}><TH>Nom</TH><TH>Email</TH><TH>Téléphone</TH><TH>Région</TH></tr></thead>
                               <tbody>
                                 {paniers[r._id].map(u => (
                                   <tr key={u._id} style={{ borderTop: "1px solid #f1f5f9" }}>
@@ -587,11 +659,7 @@ const RessourcesPage = () => {
 // ═══════════════════════════════════════════════════════════════
 // ROOT
 // ═══════════════════════════════════════════════════════════════
-const pageTitles = {
-  dashboard:  "Dashboard",
-  comptes:    "Gestion des comptes",
-  ressources: "Gestion des ressources",
-};
+const pageTitles = { dashboard: "Dashboard", comptes: "Gestion des comptes", ressources: "Gestion des ressources" };
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
