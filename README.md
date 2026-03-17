@@ -19,5 +19,6 @@ les messages entre les ladmin et prestataire
 
 a discuter !!!!!!!!!!!!!!!!!! : pour gestion des comptes dans dashboard admin lorganisteur inclus dans la gestion ou juste le prestataire ??
 
+w ya aaadeem winuuu backend taa lpanier maandish meenuu f bali bik khdemtu bch nzidu lel admin f gestion des ressources 
 
 
