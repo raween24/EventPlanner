@@ -12,10 +12,15 @@ const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
 const authHeaders = () => ({ Authorization: `Bearer ${getToken()}` });
 
+const getImgUrl = (image) => {
+  if (!image) return null;
+  if (image.startsWith("http")) return image;
+  return `http://localhost:5000/uploads/${image.replace(/\\/g, "/").split("/").pop()}`;
+};
+
 // ═══════════════════════════════════════════════════════════════
 // MODAL SYSTEM
 // ═══════════════════════════════════════════════════════════════
-
 const Toast = ({ toasts, removeToast }) => (
   <div style={{ position: "fixed", top: 20, right: 20, zIndex: 9999, display: "flex", flexDirection: "column", gap: 10 }}>
     {toasts.map(t => {
@@ -120,6 +125,21 @@ const ActionBtn = ({ icon: Icon, label, color, bg, onClick, disabled }) => (
     <Icon size={13} />{label}
   </button>
 );
+
+// ─── UserImage ────────────────────────────────────────────────────────────────
+const UserImage = ({ image, firstname, lastname, isPrest }) => {
+  const [err, setErr] = useState(false);
+  const url = getImgUrl(image);
+  const grad = isPrest ? "linear-gradient(135deg,#8b5cf6,#a855f7)" : "linear-gradient(135deg,#3b82f6,#60a5fa)";
+  return (
+    <div style={{ width: 36, height: 36, borderRadius: "50%", background: grad, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+      {url && !err
+        ? <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={() => setErr(true)} />
+        : <span style={{ color: "white", fontSize: 13, fontWeight: 700 }}>{firstname?.[0]}{lastname?.[0]}</span>
+      }
+    </div>
+  );
+};
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 const navItems = [
@@ -237,15 +257,13 @@ const DashboardPage = () => {
         @keyframes slideIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
         @keyframes popIn   { from{transform:scale(.85);opacity:0} to{transform:scale(1);opacity:1} }
       `}</style>
-
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 20, marginBottom: 28 }}>
         {cards.map((c, i) => (
           <div key={i} style={{ background: "white", borderRadius: 16, padding: 20, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,.04)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ flex: 1 }}>
                 <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500, marginBottom: 8 }}>{c.label}</div>
-                {loading ? <Skeleton w="70px" h={34} radius={6} /> :
-                  <div style={{ fontSize: 30, fontWeight: 800, color: "#0f172a" }}>{c.value ?? 0}</div>}
+                {loading ? <Skeleton w="70px" h={34} radius={6} /> : <div style={{ fontSize: 30, fontWeight: 800, color: "#0f172a" }}>{c.value ?? 0}</div>}
               </div>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <c.icon size={20} color={c.color} />
@@ -254,7 +272,6 @@ const DashboardPage = () => {
           </div>
         ))}
       </div>
-
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 24 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Répartition des utilisateurs</h3>
@@ -272,7 +289,6 @@ const DashboardPage = () => {
             ))
           }
         </div>
-
         <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 24 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Types de ressources</h3>
           {loading ? [1,2,3,4].map(i => <div key={i} style={{ marginBottom: 16 }}><Skeleton h={10} radius={6} /></div>) :
@@ -338,12 +354,7 @@ const ComptesPage = () => {
   };
 
   const handleReject = async (userId, name) => {
-    const ok = await confirm({
-      type: "warning",
-      title: "Rejeter ce compte ?",
-      message: `Le prestataire "${name}" ne pourra pas accéder à la plateforme. Cette action peut être annulée plus tard.`,
-      confirmLabel: "Oui, rejeter",
-    });
+    const ok = await confirm({ type: "warning", title: "Rejeter ce compte ?", message: `Le prestataire "${name}" ne pourra pas accéder à la plateforme. Cette action peut être annulée plus tard.`, confirmLabel: "Oui, rejeter" });
     if (!ok) return;
     try {
       setActionLoading(userId + "_reject");
@@ -356,12 +367,7 @@ const ComptesPage = () => {
   };
 
   const handleDelete = async (userId, name) => {
-    const ok = await confirm({
-      type: "danger",
-      title: "Supprimer ce compte ?",
-      message: `Le compte de "${name}" sera définitivement supprimé. Cette action est irréversible.`,
-      confirmLabel: "Supprimer",
-    });
+    const ok = await confirm({ type: "danger", title: "Supprimer ce compte ?", message: `Le compte de "${name}" sera définitivement supprimé. Cette action est irréversible.`, confirmLabel: "Supprimer" });
     if (!ok) return;
     try {
       setActionLoading(userId + "_delete");
@@ -381,9 +387,7 @@ const ComptesPage = () => {
   ];
 
   const filtered = users.filter(u => {
-    const matchRole = filter === "tous" ? true
-      : filter === "en_attente" ? (u.role === "prestataire" && u.status === "en_attente")
-      : u.role === filter;
+    const matchRole = filter === "tous" ? true : filter === "en_attente" ? (u.role === "prestataire" && u.status === "en_attente") : u.role === filter;
     const matchSearch = search === "" || `${u.firstname} ${u.lastname} ${u.email}`.toLowerCase().includes(search.toLowerCase());
     return matchRole && matchSearch;
   });
@@ -394,14 +398,12 @@ const ComptesPage = () => {
     <div>
       <ConfirmModal modal={modal} onConfirm={handleConfirm} onCancel={handleCancel} />
       <Toast toasts={toast.toasts} removeToast={toast.removeToast} />
-
       {pendingCount > 0 && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 12, padding: "12px 18px", marginBottom: 20, fontSize: 13, color: "#92400e" }}>
           <AlertCircle size={16} color="#f59e0b" />
           <strong>{pendingCount} prestataire{pendingCount > 1 ? "s" : ""}</strong>&nbsp;en attente de validation
         </div>
       )}
-
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", gap: 8 }}>
           {filters.map(f => (
@@ -415,7 +417,6 @@ const ComptesPage = () => {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un utilisateur..." style={{ border: "none", outline: "none", fontSize: 13, color: "#475569", width: 200, fontFamily: "inherit" }} />
         </div>
       </div>
-
       <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
         {loading ? (
           <div style={{ padding: 24 }}>{[1,2,3,4,5].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={40} radius={8} /></div>)}</div>
@@ -438,11 +439,7 @@ const ComptesPage = () => {
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <TD>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: isPrest ? "linear-gradient(135deg,#8b5cf6,#a855f7)" : "linear-gradient(135deg,#3b82f6,#60a5fa)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
-                          {u.image
-                            ? <img src={`http://localhost:5000/uploads/${u.image}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                            : <span style={{ color: "white", fontSize: 13, fontWeight: 700 }}>{u.firstname?.[0]}{u.lastname?.[0]}</span>}
-                        </div>
+                        <UserImage image={u.image} firstname={u.firstname} lastname={u.lastname} isPrest={isPrest} />
                         <div>
                           <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 13 }}>{name}</div>
                           <div style={{ fontSize: 11, color: "#94a3b8" }}>{u.region || "—"}</div>
@@ -452,40 +449,19 @@ const ComptesPage = () => {
                     <TD>{u.email}</TD>
                     <TD>{u.numTel || "—"}</TD>
                     <TD><StatusBadge statut={u.role} /></TD>
-                    <TD>
-                      {isPrest
-                        ? <StatusBadge statut={u.status || "en_attente"} />
-                        : <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>
-                      }
-                    </TD>
+                    <TD>{isPrest ? <StatusBadge statut={u.status || "en_attente"} /> : <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>}</TD>
                     <TD>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-
-                        {/* ✅ Valider — seulement si en_attente ou rejected */}
                         {isPrest && u.status === "en_attente" && (
-                          <ActionBtn icon={CheckCircle} label="Valider" color="#16a34a" bg="#dcfce7"
-                            onClick={() => handleValidate(u._id, name)}
-                            disabled={actionLoading === u._id + "_validate"} />
+                          <ActionBtn icon={CheckCircle} label="Valider" color="#16a34a" bg="#dcfce7" onClick={() => handleValidate(u._id, name)} disabled={actionLoading === u._id + "_validate"} />
                         )}
-
-                        {/* ❌ Rejeter — seulement si en_attente */}
                         {isPrest && u.status === "en_attente" && (
-                          <ActionBtn icon={XCircle} label="Rejeter" color="#dc2626" bg="#fee2e2"
-                            onClick={() => handleReject(u._id, name)}
-                            disabled={actionLoading === u._id + "_reject"} />
+                          <ActionBtn icon={XCircle} label="Rejeter" color="#dc2626" bg="#fee2e2" onClick={() => handleReject(u._id, name)} disabled={actionLoading === u._id + "_reject"} />
                         )}
-
-                        {/* ↩️ Ré-activer — seulement si rejected */}
                         {isPrest && u.status === "rejected" && (
-                          <ActionBtn icon={CheckCircle} label="Ré-activer" color="#16a34a" bg="#dcfce7"
-                            onClick={() => handleValidate(u._id, name)}
-                            disabled={actionLoading === u._id + "_validate"} />
+                          <ActionBtn icon={CheckCircle} label="Ré-activer" color="#16a34a" bg="#dcfce7" onClick={() => handleValidate(u._id, name)} disabled={actionLoading === u._id + "_validate"} />
                         )}
-
-                        {/* 🗑 Supprimer — toujours visible */}
-                        <ActionBtn icon={Trash2} label="Supprimer" color="#64748b" bg="#f1f5f9"
-                          onClick={() => handleDelete(u._id, name)}
-                          disabled={actionLoading === u._id + "_delete"} />
+                        <ActionBtn icon={Trash2} label="Supprimer" color="#64748b" bg="#f1f5f9" onClick={() => handleDelete(u._id, name)} disabled={actionLoading === u._id + "_delete"} />
                       </div>
                     </TD>
                   </tr>
@@ -525,10 +501,7 @@ const RessourcesPage = () => {
   }, []);
 
   const loadPanier = async (resourceId) => {
-    if (paniers[resourceId] !== undefined) {
-      setExpanded(expanded === resourceId ? null : resourceId);
-      return;
-    }
+    if (paniers[resourceId] !== undefined) { setExpanded(expanded === resourceId ? null : resourceId); return; }
     try {
       const { data } = await axios.get(`${API}/admin/resources/${resourceId}/paniers`, { headers: authHeaders() });
       setPaniers(prev => ({ ...prev, [resourceId]: data }));
@@ -540,12 +513,7 @@ const RessourcesPage = () => {
   };
 
   const handleDelete = async (id, name) => {
-    const ok = await confirm({
-      type: "danger",
-      title: "Supprimer cette ressource ?",
-      message: `La ressource "${name}" sera définitivement supprimée. Cette action est irréversible.`,
-      confirmLabel: "Supprimer",
-    });
+    const ok = await confirm({ type: "danger", title: "Supprimer cette ressource ?", message: `La ressource "${name}" sera définitivement supprimée. Cette action est irréversible.`, confirmLabel: "Supprimer" });
     if (!ok) return;
     try {
       await axios.delete(`${API}/admin/resources/${id}`, { headers: authHeaders() });
@@ -567,7 +535,6 @@ const RessourcesPage = () => {
     <div>
       <ConfirmModal modal={modal} onConfirm={handleConfirm} onCancel={handleCancel} />
       <Toast toasts={toast.toasts} removeToast={toast.removeToast} />
-
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {types.map(t => (
@@ -581,7 +548,6 @@ const RessourcesPage = () => {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher une ressource..." style={{ border: "none", outline: "none", fontSize: 13, color: "#475569", width: 200, fontFamily: "inherit" }} />
         </div>
       </div>
-
       <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
         {loading ? (
           <div style={{ padding: 24 }}>{[1,2,3,4].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={48} radius={8} /></div>)}</div>
@@ -614,11 +580,8 @@ const RessourcesPage = () => {
                         <ChevronDown size={12} style={{ transform: expanded === r._id ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
                       </button>
                     </TD>
-                    <TD>
-                      <ActionBtn icon={Trash2} label="Supprimer" color="#dc2626" bg="#fee2e2" onClick={() => handleDelete(r._id, r.name)} />
-                    </TD>
+                    <TD><ActionBtn icon={Trash2} label="Supprimer" color="#dc2626" bg="#fee2e2" onClick={() => handleDelete(r._id, r.name)} /></TD>
                   </tr>
-
                   {expanded === r._id && (
                     <tr key={r._id + "_exp"}>
                       <td colSpan={7} style={{ padding: "0 20px 16px", background: "#faf9ff" }}>
