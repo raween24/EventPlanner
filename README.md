@@ -16,5 +16,7 @@ notifications pour la verification des commande ou des alert ou des nv ressource
 créer  un systeme de vérification des documents 
 les messages entres le prestataire  et organisateurs
 les messages entre les ladmin et prestataire 
+a discuter !!!!!!!!!!!!!!!!!!
+
 
 
