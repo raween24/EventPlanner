@@ -173,15 +173,16 @@ const Sidebar = ({ active, setActive, onLogout }) => {
   );
 };
 
-const TopBar = ({ title }) => (
+const TopBar = ({ title, showSearch = true }) => (
   <div style={{ height: 64, background: "white", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 28px", position: "sticky", top: 0, zIndex: 50 }}>
     <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", margin: 0 }}>{title}</h1>
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "8px 14px" }}>
-        <Search size={15} color="#94a3b8" />
-        <input placeholder="Rechercher..." style={{ border: "none", background: "transparent", outline: "none", fontSize: 13, color: "#475569", width: 180, fontFamily: "inherit" }} />
-      </div>
-      <Bell size={20} color="#64748b" style={{ cursor: "pointer" }} />
+      {showSearch && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "8px 14px" }}>
+          <Search size={15} color="#94a3b8" />
+          <input placeholder="Rechercher..." style={{ border: "none", background: "transparent", outline: "none", fontSize: 13, color: "#475569", width: 180, fontFamily: "inherit" }} />
+        </div>
+      )}
       <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#ef4444,#f97316)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Shield size={16} color="white" />
       </div>
@@ -681,7 +682,7 @@ export default function AdminDashboard() {
     <div style={{ fontFamily: "'Inter',-apple-system,sans-serif", background: "#f8fafc", minHeight: "100vh" }}>
       <Sidebar active={activePage} setActive={setActivePage} onLogout={handleLogout} />
       <div style={{ marginLeft: 260 }}>
-        <TopBar title={pageTitles[activePage]} />
+        <TopBar title={pageTitles[activePage]} showSearch={activePage !== "dashboard"} />
         <main style={{ padding: 28 }}>{pages[activePage]}</main>
       </div>
     </div>
