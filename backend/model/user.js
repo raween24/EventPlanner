@@ -18,18 +18,16 @@ const UserSchema = new mongoose.Schema({
   image: { type: String },
 
   region: { type: String },
+
   gender: { type: String ,required: true},
- role: {
+
+  role: {
     type: String,
     enum: ["organisateur", "prestataire", "admin"],
     default: "organisateur",
     required: true,
   },
   googleId: { type: String}, // stocke l'id Google
-  gender: { type: String, required: true },
-
-
-
   status: {
     type: String,
     enum: ["valide", "en_attente"]

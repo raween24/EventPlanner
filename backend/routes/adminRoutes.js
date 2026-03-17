@@ -1,44 +1,37 @@
 // routes/adminRoutes.js
 import express from "express";
-import { verifyToken, isAdmin } from "../middleware/authMiddleware.js"; 
+import { verifyToken, isAdmin } from "../middleware/auth.js";
 import {
   getStats,
   getAllUsers,
   deleteUser,
-  updateUserRole,
+  updateUserStatus,
   getAllEvents,
   deleteEvent,
   getAllResources,
   deleteResource,
-  getAllDocuments,
-  deleteDocument,
-  validateDocument,
+  getResourcePaniers,
 } from "../controller/Admincontroller.js";
 
 const router = express.Router();
 
-// Toutes les routes protégées : token valide + role admin
 router.use(verifyToken, isAdmin);
 
-// Stats dashboard
-router.get("/stats", getStats);
+// Stats
+router.get("/stats",getStats);
 
 // Users
-router.get("/users", getAllUsers);
-router.delete("/users/:id", deleteUser);
-router.patch("/users/:id/role", updateUserRole);
+router.get("/users",getAllUsers);
+router.delete("/users/:id",deleteUser);
+router.patch("/users/:id/status",updateUserStatus);   
 
 // Events
-router.get("/events", getAllEvents);
-router.delete("/events/:id", deleteEvent);
+router.get("/events",getAllEvents);
+router.delete("/events/:id",deleteEvent);
 
 // Resources
-router.get("/resources", getAllResources);
-router.delete("/resources/:id", deleteResource);
-
-// Documents
-router.get("/documents", getAllDocuments);
-router.delete("/documents/:id", deleteDocument);
-router.patch("/documents/:id/validate", validateDocument);
+router.get("/resources",getAllResources);
+router.delete("/resources/:id",deleteResource);
+router.get("/resources/:id/paniers",getResourcePaniers); 
 
 export default router;

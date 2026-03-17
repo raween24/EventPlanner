@@ -1,38 +1,41 @@
-// controllers/adminController.js
-import User       from "../model/user.js";
-import Event      from "../model/event.js";
-import Ressource  from "../model/ressources.js";
-import Document   from "../model/documents.js";
+// controller/Admincontroller.js
+import User      from "../model/user.js";
+import Event     from "../model/event.js";
+import Ressource from "../model/ressources.js";
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
-// GET /api/admin/stats
-// Feeds the 4 cards on the dashboard
 export const getStats = async (req, res) => {
   try {
-    const [users, events, resources, documents] = await Promise.all([
+    const [users, events, resources, pending, resourcesByType] = await Promise.all([
       User.countDocuments(),
       Event.countDocuments(),
       Ressource.countDocuments(),
-      Document.countDocuments(),
+      User.countDocuments({ role: "prestataire", status: "en_attente" }),
+      Ressource.aggregate([{ $group: { _id: "$type", count: { $sum: 1 } } }]),
     ]);
-    res.json({ users, events, resources, documents });
+
+    const resourcesByTypeMap = {};
+    resourcesByType.forEach(r => { resourcesByTypeMap[r._id] = r.count; });
+
+    res.json({ users, events, resources, pending, resourcesByType: resourcesByTypeMap });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
 // ─── Users ────────────────────────────────────────────────────────────────────
-// GET /api/admin/users
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password").sort({ _id: -1 });
+    // On exclut les admins de la liste
+    const users = await User.find({ role: { $ne: "admin" } })
+      .select("-password")
+      .sort({ _id: -1 });
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// DELETE /api/admin/users/:id
 export const deleteUser = async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
@@ -42,16 +45,16 @@ export const deleteUser = async (req, res) => {
   }
 };
 
-// PATCH /api/admin/users/:id/role
-export const updateUserRole = async (req, res) => {
+// PATCH /api/admin/users/:id/status — valider ou rejeter un prestataire
+export const updateUserStatus = async (req, res) => {
   try {
-    const { role } = req.body;
-    if (!["organisateur", "prestataire", "admin"].includes(role)) {
-      return res.status(400).json({ message: "Rôle invalide" });
+    const { status } = req.body;
+    if (!["valide", "en_attente", "rejected"].includes(status)) {
+      return res.status(400).json({ message: "Statut invalide" });
     }
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { role },
+      { status },
       { new: true }
     ).select("-password");
     res.json(user);
@@ -61,7 +64,6 @@ export const updateUserRole = async (req, res) => {
 };
 
 // ─── Events ───────────────────────────────────────────────────────────────────
-// GET /api/admin/events
 export const getAllEvents = async (req, res) => {
   try {
     const events = await Event.find().sort({ _id: -1 });
@@ -71,7 +73,6 @@ export const getAllEvents = async (req, res) => {
   }
 };
 
-// DELETE /api/admin/events/:id
 export const deleteEvent = async (req, res) => {
   try {
     await Event.findByIdAndDelete(req.params.id);
@@ -82,17 +83,15 @@ export const deleteEvent = async (req, res) => {
 };
 
 // ─── Resources ────────────────────────────────────────────────────────────────
-// GET /api/admin/resources
 export const getAllResources = async (req, res) => {
   try {
-    const resources = await Ressource.find().sort({ _id: -1 });
+    const resources = await Ressource.find().sort({ createdAt: -1 });
     res.json(resources);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// DELETE /api/admin/resources/:id
 export const deleteResource = async (req, res) => {
   try {
     await Ressource.findByIdAndDelete(req.params.id);
@@ -102,37 +101,14 @@ export const deleteResource = async (req, res) => {
   }
 };
 
-// ─── Documents ────────────────────────────────────────────────────────────────
-// GET /api/admin/documents
-export const getAllDocuments = async (req, res) => {
+// GET /api/admin/resources/:id/paniers
+// Retourne les organisateurs qui ont cette ressource dans leur panier (champ adore)
+export const getResourcePaniers = async (req, res) => {
   try {
-    const documents = await Document.find().sort({ _id: -1 });
-    res.json(documents);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// DELETE /api/admin/documents/:id
-export const deleteDocument = async (req, res) => {
-  try {
-    await Document.findByIdAndDelete(req.params.id);
-    res.json({ message: "Document supprimé" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// PATCH /api/admin/documents/:id/validate
-export const validateDocument = async (req, res) => {
-  try {
-    const doc = await Document.findByIdAndUpdate(
-      req.params.id,
-      { statut: "Validé" },
-      { new: true }
-    );
-    if (!doc) return res.status(404).json({ message: "Document introuvable" });
-    res.json(doc);
+    const users = await User.find({ adore: req.params.id })
+      .select("firstname lastname email numTel region")
+      .sort({ _id: -1 });
+    res.json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

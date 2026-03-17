@@ -1,138 +1,116 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  LayoutDashboard, Calendar, Wrench, FileText, User,
-  Bell, Search, Users, CheckCircle, Upload, Eye, Trash2,
-  Plus, Download, Shield, Package, Star, LogOut
+  LayoutDashboard, Users, Wrench, Bell, Search,
+  Shield, Star, LogOut, CheckCircle, XCircle,
+  Eye, Trash2, ChevronDown, RefreshCw, Package,
+  Calendar, UserCheck, Clock, AlertCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API = "http://localhost:5000/api/admin";
-
+const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
-
-// ─── Mock Data (fallback) ─────────────────────────────────────────────────────
-const mockEvents = [
-  { id: 1, name: "Conférence Tech 2026", date: "2026-04-15", lieu: "Paris – Palais des Congrès", participants: 350, statut: "Confirmé" },
-  { id: 2, name: "Séminaire Marketing Digital", date: "2026-05-02", lieu: "Lyon – Centre des Congrès", participants: 120, statut: "Confirmé" },
-  { id: 3, name: "Hackathon IA", date: "2026-05-20", lieu: "Bordeaux – Station F", participants: 80, statut: "En attente" },
-  { id: 4, name: "Gala de charité", date: "2026-06-10", lieu: "Nice – Hôtel Negresco", participants: 200, statut: "Confirmé" },
-  { id: 5, name: "Workshop UX Design", date: "2026-06-25", lieu: "Toulouse – Digital Campus", participants: 40, statut: "En attente" },
-  { id: 6, name: "Forum de l'emploi", date: "2026-07-05", lieu: "Marseille – Parc Chanot", participants: 500, statut: "Annulé" },
-  { id: 7, name: "Meetup React & TypeScript", date: "2026-07-18", lieu: "Paris – WeWork La Fayette", participants: 60, statut: "Confirmé" },
-];
-
-const mockResources = [
-  { id: 1, nom: "Vidéoprojecteur HD", type: "Équipement", quantite: 5, statut: "Disponible", description: "Projecteur 4K avec connectique HDMI/USB-C" },
-  { id: 2, nom: "Système de sonorisation", type: "Équipement", quantite: 3, statut: "Réservé", description: "Enceintes + micro sans fil" },
-  { id: 3, nom: "Salle Alpha", type: "Salle", quantite: 1, statut: "Réservé", description: "Salle de réunion 20 places" },
-  { id: 4, nom: "Salle Beta", type: "Salle", quantite: 1, statut: "Disponible", description: "Salle de formation 40 places" },
-  { id: 5, nom: "Salle Gamma", type: "Salle", quantite: 1, statut: "En maintenance", description: "Salle de conférence 100 places" },
-  { id: 6, nom: "Technicien son", type: "Personnel", quantite: 2, statut: "Disponible", description: "Ingénieur son professionnel" },
-];
-
-const mockDocuments = [
-  { id: 1, nom: "Contrat_location_GrandSalon.pdf", type: "Contrat", uploadePar: "Sophie Martin", date: "2026-03-01", taille: "2.4 MB", statut: "Validé" },
-  { id: 2, nom: "Devis_traiteur_gala.pdf", type: "Devis", uploadePar: "Jean Dupont", date: "2026-03-05", taille: "1.1 MB", statut: "En cours de vérification IA" },
-  { id: 3, nom: "Plan_securite_forum.pdf", type: "Plan", uploadePar: "Marc Leroy", date: "2026-03-08", taille: "3.8 MB", statut: "Validé" },
-  { id: 4, nom: "Assurance_evenement.pdf", type: "Assurance", uploadePar: "Claire Moreau", date: "2026-03-10", taille: "890 KB", statut: "Rejeté" },
-  { id: 5, nom: "Budget_previsionnel_2026.pdf", type: "Budget", uploadePar: "Sophie Martin", date: "2026-03-12", taille: "1.7 MB", statut: "Validé" },
-];
+const authHeaders = () => ({ Authorization: `Bearer ${getToken()}` });
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 const StatusBadge = ({ statut }) => {
   const map = {
-    "Confirmé":    { bg: "#dcfce7", color: "#16a34a" },
-    "En attente":  { bg: "#fef9c3", color: "#ca8a04" },
-    "Annulé":      { bg: "#fee2e2", color: "#dc2626" },
-    "Disponible":  { bg: "#dcfce7", color: "#16a34a" },
-    "Réservé":     { bg: "#fef9c3", color: "#ca8a04" },
-    "En maintenance": { bg: "#fee2e2", color: "#dc2626" },
-    "Validé":      { bg: "#dcfce7", color: "#16a34a" },
-    "Rejeté":      { bg: "#fee2e2", color: "#dc2626" },
-    "En cours de vérification IA": { bg: "#fef3c7", color: "#d97706" },
+    valide:      { bg: "#dcfce7", color: "#16a34a", label: "Validé" },
+    en_attente:  { bg: "#fef9c3", color: "#ca8a04", label: "En attente" },
+    rejected:    { bg: "#fee2e2", color: "#dc2626", label: "Rejeté" },
+    organisateur:{ bg: "#eff6ff", color: "#3b82f6", label: "Organisateur" },
+    prestataire: { bg: "#f5f3ff", color: "#8b5cf6", label: "Prestataire" },
+    admin:       { bg: "#fef2f2", color: "#ef4444", label: "Admin" },
+    salle:       { bg: "#ecfdf5", color: "#10b981", label: "Salle" },
+    materiel:    { bg: "#eff6ff", color: "#3b82f6", label: "Matériel" },
+    decoration:  { bg: "#fdf4ff", color: "#a855f7", label: "Décoration" },
+    traiteur:    { bg: "#fff7ed", color: "#f97316", label: "Traiteur" },
   };
-  const s = map[statut] || { bg: "#f1f5f9", color: "#64748b" };
+  const s = map[statut] || { bg: "#f1f5f9", color: "#64748b", label: statut };
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: s.bg, color: s.color, padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, display: "inline-block" }} />
-      {statut}
+      {s.label}
     </span>
   );
 };
 
-const TypeBadge = ({ type }) => (
-  <span style={{ background: "#f1f5f9", color: "#475569", padding: "3px 10px", borderRadius: 8, fontSize: 12, fontWeight: 500 }}>{type}</span>
-);
-
-const Btn = ({ icon: Icon, color, bg, onClick }) => (
-  <button onClick={onClick} style={{ background: bg, border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", color, display: "inline-flex", alignItems: "center" }}>
-    <Icon size={14} />
-  </button>
-);
-
 const TH = ({ children }) => (
-  <th style={{ padding: "12px 20px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#94a3b8", fontFamily: "inherit" }}>{children}</th>
+  <th style={{ padding: "12px 20px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#94a3b8", fontFamily: "inherit", whiteSpace: "nowrap" }}>{children}</th>
 );
 
-// ─── Skeleton loader ──────────────────────────────────────────────────────────
+const TD = ({ children, style }) => (
+  <td style={{ padding: "14px 20px", fontSize: 13, color: "#475569", fontFamily: "inherit", ...style }}>{children}</td>
+);
+
 const Skeleton = ({ w = "100%", h = 32, radius = 8 }) => (
-  <div style={{ width: w, height: h, borderRadius: radius, background: "linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite" }} />
+  <div style={{ width: w, height: h, borderRadius: radius, background: "linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite" }} />
+);
+
+const EmptyState = ({ icon: Icon, message }) => (
+  <div style={{ padding: "60px 20px", textAlign: "center", color: "#94a3b8" }}>
+    <Icon size={40} style={{ margin: "0 auto 12px", opacity: 0.4 }} />
+    <div style={{ fontSize: 14 }}>{message}</div>
+  </div>
+);
+
+const ActionBtn = ({ icon: Icon, label, color, bg, border, onClick, disabled }) => (
+  <button onClick={onClick} disabled={disabled} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: border || "none", background: disabled ? "#f1f5f9" : bg, color: disabled ? "#cbd5e1" : color, cursor: disabled ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", transition: "opacity .2s" }}>
+    <Icon size={13} />{label}
+  </button>
 );
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 const navItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "evenements", label: "Événements", icon: Calendar },
-  { id: "ressources", label: "Ressources", icon: Wrench },
-  { id: "documents", label: "Documents", icon: FileText },
-  { id: "profil", label: "Profil", icon: User },
+  { id: "dashboard",  label: "Dashboard",           icon: LayoutDashboard },
+  { id: "comptes",    label: "Gestion des comptes",  icon: Users },
+  { id: "ressources", label: "Gestion des ressources", icon: Wrench },
 ];
 
-const Sidebar = ({ active, setActive, onLogout }) => (
-  <aside style={{ width: 260, minHeight: "100vh", background: "#0f172a", display: "flex", flexDirection: "column", position: "fixed", left: 0, top: 0, zIndex: 100, boxShadow: "2px 0 20px rgba(0,0,0,0.3)" }}>
-    <div style={{ padding: "24px 20px", borderBottom: "1px solid #1e293b" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Star size={18} color="white" />
-        </div>
-        <div>
-          <div style={{ color: "white", fontWeight: 700, fontSize: 15 }}>Smart Event</div>
-          <div style={{ color: "#64748b", fontSize: 11 }}>Admin Panel</div>
-        </div>
-      </div>
-    </div>
-
-    <div style={{ padding: "20px 20px 8px", color: "#475569", fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" }}>NAVIGATION</div>
-
-    <nav style={{ flex: 1, padding: "0 12px" }}>
-      {navItems.map(({ id, label, icon: Icon }) => {
-        const on = active === id;
-        return (
-          <button key={id} onClick={() => setActive(id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, marginBottom: 2, background: on ? "linear-gradient(135deg,rgba(59,130,246,.2),rgba(139,92,246,.2))" : "transparent", border: on ? "1px solid rgba(99,102,241,.3)" : "1px solid transparent", color: on ? "#93c5fd" : "#94a3b8", cursor: "pointer", fontSize: 14, fontWeight: on ? 600 : 400, fontFamily: "inherit" }}>
-            <Icon size={18} />{label}
-            {on && <span style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: "#3b82f6" }} />}
-          </button>
-        );
-      })}
-    </nav>
-
-    <div style={{ padding: "12px 16px 16px", borderTop: "1px solid #1e293b" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: "#1e293b", marginBottom: 8 }}>
-        <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#ef4444,#f97316)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Shield size={16} color="white" />
-        </div>
-        <div>
-          <div style={{ color: "white", fontSize: 13, fontWeight: 600 }}>Administrateur</div>
-          <div style={{ color: "#64748b", fontSize: 11 }}>admin@platform.com</div>
+const Sidebar = ({ active, setActive, onLogout }) => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  return (
+    <aside style={{ width: 260, minHeight: "100vh", background: "#0f172a", display: "flex", flexDirection: "column", position: "fixed", left: 0, top: 0, zIndex: 100, boxShadow: "2px 0 20px rgba(0,0,0,.3)" }}>
+      <div style={{ padding: "24px 20px", borderBottom: "1px solid #1e293b" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Star size={18} color="white" />
+          </div>
+          <div>
+            <div style={{ color: "white", fontWeight: 700, fontSize: 15 }}>Smart Event</div>
+            <div style={{ color: "#64748b", fontSize: 11 }}>Admin Panel</div>
+          </div>
         </div>
       </div>
-      <button onClick={onLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.2)", color: "#f87171", cursor: "pointer", fontSize: 13, fontWeight: 500, fontFamily: "inherit" }}>
-        <LogOut size={16} /> Déconnexion
-      </button>
-    </div>
-  </aside>
-);
+      <div style={{ padding: "20px 20px 8px", color: "#475569", fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" }}>NAVIGATION</div>
+      <nav style={{ flex: 1, padding: "0 12px" }}>
+        {navItems.map(({ id, label, icon: Icon }) => {
+          const on = active === id;
+          return (
+            <button key={id} onClick={() => setActive(id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, marginBottom: 2, background: on ? "linear-gradient(135deg,rgba(59,130,246,.2),rgba(139,92,246,.2))" : "transparent", border: on ? "1px solid rgba(99,102,241,.3)" : "1px solid transparent", color: on ? "#93c5fd" : "#94a3b8", cursor: "pointer", fontSize: 14, fontWeight: on ? 600 : 400, fontFamily: "inherit" }}>
+              <Icon size={18} />{label}
+              {on && <span style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: "#3b82f6" }} />}
+            </button>
+          );
+        })}
+      </nav>
+      <div style={{ padding: "12px 16px 16px", borderTop: "1px solid #1e293b" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: "#1e293b", marginBottom: 8 }}>
+          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#ef4444,#f97316)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Shield size={16} color="white" />
+          </div>
+          <div>
+            <div style={{ color: "white", fontSize: 13, fontWeight: 600 }}>{user.firstname} {user.lastname}</div>
+            <div style={{ color: "#64748b", fontSize: 11 }}>{user.email}</div>
+          </div>
+        </div>
+        <button onClick={onLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.2)", color: "#f87171", cursor: "pointer", fontSize: 13, fontWeight: 500, fontFamily: "inherit" }}>
+          <LogOut size={16} /> Déconnexion
+        </button>
+      </div>
+    </aside>
+  );
+};
 
 const TopBar = ({ title }) => (
   <div style={{ height: 64, background: "white", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 28px", position: "sticky", top: 0, zIndex: 50 }}>
@@ -144,286 +122,476 @@ const TopBar = ({ title }) => (
       </div>
       <div style={{ position: "relative", cursor: "pointer" }}>
         <Bell size={20} color="#64748b" />
-        <span style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#ef4444", color: "white", fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>3</span>
       </div>
-      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#ef4444,#f97316)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#ef4444,#f97316)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Shield size={16} color="white" />
       </div>
     </div>
   </div>
 );
 
-// ─── DASHBOARD PAGE (DYNAMIC) ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// PAGE 1 — DASHBOARD
+// ═══════════════════════════════════════════════════════════════
 const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [roleData, setRoleData] = useState([]);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetch = async () => {
       try {
-        setLoading(true);
-        const { data } = await axios.get(`${API}/stats`, {
-          headers: { Authorization: `Bearer ${getToken()}` }
-        });
+        const { data } = await axios.get(`${API}/admin/stats`, { headers: authHeaders() });
         setStats(data);
-      } catch (err) {
-        setError("Impossible de charger les statistiques");
-        // Fallback to mock data
-        setStats({ users: 1247, events: 24, resources: 142, documents: 38 });
+
+        // Calcul répartition rôles depuis les users
+        const usersRes = await axios.get(`${API}/admin/users`, { headers: authHeaders() });
+        const users = usersRes.data;
+        const orga = users.filter(u => u.role === "organisateur").length;
+        const prest = users.filter(u => u.role === "prestataire").length;
+        const total = users.length || 1;
+        setRoleData([
+          { label: "Organisateurs", count: orga, color: "#3b82f6", pct: Math.round(orga / total * 100) },
+          { label: "Prestataires",  count: prest, color: "#8b5cf6", pct: Math.round(prest / total * 100) },
+          { label: "En attente validation", count: users.filter(u => u.role === "prestataire" && u.status === "en_attente").length, color: "#f59e0b", pct: Math.round(users.filter(u => u.role === "prestataire" && u.status === "en_attente").length / total * 100) },
+        ]);
+      } catch {
+        setStats({ users: 0, events: 0, resources: 0, documents: 0 });
       } finally {
         setLoading(false);
       }
     };
-    fetchStats();
+    fetch();
   }, []);
 
-  const statCards = [
-    { label: "Événements totaux", value: stats?.events, change: "+12%", icon: Calendar, color: "#3b82f6", bg: "#eff6ff" },
-    { label: "Ressources actives", value: stats?.resources, change: "+5%", icon: Package, color: "#8b5cf6", bg: "#f5f3ff" },
-    { label: "Documents validés", value: stats?.documents, change: "+8%", icon: FileText, color: "#10b981", bg: "#ecfdf5" },
-    { label: "Utilisateurs", value: stats?.users, change: "+23%", icon: Users, color: "#f59e0b", bg: "#fffbeb" },
+  const cards = [
+    { label: "Utilisateurs total",       value: stats?.users,     icon: Users,       color: "#3b82f6", bg: "#eff6ff" },
+    { label: "Ressources publiées",       value: stats?.resources, icon: Package,     color: "#8b5cf6", bg: "#f5f3ff" },
+    { label: "Événements",               value: stats?.events,    icon: Calendar,    color: "#10b981", bg: "#ecfdf5" },
+    { label: "Prestataires en attente",  value: stats?.pending,   icon: Clock,       color: "#f59e0b", bg: "#fffbeb" },
   ];
 
   return (
     <div>
-      <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
 
-      {/* Stats cards */}
+      {/* Stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 20, marginBottom: 28 }}>
-        {statCards.map((s, i) => (
-          <div key={i} style={{ background: "white", borderRadius: 16, padding: 20, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        {cards.map((c, i) => (
+          <div key={i} style={{ background: "white", borderRadius: 16, padding: 20, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,.04)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ flex: 1 }}>
-                <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500, marginBottom: 6 }}>{s.label}</div>
-                {loading
-                  ? <Skeleton w="80px" h={36} radius={6} />
-                  : <div style={{ fontSize: 28, fontWeight: 800, color: "#0f172a" }}>
-                      {s.value?.toLocaleString("fr-FR") ?? "—"}
-                    </div>
+                <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500, marginBottom: 8 }}>{c.label}</div>
+                {loading ? <Skeleton w="70px" h={34} radius={6} /> :
+                  <div style={{ fontSize: 30, fontWeight: 800, color: "#0f172a" }}>{c.value ?? 0}</div>
                 }
-                <div style={{ fontSize: 12, color: "#10b981", marginTop: 6, fontWeight: 600 }}>↑ {s.change} ce mois</div>
               </div>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <s.icon size={20} color={s.color} />
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <c.icon size={20} color={c.color} />
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {error && (
-        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 16px", color: "#dc2626", fontSize: 13, marginBottom: 20 }}>
-          ⚠️ {error} — affichage des données de démonstration
+      {/* Charts row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+
+        {/* Répartition rôles */}
+        <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 24 }}>
+          <h3 style={{ margin: "0 0 20px", fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Répartition des utilisateurs</h3>
+          {loading ? [1,2,3].map(i => <div key={i} style={{ marginBottom: 16 }}><Skeleton h={10} radius={6} /></div>) :
+            roleData.map(r => (
+              <div key={r.label} style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{r.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{r.count} <span style={{ color: "#94a3b8", fontWeight: 400 }}>({r.pct}%)</span></span>
+                </div>
+                <div style={{ height: 8, background: "#f1f5f9", borderRadius: 6 }}>
+                  <div style={{ height: "100%", width: `${r.pct}%`, background: r.color, borderRadius: 6, transition: "width .6s ease" }} />
+                </div>
+              </div>
+            ))
+          }
+        </div>
+
+        {/* Répartition ressources */}
+        <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 24 }}>
+          <h3 style={{ margin: "0 0 20px", fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Types de ressources</h3>
+          {loading ? [1,2,3,4].map(i => <div key={i} style={{ marginBottom: 16 }}><Skeleton h={10} radius={6} /></div>) :
+            [
+              { label: "Salle",       color: "#10b981", key: "salle" },
+              { label: "Matériel",    color: "#3b82f6", key: "materiel" },
+              { label: "Décoration",  color: "#a855f7", key: "decoration" },
+              { label: "Traiteur",    color: "#f97316", key: "traiteur" },
+            ].map(t => {
+              const count = stats?.resourcesByType?.[t.key] || 0;
+              const total = stats?.resources || 1;
+              const pct = Math.round(count / total * 100);
+              return (
+                <div key={t.key} style={{ marginBottom: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{t.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{count} <span style={{ color: "#94a3b8", fontWeight: 400 }}>({pct}%)</span></span>
+                  </div>
+                  <div style={{ height: 8, background: "#f1f5f9", borderRadius: 6 }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: t.color, borderRadius: 6, transition: "width .6s ease" }} />
+                  </div>
+                </div>
+              );
+            })
+          }
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE 2 — GESTION DES COMPTES
+// ═══════════════════════════════════════════════════════════════
+const ComptesPage = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("tous");
+  const [actionLoading, setActionLoading] = useState(null);
+  const [search, setSearch] = useState("");
+
+  const loadUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data } = await axios.get(`${API}/admin/users`, { headers: authHeaders() });
+      setUsers(data);
+    } catch {
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadUsers(); }, [loadUsers]);
+
+  const handleValidate = async (userId) => {
+    try {
+      setActionLoading(userId + "_validate");
+      await axios.patch(`${API}/admin/users/${userId}/status`, { status: "valide" }, { headers: authHeaders() });
+      setUsers(prev => prev.map(u => u._id === userId ? { ...u, status: "valide" } : u));
+    } catch (e) {
+      alert("Erreur lors de la validation");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReject = async (userId) => {
+    if (!window.confirm("Rejeter ce compte ?")) return;
+    try {
+      setActionLoading(userId + "_reject");
+      await axios.patch(`${API}/admin/users/${userId}/status`, { status: "rejected" }, { headers: authHeaders() });
+      setUsers(prev => prev.map(u => u._id === userId ? { ...u, status: "rejected" } : u));
+    } catch {
+      alert("Erreur lors du rejet");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDelete = async (userId) => {
+    if (!window.confirm("Supprimer définitivement ce compte ?")) return;
+    try {
+      setActionLoading(userId + "_delete");
+      await axios.delete(`${API}/admin/users/${userId}`, { headers: authHeaders() });
+      setUsers(prev => prev.filter(u => u._id !== userId));
+    } catch {
+      alert("Erreur lors de la suppression");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const filters = [
+    { key: "tous",        label: "Tous" },
+    { key: "prestataire", label: "Prestataires" },
+    { key: "organisateur",label: "Organisateurs" },
+    { key: "en_attente",  label: "En attente" },
+  ];
+
+  const filtered = users.filter(u => {
+    const matchRole = filter === "tous" ? true
+      : filter === "en_attente" ? (u.role === "prestataire" && u.status === "en_attente")
+      : u.role === filter;
+    const matchSearch = search === "" || `${u.firstname} ${u.lastname} ${u.email}`.toLowerCase().includes(search.toLowerCase());
+    return matchRole && matchSearch;
+  });
+
+  const pendingCount = users.filter(u => u.role === "prestataire" && u.status === "en_attente").length;
+
+  return (
+    <div>
+      {/* Alert prestataires en attente */}
+      {pendingCount > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 12, padding: "12px 18px", marginBottom: 20, fontSize: 13, color: "#92400e" }}>
+          <AlertCircle size={16} color="#f59e0b" />
+          <strong>{pendingCount} prestataire{pendingCount > 1 ? "s" : ""}</strong>&nbsp;en attente de validation
         </div>
       )}
 
-      {/* Two columns */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 20 }}>
-        <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
-          <div style={{ padding: "18px 24px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Événements récents</h3>
-            <span style={{ fontSize: 12, color: "#3b82f6", fontWeight: 600, cursor: "pointer" }}>Voir tout →</span>
-          </div>
+      {/* Filters + search */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          {filters.map(f => (
+            <button key={f.key} onClick={() => setFilter(f.key)} style={{ padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer", background: filter === f.key ? "#3b82f6" : "white", color: filter === f.key ? "white" : "#64748b", border: filter === f.key ? "1px solid #3b82f6" : "1px solid #e2e8f0", fontFamily: "inherit" }}>
+              {f.label}{f.key === "en_attente" && pendingCount > 0 && <span style={{ marginLeft: 6, background: "#ef4444", color: "white", borderRadius: 10, padding: "1px 6px", fontSize: 11 }}>{pendingCount}</span>}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "white", border: "1px solid #e2e8f0", borderRadius: 10, padding: "8px 14px" }}>
+          <Search size={14} color="#94a3b8" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un utilisateur..." style={{ border: "none", outline: "none", fontSize: 13, color: "#475569", width: 200, fontFamily: "inherit" }} />
+        </div>
+      </div>
+
+      {/* Table */}
+      <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+        {loading ? (
+          <div style={{ padding: 24 }}>{[1,2,3,4,5].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={40} radius={8} /></div>)}</div>
+        ) : filtered.length === 0 ? (
+          <EmptyState icon={Users} message="Aucun utilisateur trouvé" />
+        ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead><tr style={{ background: "#f8fafc" }}><TH>Nom</TH><TH>Date</TH><TH>Participants</TH><TH>Statut</TH></tr></thead>
+            <thead>
+              <tr style={{ background: "#f8fafc" }}>
+                <TH>Utilisateur</TH>
+                <TH>Email</TH>
+                <TH>Téléphone</TH>
+                <TH>Rôle</TH>
+                <TH>Statut</TH>
+                <TH>Actions</TH>
+              </tr>
+            </thead>
             <tbody>
-              {mockEvents.slice(0, 5).map(e => (
-                <tr key={e.id} style={{ borderTop: "1px solid #f8fafc" }}>
-                  <td style={{ padding: "12px 20px", fontSize: 13, color: "#0f172a", fontWeight: 500 }}>{e.name}</td>
-                  <td style={{ padding: "12px 20px", fontSize: 13, color: "#64748b" }}>{e.date}</td>
-                  <td style={{ padding: "12px 20px", fontSize: 13, color: "#64748b" }}>{e.participants}</td>
-                  <td style={{ padding: "12px 20px" }}><StatusBadge statut={e.statut} /></td>
+              {filtered.map(u => (
+                <tr key={u._id} style={{ borderTop: "1px solid #f8fafc", transition: "background .15s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#fafafa"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+
+                  {/* Avatar + nom */}
+                  <TD>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: u.role === "prestataire" ? "linear-gradient(135deg,#8b5cf6,#a855f7)" : "linear-gradient(135deg,#3b82f6,#60a5fa)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+                        {u.image ? <img src={`http://localhost:5000/uploads/${u.image}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> :
+                          <span style={{ color: "white", fontSize: 13, fontWeight: 700 }}>{u.firstname?.[0]}{u.lastname?.[0]}</span>}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 13 }}>{u.firstname} {u.lastname}</div>
+                        <div style={{ fontSize: 11, color: "#94a3b8" }}>{u.region || "—"}</div>
+                      </div>
+                    </div>
+                  </TD>
+
+                  <TD>{u.email}</TD>
+                  <TD>{u.numTel || "—"}</TD>
+                  <TD><StatusBadge statut={u.role} /></TD>
+                  <TD>
+                    {u.role === "prestataire"
+                      ? <StatusBadge statut={u.status || "en_attente"} />
+                      : <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>
+                    }
+                  </TD>
+
+                  {/* Actions */}
+                  <TD>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {u.role === "prestataire" && u.status !== "valide" && (
+                        <ActionBtn icon={CheckCircle} label="Valider" color="#16a34a" bg="#dcfce7" onClick={() => handleValidate(u._id)} disabled={actionLoading === u._id + "_validate"} />
+                      )}
+                      {u.role === "prestataire" && u.status !== "rejected" && (
+                        <ActionBtn icon={XCircle} label="Rejeter" color="#dc2626" bg="#fee2e2" onClick={() => handleReject(u._id)} disabled={actionLoading === u._id + "_reject"} />
+                      )}
+                      <ActionBtn icon={Trash2} label="Supprimer" color="#64748b" bg="#f1f5f9" onClick={() => handleDelete(u._id)} disabled={actionLoading === u._id + "_delete"} />
+                    </div>
+                  </TD>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 20 }}>
-            <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Répartition événements</h3>
-            {loading
-              ? [1,2,3].map(i => <div key={i} style={{ marginBottom: 14 }}><Skeleton h={8} radius={6} /></div>)
-              : [
-                  { label: "Confirmé", count: 4, color: "#10b981", pct: 57 },
-                  { label: "En attente", count: 2, color: "#f59e0b", pct: 29 },
-                  { label: "Annulé", count: 1, color: "#ef4444", pct: 14 },
-                ].map(s => (
-                  <div key={s.label} style={{ marginBottom: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span style={{ fontSize: 13, color: "#475569" }}>{s.label}</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{s.count}</span>
-                    </div>
-                    <div style={{ height: 6, background: "#f1f5f9", borderRadius: 6 }}>
-                      <div style={{ height: "100%", width: `${s.pct}%`, background: s.color, borderRadius: 6 }} />
-                    </div>
-                  </div>
-                ))
-            }
-          </div>
-
-          <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 20 }}>
-            <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Actions rapides</h3>
-            {[
-              { label: "Valider documents en attente", icon: CheckCircle, color: "#10b981" },
-              { label: "Vérifier ressources", icon: Package, color: "#3b82f6" },
-              { label: "Gérer utilisateurs", icon: Users, color: "#8b5cf6" },
-            ].map((a, i) => (
-              <button key={i} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, marginBottom: 6, background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", fontSize: 13, color: "#475569", fontFamily: "inherit", fontWeight: 500 }}>
-                <a.icon size={16} color={a.color} />{a.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
 };
 
-// ─── EVENTS PAGE ──────────────────────────────────────────────────────────────
-const EvenementsPage = () => {
-  const [filter, setFilter] = useState("Tous");
-  const filters = ["Tous", "Confirmé", "En attente", "Annulé"];
-  const filtered = filter === "Tous" ? mockEvents : mockEvents.filter(e => e.statut === filter);
-  return (
-    <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-        {filters.map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{ padding: "8px 20px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer", background: filter === f ? "#3b82f6" : "white", color: filter === f ? "white" : "#64748b", border: filter === f ? "1px solid #3b82f6" : "1px solid #e2e8f0", fontFamily: "inherit" }}>{f}</button>
-        ))}
-      </div>
-      <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr style={{ background: "#f8fafc" }}><TH>Nom</TH><TH>Date</TH><TH>Lieu</TH><TH>Participants</TH><TH>Statut</TH><TH>Actions</TH></tr></thead>
-          <tbody>
-            {filtered.map(e => (
-              <tr key={e.id} style={{ borderTop: "1px solid #f8fafc" }}>
-                <td style={{ padding: "14px 20px", fontSize: 14, color: "#0f172a", fontWeight: 500 }}>{e.name}</td>
-                <td style={{ padding: "14px 20px", fontSize: 13, color: "#64748b" }}>{e.date}</td>
-                <td style={{ padding: "14px 20px", fontSize: 13, color: "#64748b" }}>{e.lieu}</td>
-                <td style={{ padding: "14px 20px", fontSize: 13, color: "#64748b" }}>{e.participants}</td>
-                <td style={{ padding: "14px 20px" }}><StatusBadge statut={e.statut} /></td>
-                <td style={{ padding: "14px 20px" }}><div style={{ display: "flex", gap: 8 }}><Btn icon={Eye} color="#3b82f6" bg="#eff6ff" /><Btn icon={Trash2} color="#ef4444" bg="#fef2f2" /></div></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
-
-// ─── RESOURCES PAGE ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// PAGE 3 — GESTION DES RESSOURCES
+// ═══════════════════════════════════════════════════════════════
 const RessourcesPage = () => {
-  const [filter, setFilter] = useState("Tous");
-  const types = ["Tous", "Équipement", "Salle", "Personnel"];
-  const filtered = filter === "Tous" ? mockResources : mockResources.filter(r => r.type === filter);
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("tous");
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState(null);
+  const [paniers, setPaniers] = useState({});
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const { data } = await axios.get(`${API}/admin/resources`, { headers: authHeaders() });
+        setResources(data);
+      } catch {
+        setResources([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Charger qui a mis en panier cette ressource
+  const loadPanier = async (resourceId) => {
+    if (paniers[resourceId]) {
+      setExpanded(expanded === resourceId ? null : resourceId);
+      return;
+    }
+    try {
+      const { data } = await axios.get(`${API}/admin/resources/${resourceId}/paniers`, { headers: authHeaders() });
+      setPaniers(prev => ({ ...prev, [resourceId]: data }));
+      setExpanded(resourceId);
+    } catch {
+      setPaniers(prev => ({ ...prev, [resourceId]: [] }));
+      setExpanded(resourceId);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Supprimer cette ressource ?")) return;
+    try {
+      await axios.delete(`${API}/admin/resources/${id}`, { headers: authHeaders() });
+      setResources(prev => prev.filter(r => r._id !== id));
+    } catch {
+      alert("Erreur lors de la suppression");
+    }
+  };
+
+  const types = ["tous", "salle", "materiel", "decoration", "traiteur"];
+  const filtered = resources.filter(r => {
+    const matchType = filter === "tous" || r.type === filter;
+    const matchSearch = search === "" || `${r.name} ${r.provider_name}`.toLowerCase().includes(search.toLowerCase());
+    return matchType && matchSearch;
+  });
+
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <div style={{ display: "flex", gap: 8 }}>
+      {/* Filters + search */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {types.map(t => (
-            <button key={t} onClick={() => setFilter(t)} style={{ padding: "8px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer", background: filter === t ? "#3b82f6" : "white", color: filter === t ? "white" : "#64748b", border: filter === t ? "1px solid #3b82f6" : "1px solid #e2e8f0", fontFamily: "inherit" }}>{t}</button>
+            <button key={t} onClick={() => setFilter(t)} style={{ padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer", background: filter === t ? "#8b5cf6" : "white", color: filter === t ? "white" : "#64748b", border: filter === t ? "1px solid #8b5cf6" : "1px solid #e2e8f0", fontFamily: "inherit", textTransform: "capitalize" }}>
+              {t === "tous" ? "Toutes" : t}
+            </button>
           ))}
         </div>
-        <button style={{ display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", color: "white", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-          <Plus size={16} /> Ajouter ressource
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "white", border: "1px solid #e2e8f0", borderRadius: 10, padding: "8px 14px" }}>
+          <Search size={14} color="#94a3b8" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher une ressource..." style={{ border: "none", outline: "none", fontSize: 13, color: "#475569", width: 200, fontFamily: "inherit" }} />
+        </div>
       </div>
+
+      {/* Table */}
       <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr style={{ background: "#f8fafc" }}><TH>Nom</TH><TH>Type</TH><TH>Quantité</TH><TH>Statut</TH><TH>Description</TH><TH>Actions</TH></tr></thead>
-          <tbody>
-            {filtered.map(r => (
-              <tr key={r.id} style={{ borderTop: "1px solid #f8fafc" }}>
-                <td style={{ padding: "14px 20px", fontSize: 14, color: "#0f172a", fontWeight: 500 }}>{r.nom}</td>
-                <td style={{ padding: "14px 20px" }}><TypeBadge type={r.type} /></td>
-                <td style={{ padding: "14px 20px", fontSize: 14, color: "#64748b" }}>{r.quantite}</td>
-                <td style={{ padding: "14px 20px" }}><StatusBadge statut={r.statut} /></td>
-                <td style={{ padding: "14px 20px", fontSize: 13, color: "#94a3b8", maxWidth: 200 }}>{r.description}</td>
-                <td style={{ padding: "14px 20px" }}><div style={{ display: "flex", gap: 8 }}><Btn icon={Eye} color="#3b82f6" bg="#eff6ff" /><Btn icon={Trash2} color="#ef4444" bg="#fef2f2" /></div></td>
+        {loading ? (
+          <div style={{ padding: 24 }}>{[1,2,3,4].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={48} radius={8} /></div>)}</div>
+        ) : filtered.length === 0 ? (
+          <EmptyState icon={Package} message="Aucune ressource trouvée" />
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f8fafc" }}>
+                <TH>Ressource</TH>
+                <TH>Type</TH>
+                <TH>Prix</TH>
+                <TH>Prestataire</TH>
+                <TH>Localisation</TH>
+                <TH>Paniers</TH>
+                <TH>Actions</TH>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map(r => (
+                <>
+                  <tr key={r._id} style={{ borderTop: "1px solid #f8fafc" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#fafafa"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <TD style={{ fontWeight: 600, color: "#0f172a" }}>{r.name}</TD>
+                    <TD><StatusBadge statut={r.type} /></TD>
+                    <TD style={{ fontWeight: 700, color: "#8b5cf6" }}>{Number(r.price).toFixed(2)} €</TD>
+                    <TD>
+                      <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 500 }}>{r.provider_name}</div>
+                      <div style={{ fontSize: 11, color: "#94a3b8" }}>{r.provider_email}</div>
+                    </TD>
+                    <TD>{r.location || "—"}</TD>
+                    <TD>
+                      <button onClick={() => loadPanier(r._id)} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 8, background: "#f5f3ff", border: "1px solid #e9d5ff", color: "#8b5cf6", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+                        <Eye size={12} /> Voir paniers
+                        <ChevronDown size={12} style={{ transform: expanded === r._id ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+                      </button>
+                    </TD>
+                    <TD>
+                      <ActionBtn icon={Trash2} label="Supprimer" color="#dc2626" bg="#fee2e2" onClick={() => handleDelete(r._id)} />
+                    </TD>
+                  </tr>
+
+                  {/* Expanded: users who added to panier */}
+                  {expanded === r._id && (
+                    <tr key={r._id + "_exp"}>
+                      <td colSpan={7} style={{ padding: "0 20px 16px", background: "#faf9ff" }}>
+                        <div style={{ borderRadius: 10, border: "1px solid #e9d5ff", overflow: "hidden" }}>
+                          <div style={{ padding: "10px 16px", background: "#f5f3ff", fontSize: 12, fontWeight: 600, color: "#7c3aed" }}>
+                            👥 Organisateurs ayant ajouté "{r.name}" à leur panier
+                          </div>
+                          {!paniers[r._id] || paniers[r._id].length === 0 ? (
+                            <div style={{ padding: "14px 16px", fontSize: 13, color: "#94a3b8" }}>Aucun organisateur n'a ajouté cette ressource à son panier.</div>
+                          ) : (
+                            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                              <thead>
+                                <tr style={{ background: "#f8fafc" }}>
+                                  <TH>Nom</TH><TH>Email</TH><TH>Téléphone</TH><TH>Région</TH>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {paniers[r._id].map(u => (
+                                  <tr key={u._id} style={{ borderTop: "1px solid #f1f5f9" }}>
+                                    <TD style={{ fontWeight: 500, color: "#0f172a" }}>{u.firstname} {u.lastname}</TD>
+                                    <TD>{u.email}</TD>
+                                    <TD>{u.numTel || "—"}</TD>
+                                    <TD>{u.region || "—"}</TD>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
 };
 
-// ─── DOCUMENTS PAGE ───────────────────────────────────────────────────────────
-const DocumentsPage = () => (
-  <div>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "10px 16px", fontSize: 13, color: "#3b82f6" }}>
-        <Shield size={16} />
-        Les documents sont analysés automatiquement par notre <strong style={{ marginLeft: 3 }}>intelligence artificielle</strong>&nbsp;pour vérification.
-      </div>
-      <button style={{ display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", color: "white", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-        <Upload size={16} /> Uploader un document
-      </button>
-    </div>
-    <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead><tr style={{ background: "#f8fafc" }}><TH>Nom du fichier</TH><TH>Type</TH><TH>Uploadé par</TH><TH>Date</TH><TH>Taille</TH><TH>Statut</TH><TH>Actions</TH></tr></thead>
-        <tbody>
-          {mockDocuments.map(d => (
-            <tr key={d.id} style={{ borderTop: "1px solid #f8fafc" }}>
-              <td style={{ padding: "14px 20px", fontSize: 13, color: "#0f172a", fontWeight: 500 }}>{d.nom}</td>
-              <td style={{ padding: "14px 20px" }}><TypeBadge type={d.type} /></td>
-              <td style={{ padding: "14px 20px", fontSize: 13, color: "#64748b" }}>{d.uploadePar}</td>
-              <td style={{ padding: "14px 20px", fontSize: 13, color: "#64748b" }}>{d.date}</td>
-              <td style={{ padding: "14px 20px", fontSize: 13, color: "#94a3b8" }}>{d.taille}</td>
-              <td style={{ padding: "14px 20px" }}><StatusBadge statut={d.statut} /></td>
-              <td style={{ padding: "14px 20px" }}><div style={{ display: "flex", gap: 6 }}><Btn icon={Eye} color="#3b82f6" bg="#eff6ff" /><Btn icon={Download} color="#10b981" bg="#f0fdf4" /><Btn icon={Trash2} color="#ef4444" bg="#fef2f2" /></div></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-);
-
-// ─── PROFIL PAGE ──────────────────────────────────────────────────────────────
-const ProfilPage = () => {
-  const user = JSON.parse(localStorage.getItem("user"));
-  return (
-    <div style={{ maxWidth: 760 }}>
-      <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 28, marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <div style={{ width: 72, height: 72, borderRadius: "50%", background: "linear-gradient(135deg,#ef4444,#f97316)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Shield size={30} color="white" />
-          </div>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a" }}>{user?.firstname} {user?.lastname}</div>
-            <div style={{ color: "#64748b", fontSize: 14 }}>{user?.email}</div>
-            <span style={{ display: "inline-block", marginTop: 6, background: "#fef2f2", color: "#ef4444", padding: "3px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>ADMIN</span>
-          </div>
-        </div>
-      </div>
-      <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: 28 }}>
-        <h3 style={{ margin: "0 0 24px", fontSize: 17, fontWeight: 700, color: "#0f172a" }}>Informations</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-          {[
-            { label: "Nom complet", value: `${user?.firstname} ${user?.lastname}` },
-            { label: "Email", value: user?.email },
-            { label: "Téléphone", value: user?.numTel || "—" },
-            { label: "Rôle", value: "Administrateur" },
-          ].map((item, i) => (
-            <div key={i}>
-              <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{item.label}</div>
-              <div style={{ fontSize: 15, color: "#0f172a", fontWeight: 500 }}>{item.value}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+// ═══════════════════════════════════════════════════════════════
+// ROOT
+// ═══════════════════════════════════════════════════════════════
+const pageTitles = {
+  dashboard:  "Dashboard",
+  comptes:    "Gestion des comptes",
+  ressources: "Gestion des ressources",
 };
-
-// ─── Root ─────────────────────────────────────────────────────────────────────
-const pageTitles = { dashboard: "Dashboard", evenements: "Événements", ressources: "Gestion des ressources", documents: "Documents", profil: "Mon profil" };
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -436,11 +604,9 @@ export default function AdminDashboard() {
   };
 
   const pages = {
-    dashboard: <DashboardPage />,
-    evenements: <EvenementsPage />,
+    dashboard:  <DashboardPage />,
+    comptes:    <ComptesPage />,
     ressources: <RessourcesPage />,
-    documents: <DocumentsPage />,
-    profil: <ProfilPage />,
   };
 
   return (
