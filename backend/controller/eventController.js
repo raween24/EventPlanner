@@ -145,21 +145,20 @@ const deleteEvent = async (req, res) => {
   }
 };
 
+
+
 const get_Event_by_user = async (req, res) => {
   try {
-    const events = await Event.find({ organisateur_id: req.user._id })
-      .populate({
-        path: "ressources_utiliser",
-        populate: ["media", "availability"]
-      });
+    const events = await Event.find({ organisateur_id: req.params.id }).populate({
+      path: "ressources_utiliser",
+      populate: ["media", "availability"]
+    });
 
     res.status(200).json(events);
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 export {
   addEvent,

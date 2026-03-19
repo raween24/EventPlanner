@@ -10,12 +10,13 @@ import AddResource from "./pages/AddResource";
 import RoleGuard from "./components/RoleGuard";
 import PanierRessources from "./pages/panier";
 import AdminDashboard from "./pages/Admindashboard";
+import ProfileOrg  from "./pages/ProfilOrganisateur"
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* pages publiques */}
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomePage  />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/panier" element={<PanierRessources />} />
@@ -39,6 +40,7 @@ export default function App() {
             </RoleGuard>
           }
         />
+         <Route path="/profileO" element={<ProfileOrg  />} />
       
 
         {/* ajout de la page AddResource */}
