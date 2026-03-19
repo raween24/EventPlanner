@@ -983,8 +983,7 @@ export default function OrganizerDashboard() {
                                                             <span className="truncate">{formatDate(event.dateDebut)}</span>
                                                         </div>
                                                         <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-gray-500">
-                                                            <MapPin size={10} className="sm:w-3 sm:h-3" />
-                                                            <span className="truncate">{event.lieu || 'Lieu non défini'}</span>
+                                                            <span className="truncate">{event.description || 'Lieu non défini'}</span>
                                                         </div>
                                                         <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-bold text-blue-600">
                                                             <Euro size={12} className="sm:w-3 sm:h-3" />
