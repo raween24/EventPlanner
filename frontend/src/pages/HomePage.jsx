@@ -189,7 +189,7 @@ export default function HomePage() {
                 </motion.button>
               )}
               {role === "prestataire" && (
-                <motion.button whileHover={{ x: 5 }} onClick={() => { navigate("/profileO"); setIsProfileMenuOpen(false); setIsOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors">
+                <motion.button whileHover={{ x: 5 }} onClick={() => { navigate("/profileP"); setIsProfileMenuOpen(false); setIsOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors">
                   <User className="w-5 h-5 text-blue-600" /><span>Mon Profil</span>
                 </motion.button>
               )}

@@ -1148,43 +1148,27 @@ const AddResourceForm = () => {
                   Calendrier de disponibilité
                 </motion.h2>
                 <div className="flex items-center space-x-2">
-              
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => addAvailabilityRange('available')}
-                      disabled={!selectedRange}
-                      className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
-                    >
-                      <FiCheckCircle className="w-5 h-5" />
-                      {selectedEventType === 'available' && (
-                        <motion.div
-                          initial={{ scale: 0, opacity: 0.5 }}
-                          animate={{ scale: 2, opacity: 0 }}
-                          transition={{ duration: 0.5 }}
-                          className="absolute inset-0 bg-green-400 rounded-full"
-                        />
-                      )}
-                    </motion.button>
-               
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => addAvailabilityRange('unavailable')}
-                      disabled={!selectedRange}
-                      className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
-                    >
-                      <FiXCircle className="w-5 h-5" />
-                      {selectedEventType === 'unavailable' && (
-                        <motion.div
-                          initial={{ scale: 0, opacity: 0.5 }}
-                          animate={{ scale: 2, opacity: 0 }}
-                          transition={{ duration: 0.5 }}
-                          className="absolute inset-0 bg-red-400 rounded-full"
-                        />
-                      )}
-                    </motion.button>
-              
+
+
+
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => addAvailabilityRange('unavailable')}
+                    disabled={!selectedRange}
+                    className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
+                  >
+                    <FiXCircle className="w-5 h-5" />
+                    {selectedEventType === 'unavailable' && (
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0.5 }}
+                        animate={{ scale: 2, opacity: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="absolute inset-0 bg-red-400 rounded-full"
+                      />
+                    )}
+                  </motion.button>
+
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
@@ -1263,23 +1247,8 @@ const AddResourceForm = () => {
                 }}
               >
                 <div className="flex items-center space-x-6">
-                  <motion.div
-                    className="flex items-center space-x-2"
-                    whileHover={{ scale: 1.05 }}
-                  >
-                    <motion.div
-                      animate={{
-                        scale: [1, 1.1, 1],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        repeatType: "reverse"
-                      }}
-                      className="w-4 h-4 bg-green-100 border-l-4 border-green-500 rounded"
-                    />
-                    <span className="text-sm text-gray-600">Disponible</span>
-                  </motion.div>
+
+
                   <motion.div
                     className="flex items-center space-x-2"
                     whileHover={{ scale: 1.05 }}

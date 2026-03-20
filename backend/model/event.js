@@ -11,16 +11,16 @@ const EventSchema = new mongoose.Schema(
         nombreParticipants: { type: Number },
         status: { type: String, enum: ["en attente", "en cours", "terminé"], required: true, default: "en attente" },
         createdAt: { type: Date, default: Date.now },
-        ressources_utiliser:[ {
+        ressources_utiliser: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: "Resource"
         }],
-          organisateur_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",required: true
-  },
+        organisateur_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User", required: true
+        },
     },
-  
+
     { timestamps: true }
 );
 

@@ -5,7 +5,7 @@ const resourceSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      trim: true, 
+      trim: true,
     },
 
     description: {
@@ -43,15 +43,19 @@ const resourceSchema = new mongoose.Schema(
     },
 
     media: [{
-      type:mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Media"
     }],
 
-    availability:[ {
+    availability: [{
       type: mongoose.Schema.Types.ObjectId,
-      ref:"Dispo"
-    }]
-    
+      ref: "Dispo"
+    }],
+    prestataire: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user"
+      },
+
   },
   {
     timestamps: true,

@@ -5,7 +5,7 @@ import {
     getAllResources,
     getResourceById,
     updateResource,
-    deleteResource
+    deleteResource, getResourcesByUser
 } from "../controller/ressourcesController.js";
 
 import { verifyToken } from "../middleware/authMiddleware.js";
@@ -33,5 +33,6 @@ router.put("/modify/:id", verifyToken, updateResource);
 
 /* ================= SUPPRIMER RESSOURCE ================= */
 router.delete("/dell/:id", verifyToken, deleteResource);
+router.get("/res_user", verifyToken, getResourcesByUser);
 
 export default router;

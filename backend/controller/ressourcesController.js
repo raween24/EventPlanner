@@ -63,7 +63,8 @@ const addResource = async (req, res) => {
             provider_email,
 
             media: mediaId ? [mediaId] : [],
-            availability: availabilityIds
+            availability: availabilityIds,
+            prestataire: req.user.id
 
         });
 
@@ -100,7 +101,23 @@ const getResourceById = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+const getResourcesByUser = async (req, res) => {
+    try {
+        const resources = await Resource.find({
+            prestataire: req.user.id
+        })
+            .populate("media")
+            .populate("availability");
 
+        res.status(200).json(resources);
+
+    } catch (error) {
+        res.status(500).json({
+            message: "Erreur récupération ressources",
+            error: error.message
+        });
+    }
+};
 // ================= MODIFIER RESSOURCE =================
 const updateResource = async (req, res) => {
     try {
@@ -139,6 +156,7 @@ export {
     addResource,
     getAllResources,
     getResourceById,
+    getResourcesByUser,
     updateResource,
     deleteResource
 };

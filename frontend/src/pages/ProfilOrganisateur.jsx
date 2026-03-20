@@ -37,7 +37,7 @@ export default function OrganizerDashboard() {
     // Nouveaux états pour les notifications et le menu mobile
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState([]);
-    const [unreadCount, setUnreadCount] = useState(3);
+    const [unreadCount, setUnreadCount] = useState(0);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // États pour les données
@@ -75,10 +75,6 @@ export default function OrganizerDashboard() {
     const loadNotifications = () => {
         // Exemple de notifications - à remplacer par un vrai appel API
         setNotifications([
-            { id: 1, title: 'Nouvelle réservation', message: 'Salle de conférence réservée pour demain', time: '5 min', read: false, type: 'info' },
-            { id: 2, title: 'Paiement reçu', message: 'Paiement de 3500€ pour l\'événement "Conférence Tech"', time: '1 heure', read: false, type: 'success' },
-            { id: 3, title: 'Rappel', message: 'Événement "Team Building" dans 2 jours', time: '3 heures', read: true, type: 'warning' },
-            { id: 4, title: 'Modification', message: 'La ressource "Traiteur Prestige" a été modifiée', time: '1 jour', read: true, type: 'info' },
         ]);
     };
 
@@ -446,15 +442,7 @@ export default function OrganizerDashboard() {
                                     ) : (
                                         <Bell size={20} className="sm:w-[22px] sm:h-[22px] text-gray-600 group-hover:text-blue-600 transition-colors" />
                                     )}
-                                    {unreadCount > 0 && (
-                                        <motion.span
-                                            initial={{ scale: 0 }}
-                                            animate={{ scale: 1 }}
-                                            className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] sm:text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center shadow-lg"
-                                        >
-                                            {unreadCount}
-                                        </motion.span>
-                                    )}
+
                                 </motion.button>
 
                                 {/* Panneau des notifications amélioré */}
