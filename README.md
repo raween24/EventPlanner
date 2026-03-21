@@ -8,7 +8,7 @@ la page creer event ( event personnalisé exp : un ensemble des chaise + tables 
 la page profile prestataire ( il faut valider le desgin  et la fonctionnalite) --OK
 la page profile de organisateur ( il faut valider le desgin  et la fonctionnalite) --OK
 compte admin avec sa dashboard et son profile ( a discuter ) --c bon 
-remplir base de donnees ---oui on dois le remplir
+remplir base de donnees ---oui on dois le remplir ( j'ai fais les users )
 
 ...................................Donc pour le moment on a fait la partie du haut alors la porchen foix on va discuter et distrubee les tache entre nous
 
