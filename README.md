@@ -4,8 +4,6 @@
  supprimer champs email from creer ressource 
 
 **les prochaines taches** ( les grandes lignes )
-le dashboard prestataire ( il faut qu'on fait un design commun )--OK
-le dashboard organisateur ( il faut qu'on fait un design commun )--OK
 la page creer event ( event personnalisé exp : un ensemble des chaise + tables +sales theme precis)-- 
 la page profile prestataire ( il faut valider le desgin  et la fonctionnalite) --OK
 la page profile de organisateur ( il faut valider le desgin  et la fonctionnalite) --OK
