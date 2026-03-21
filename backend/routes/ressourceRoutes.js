@@ -29,8 +29,7 @@ router.get("/get_all_ressources", getAllResources);
 router.get("/get_by_id/:id", getResourceById);
 
 /* ================= MODIFIER RESSOURCE ================= */
-router.put("/modify/:id", verifyToken, updateResource);
-
+router.put("/modify/:id", verifyToken, upload.array("images"), updateResource);
 /* ================= SUPPRIMER RESSOURCE ================= */
 router.delete("/dell/:id", verifyToken, deleteResource);
 router.get("/res_user", verifyToken, getResourcesByUser);

@@ -9,6 +9,7 @@ import {
 } from "../controller/userController.js";
 import upload from "../middleware/upload_image.js";
 
+import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -19,6 +20,6 @@ router.post("/like", addToAdore);
 router.delete("/remove", removeFromAdore);
 router.get("/panier/:userId", getAdore);
 router.get("/:id", getUserById);
-router.put("/updateuser/:identifiant", updateUser);
+router.put('/update', verifyToken, upload.single('image'), updateUser);
 
 export default router;

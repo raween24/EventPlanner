@@ -134,24 +134,34 @@ const getUser = async (req, res) => {
 /* ================= UPDATE USER ================= */
 const updateUser = async (req, res) => {
   try {
-    const { identifiant } = req.params;
-
-    const user = await User.findById(identifiant);
+    const user = await User.findById(req.user.id);
 
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
-    // update champs
-    Object.assign(user, req.body);
-    if (req.body.password) {
+    // 🔹 éviter écrasement image/password
+    const { password, image, ...otherFields } = req.body;
+
+    Object.assign(user, otherFields);
+
+    // 🔐 password
+    if (password) {
       const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(req.body.password, salt);
+      user.password = await bcrypt.hash(password, salt);
+    }
+
+    // 🖼️ image (🔥 LA PARTIE MANQUANTE)
+    if (req.file) {
+      user.image = `/uploads/${req.file.filename}`;
+    } else if (image) {
+      user.image = image;
     }
 
     await user.save();
 
     res.status(200).json(user);
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

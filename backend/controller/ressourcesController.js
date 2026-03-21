@@ -122,19 +122,96 @@ const getResourcesByUser = async (req, res) => {
 const updateResource = async (req, res) => {
     try {
         if (req.user.role !== "prestataire") {
-            return res.status(403).json({ message: "Accès refusé : seul le prestataire peut modifier des ressources" });
+            return res.status(403).json({ message: "Accès refusé" });
         }
 
-        const updated = await Resource.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const resource = await Resource.findById(req.params.id);
+        if (!resource) {
+            return res.status(404).json({ message: "Ressource non trouvée" });
+        }
 
-        if (!updated) return res.status(404).json({ message: "Ressource non trouvée" });
+        // ========================
+        // ✅ UPDATE CHAMPS
+        // ========================
+        resource.name = req.body.name || resource.name;
+        resource.description = req.body.description || resource.description;
+        resource.type = req.body.type || resource.type;
+        resource.price = req.body.price || resource.price;
+        resource.location = req.body.location || resource.location;
+        resource.capacity = req.body.capacity || resource.capacity;
 
-        res.status(200).json(updated);
+        // ========================
+        // ✅ MEDIA (IMAGES)
+        // ========================
+        let imagesToKeep = [];
+
+        if (req.body.imagesToKeep) {
+            try {
+                imagesToKeep = JSON.parse(req.body.imagesToKeep);
+            } catch {
+                imagesToKeep = [];
+            }
+        }
+
+        // supprimer anciens media non gardés
+        resource.media = resource.media.filter(id =>
+            imagesToKeep.includes(id.toString())
+        );
+
+        // ajouter nouvelles images
+        if (req.files && req.files.length > 0) {
+            const imagePaths = req.files.map(file => file.path);
+
+            const newMedia = new Media({
+                img_vd: imagePaths
+            });
+
+            const savedMedia = await newMedia.save();
+
+            resource.media.push(savedMedia._id);
+        }
+
+        // ========================
+        // ✅ AVAILABILITY
+        // ========================
+        if (req.body.availability) {
+            let availabilityData = [];
+
+            try {
+                availabilityData = JSON.parse(req.body.availability);
+            } catch {
+                availabilityData = [];
+            }
+
+            // supprimer anciennes dispo
+            resource.availability = [];
+
+            for (const avail of availabilityData) {
+                const newDispo = new Dispo({
+                    date_deb: avail.start,
+                    date_fin: avail.end,
+                    satut_disp: avail.status
+                });
+
+                const savedDispo = await newDispo.save();
+                resource.availability.push(savedDispo._id);
+            }
+        }
+
+        // ========================
+        await resource.save();
+
+        const populatedResource = await Resource.findById(resource._id)
+            .populate("media")
+            .populate("availability");
+
+        res.status(200).json(populatedResource);
+
     } catch (error) {
+        console.error("ERREUR UPDATE:", error);
         res.status(500).json({ message: error.message });
     }
 };
-
 // ================= SUPPRIMER RESSOURCE =================
 const deleteResource = async (req, res) => {
     try {
