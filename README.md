@@ -18,7 +18,6 @@ les messages entres le prestataire  et organisateurs
 les messages entre les ladmin et prestataire 
 ////////
 
-a discuter !!!!!!!!!!!!!!!!!! : pour gestion des comptes dans dashboard admin lorganisteur inclus dans la gestion ou juste le prestataire ??
 
 w ya aaadeem winuuu backend taa lpanier maandish meenuu f bali bik khdemtu bch nzidu lel admin f gestion des ressources ----aaa atheka tetdhkerche fama mara wa9tha 5dmt m5iire man3ml pull ye5i b3de de5lt 5ima b3adh7a donc 3mlt clonne m3a 5idma mt3k sans panier
 
