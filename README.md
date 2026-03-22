@@ -1,7 +1,6 @@
 
  connection avec google pour oragnisateur seulement--c bon  
- supprimer date from create event 
- supprimer champs email from creer ressource 
+ supprimer date from create event --cbon
 
 **les prochaines taches** ( les grandes lignes )
 la page creer event ( event personnalisé exp : un ensemble des chaise + tables +sales theme precis)-- 
