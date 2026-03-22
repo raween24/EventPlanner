@@ -1,4 +1,3 @@
-// backend/controller/googleAuthController.js
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import User from "../model/user.js";
@@ -9,7 +8,10 @@ export const googleAuth = async (req, res) => {
   try {
     const { token } = req.body;
 
-    // Vérifie le token Google
+    console.log("=== GOOGLE AUTH DEBUG ===");
+    console.log("Token reçu:", token ? "OUI ✅" : "NON ❌");
+    console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID ? "OUI ✅" : "NON ❌");
+
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -18,31 +20,41 @@ export const googleAuth = async (req, res) => {
     const payload = ticket.getPayload();
     const { email, name, picture, sub } = payload;
 
-    // Cherche l'utilisateur
+    console.log("Email Google:", email);
+
     let user = await User.findOne({ email });
 
-    if (!user) {
-      // Crée un utilisateur Google
+    if (user) {
+      if (user.role !== "organisateur") {
+        return res.status(403).json({
+          message: "Accès refusé — seuls les organisateurs peuvent se connecter via Google.",
+        });
+      }
+    } else {
       user = await User.create({
         firstname: name?.split(" ")[0] || "Utilisateur",
         lastname: name?.split(" ")[1] || "",
         email,
         googleId: sub,
         image: picture || "",
-        password: "", // pas de mot de passe
-        role: "user",
-        role: undefined ,
+        role: "organisateur",
+        status: "en_attente",
       });
+      console.log("Nouvel utilisateur créé ✅");
     }
 
-    // Génère un JWT
-    const appToken = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const appToken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
+    console.log("JWT généré ✅");
     res.status(200).json({ user, token: appToken });
+
   } catch (err) {
-    console.error(err);
-    res.status(401).json({ message: "Google auth failed" });
+    console.error("=== ERREUR GOOGLE AUTH ===");
+    console.error("Message:", err.message);  // ← copiez cette ligne ici
+    res.status(401).json({ message: "Google auth failed", detail: err.message });
   }
 };

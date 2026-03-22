@@ -2,25 +2,15 @@ import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema({
   passportOrCid: { type: String, sparse: true },
-
-  lastname: { type: String, default: "", required: true },
-
-  firstname: { type: String, default: "", required: true },
-
+  lastname:       { type: String, default: "", required: true },
+  firstname:      { type: String, default: "", required: true },
   date_de_naissance: { type: Date },
-
-  email: { type: String, required: true, unique: true },
-
-  password: { type: String, default: "", required: true },
-
-  numTel: { type: String, sparse: true, required: true },
-
-  image: { type: String },
-
-  region: { type: String },
-
-  gender: { type: String, required: true },
-
+  email:          { type: String, required: true, unique: true },
+  password:       { type: String, default: "" },
+  numTel:         { type: String, sparse: true },
+  gender:         { type: String },
+  image:          { type: String },
+  region:         { type: String },
   role: {
     type: String,
     enum: ["organisateur", "prestataire", "admin"],
@@ -36,11 +26,7 @@ const UserSchema = new mongoose.Schema({
     default: "en_attente",
   },
 
-  // ← panier/favoris de l'organisateur
-  adore: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Resource"
-  }],
+  adore: [{ type: mongoose.Schema.Types.ObjectId, ref: "Resource" }],
 });
 
 export default mongoose.model("User", UserSchema);

@@ -92,7 +92,8 @@ export default function OrganizerDashboard() {
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
     const user = userStr ? JSON.parse(userStr) : null;
-    const userId = user?.id;
+   const userId = user?._id || user?.id;
+
 
     // Configuration axios avec token
     const api = axios.create({
