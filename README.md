@@ -1,5 +1,5 @@
 
- connection avec google pour prestataire seulement 
+ connection avec google pour oragnisateur seulement--c bon  
  supprimer date from create event 
  supprimer champs email from creer ressource 
 
