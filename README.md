@@ -18,8 +18,6 @@ les messages entre les ladmin et prestataire
 ////////
 
 
-w ya aaadeem winuuu backend taa lpanier maandish meenuu f bali bik khdemtu bch nzidu lel admin f gestion des ressources ----aaa atheka tetdhkerche fama mara wa9tha 5dmt m5iire man3ml pull ye5i b3de de5lt 5ima b3adh7a donc 3mlt clonne m3a 5idma mt3k sans panier
-
 
 ya rawen ken mamchalekche installer hadhom :
 1/axios : tod5l lil backend w ba3de --- npm install axios
