@@ -1,7 +1,8 @@
 // controller/Admincontroller.js
-import User      from "../model/user.js";
-import Event     from "../model/event.js";
+import User from "../model/user.js";
+import Event from "../model/event.js";
 import Ressource from "../model/ressources.js";
+import axios from "axios";
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
 export const getStats = async (req, res) => {
@@ -49,15 +50,50 @@ export const deleteUser = async (req, res) => {
 export const updateUserStatus = async (req, res) => {
   try {
     const { status } = req.body;
+
     if (!["valide", "en_attente", "rejected"].includes(status)) {
       return res.status(400).json({ message: "Statut invalide" });
     }
+
+    // 🔥 récupérer ancien user
+    const oldUser = await User.findById(req.params.id);
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { status },
-      { new: true }
+      { returnDocument: "after" }
     ).select("-password");
+
+    // 🔥 envoyer email seulement si changement
+    if (oldUser.status !== user.status) {
+      try {
+        if (user.status === "valide") {
+          await axios.post("http://localhost:5678/webhook/accept_sing_up", {
+            email: user.email,
+            name: user.firstname
+          });
+          console.log("Envoi vers n8n...");
+        }
+        if (user.status === "rejected") {
+          console.log("Status rejected détecté ✅");
+
+          await axios.post("http://localhost:5678/webhook/reject_sing_up", {
+            email: user.email,
+            name: user.firstname
+          });
+
+          console.log("Envoi vers n8n ref...");
+        }
+      }
+      catch (err) {
+        console.log("Erreur envoi email n8n:");
+        console.log(err.response?.data || err.message);
+        console.log("Erreur envoi email:", err.message);
+      }
+    }
+
     res.json(user);
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

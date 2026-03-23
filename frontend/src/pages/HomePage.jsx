@@ -86,6 +86,7 @@ const AdminAvatar = ({ size = "md", showOnlineStatus = true }) => {
 
 // ─── HomePage ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
+  console.log(localStorage);
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -100,6 +101,8 @@ export default function HomePage() {
   const role = user?.role;
   const isAdmin = role === "admin";
 
+  console.log('Rôle utilisateur:', role); // Ajoutez ceci
+  console.log('Chemin de navigation:', '/profileO'); // Ajoutez ceci
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -149,7 +152,7 @@ export default function HomePage() {
 
   const getNavLinks = () => [
     { name: "Accueil", path: "/" },
-    ...(user ? [{ name: "Événements", path: "/evenements" }] : []),
+    { name: "Événements", path: "/evenements" },
     { name: "Ressources", path: "/les_ressources" },
     { name: "Contact", path: "#contact" },
   ];
@@ -185,8 +188,13 @@ export default function HomePage() {
                   <span className="ml-auto bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">ADMIN</span>
                 </motion.button>
               )}
-              {!isAdmin && (
-                <motion.button whileHover={{ x: 5 }} onClick={() => { navigate("/profil"); setIsProfileMenuOpen(false); setIsOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors">
+              {role === "prestataire" && (
+                <motion.button whileHover={{ x: 5 }} onClick={() => { navigate("/profileP"); setIsProfileMenuOpen(false); setIsOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors">
+                  <User className="w-5 h-5 text-blue-600" /><span>Mon Profil</span>
+                </motion.button>
+              )}
+              {role === "organisateur" && (
+                <motion.button whileHover={{ x: 5 }} onClick={() => { navigate("/profileO"); setIsProfileMenuOpen(false); setIsOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors">
                   <User className="w-5 h-5 text-blue-600" /><span>Mon Profil</span>
                 </motion.button>
               )}
@@ -196,6 +204,7 @@ export default function HomePage() {
                   <span className="ml-auto bg-purple-100 text-purple-600 text-xs font-semibold px-2 py-1 rounded-full">0</span>
                 </motion.button>
               )}
+
               {!isAdmin && (
                 <motion.button whileHover={{ x: 5 }} onClick={() => { navigate("/messenger"); setIsProfileMenuOpen(false); setIsOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors">
                   <MessageCircle className="w-5 h-5 text-blue-600" /><span>Messenger</span>
@@ -287,7 +296,7 @@ export default function HomePage() {
                       </motion.button>
                     )}
                     {!isAdmin && (
-                      <motion.button whileHover={{ x: 10 }} onClick={() => { navigate("/profil"); setIsOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg">
+                      <motion.button whileHover={{ x: 10 }} onClick={() => { navigate("/profileO"); setIsOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg">
                         <User className="w-5 h-5 text-blue-600" /><span>Mon Profil</span>
                       </motion.button>
                     )}
@@ -371,8 +380,7 @@ export default function HomePage() {
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/les_ressources")} className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-2xl font-semibold text-lg hover:bg-white/20 transition-all">🔍 Voir la plateforme</motion.button>
                 </>)}
                 {role === "organisateur" && (<>
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/les_ressources")} className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-semibold text-lg hover:bg-gray-100 transition-all">🔍 Voir les ressources</motion.button>
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/dashboard-organisateur")} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-lg">📊 Mon Dashboard</motion.button>
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/CreerEvenement")} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-lg"> cree votre evenement</motion.button>
                 </>)}
                 {role === "prestataire" && (<>
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/les_ressources")} className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-semibold text-lg hover:bg-gray-100 transition-all">🔍 Explorer</motion.button>
@@ -571,6 +579,7 @@ export default function HomePage() {
                   {formStatus === 'sending' ? <>Envoi en cours...</> : formStatus === 'success' ? <>Message envoyé ! <Mail className="w-5 h-5" /></> : <>Envoyer le message <Send className="w-5 h-5" /></>}
                 </motion.button>
               </form>
+
             </motion.div>
             <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="space-y-6">
               <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">

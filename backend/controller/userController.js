@@ -1,6 +1,7 @@
 import User from "../model/user.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import axios from "axios";
 
 
 /* ================= REGISTER ================= */
@@ -57,6 +58,16 @@ const registerUser = async (req, res) => {
     });
 
     await user.save();
+    if (role === "prestataire") {
+      try {
+        await axios.post("http://localhost:5678/webhook/signup-provider", {
+          email: user.email,
+          name: user.firstname
+        });
+      } catch (err) {
+        console.log("Erreur envoi email n8n:", err.message);
+      }
+    }
 
     res.status(201).json({
       message: "Utilisateur créé",
@@ -236,13 +247,13 @@ const removeFromAdore = async (req, res) => {
 const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const user = await User.findById(id).select("-password");
-    
+
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
-    
+
     res.status(200).json(user);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -256,5 +267,5 @@ export {
   updateUser,
   addToAdore,
   removeFromAdore,
-  getAdore,getUserById
+  getAdore, getUserById
 };
