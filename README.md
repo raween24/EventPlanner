@@ -26,3 +26,4 @@ w kaml installation talnssha bi n8n
 w ha9a mail mt3a application mt3na:
 eventplanner315@gmail.com
 pass: event123456
+ok binome
