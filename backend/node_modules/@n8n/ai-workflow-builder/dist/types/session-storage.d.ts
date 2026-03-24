@@ -1,0 +1,11 @@
+import type { LangchainMessage } from './sessions';
+export interface StoredSession {
+    messages: LangchainMessage[];
+    previousSummary?: string;
+    updatedAt: Date;
+}
+export interface ISessionStorage {
+    getSession(threadId: string): Promise<StoredSession | null>;
+    saveSession(threadId: string, data: StoredSession): Promise<void>;
+    deleteSession(threadId: string): Promise<void>;
+}

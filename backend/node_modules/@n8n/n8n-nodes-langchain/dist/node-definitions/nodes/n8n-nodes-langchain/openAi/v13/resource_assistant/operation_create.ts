@@ -1,0 +1,80 @@
+/**
+ * OpenAI Node - Version 1.3
+ * Discriminator: resource=assistant, operation=create
+ */
+
+
+interface Credentials {
+  openAiApi: CredentialReference;
+}
+
+/** Create a new assistant */
+export type LcOpenAiV13AssistantCreateParams = {
+  resource: 'assistant';
+  operation: 'create';
+/**
+ * Model
+ * @default {"mode":"list","value":""}
+ */
+    modelId?: { __rl: true; mode: 'list' | 'id'; value: string; cachedResultName?: string };
+/**
+ * The name of the assistant. The maximum length is 256 characters.
+ */
+    name?: string | Expression<string> | PlaceholderValue;
+/**
+ * The description of the assistant. The maximum length is 512 characters.
+ */
+    description?: string | Expression<string> | PlaceholderValue;
+/**
+ * The system instructions that the assistant uses. The maximum length is 32768 characters.
+ */
+    instructions?: string | Expression<string> | PlaceholderValue;
+/**
+ * Whether to enable the code interpreter that allows the assistants to write and run Python code in a sandboxed execution environment, find more &lt;a href="https://platform.openai.com/docs/assistants/tools/code-interpreter" target="_blank"&gt;here&lt;/a&gt;
+ * @default false
+ */
+    codeInterpreter?: boolean | Expression<boolean>;
+/**
+ * Whether to augments the assistant with knowledge from outside its model, such as proprietary product information or documents, find more &lt;a href="https://platform.openai.com/docs/assistants/tools/knowledge-retrieval" target="_blank"&gt;here&lt;/a&gt;
+ * @default false
+ */
+    knowledgeRetrieval?: boolean | Expression<boolean>;
+/**
+ * The files to be used by the assistant, there can be a maximum of 20 files attached to the assistant. You can use expression to pass file IDs as an array or comma-separated string.
+ * @hint Add more files by using the 'Upload a File' operation
+ * @displayOptions.show { codeInterpreter: [true], knowledgeRetrieval: [true] }
+ * @displayOptions.hide { knowledgeRetrieval: [true], codeInterpreter: [true] }
+ * @default []
+ */
+    file_ids?: string[];
+/**
+ * Options
+ * @default {}
+ */
+    options?: {
+    /** Controls randomness: Lowering results in less random completions. As the temperature approaches zero, the model will become deterministic and repetitive. We generally recommend altering this or temperature but not both.
+     * @default 1
+     */
+    temperature?: number | Expression<number>;
+    /** An alternative to sampling with temperature, controls diversity via nucleus sampling: 0.5 means half of all likelihood-weighted options are considered. We generally recommend altering this or temperature but not both.
+     * @default 1
+     */
+    topP?: number | Expression<number>;
+    /** Whether to fail an operation if the assistant with the same name already exists
+     * @default false
+     */
+    failIfExists?: boolean | Expression<boolean>;
+  };
+};
+
+export interface LcOpenAiV13AssistantCreateSubnodeConfig {
+  tools?: ToolInstance[];
+  memory?: MemoryInstance;
+}
+
+export type LcOpenAiV13AssistantCreateNode = {
+  type: '@n8n/n8n-nodes-langchain.openAi';
+  version: 1.3;
+  credentials?: Credentials;
+  config: NodeConfig<LcOpenAiV13AssistantCreateParams> & { subnodes?: LcOpenAiV13AssistantCreateSubnodeConfig };
+};

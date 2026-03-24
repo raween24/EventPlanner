@@ -1,0 +1,92 @@
+/**
+ * Default Data Loader Node - Version 1
+ * Load data from previous step in the workflow
+ */
+
+
+export interface LcDocumentDefaultDataLoaderV1Params {
+  dataType?: 'json' | 'binary';
+/**
+ * Mode
+ * @displayOptions.show { dataType: ["json"] }
+ * @default allInputData
+ */
+    jsonMode?: 'allInputData' | 'expressionData' | Expression<string>;
+/**
+ * Mode
+ * @displayOptions.show { dataType: ["binary"] }
+ * @default allInputData
+ */
+    binaryMode?: 'allInputData' | 'specificField' | Expression<string>;
+/**
+ * Data Format
+ * @displayOptions.show { dataType: ["binary"] }
+ * @default auto
+ */
+    loader?: 'auto' | 'csvLoader' | 'docxLoader' | 'epubLoader' | 'jsonLoader' | 'pdfLoader' | 'textLoader' | Expression<string>;
+/**
+ * Drag and drop fields from the input pane, or use an expression
+ * @displayOptions.show { dataType: ["json"], jsonMode: ["expressionData"] }
+ */
+    jsonData?: string | Expression<string> | PlaceholderValue;
+/**
+ * The name of the field in the agent or chain’s input that contains the binary file to be processed
+ * @displayOptions.show { dataType: ["binary"] }
+ * @displayOptions.hide { binaryMode: ["allInputData"] }
+ * @default data
+ */
+    binaryDataKey?: string | Expression<string> | PlaceholderValue;
+  options?: {
+    /** Pointers to extract from JSON, e.g. "/text" or "/text, /meta/title"
+     * @displayOptions.show { /loader: ["jsonLoader", "auto"] }
+     */
+    pointers?: string | Expression<string> | PlaceholderValue;
+    /** Separator to use for CSV
+     * @displayOptions.show { /loader: ["csvLoader", "auto"] }
+     * @default ,
+     */
+    separator?: string | Expression<string> | PlaceholderValue;
+    /** Column to extract from CSV
+     * @displayOptions.show { /loader: ["csvLoader", "auto"] }
+     */
+    column?: string | Expression<string> | PlaceholderValue;
+    /** Whether to split PDF pages into separate documents
+     * @displayOptions.show { /loader: ["pdfLoader", "auto"] }
+     * @default true
+     */
+    splitPages?: boolean | Expression<boolean>;
+    /** Metadata to add to each document. Could be used for filtering during retrieval
+     * @default {}
+     */
+    metadata?: {
+        /** Fields to Set
+     */
+    metadataValues?: Array<{
+      /** Name
+       */
+      name?: string | Expression<string> | PlaceholderValue;
+      /** Value
+       */
+      value?: string | Expression<string> | PlaceholderValue;
+    }>;
+  };
+  };
+}
+
+export interface LcDocumentDefaultDataLoaderV1SubnodeConfig {
+  /**
+   * @displayOptions.show { textSplittingMode: ["custom"] }
+   */
+  textSplitter: TextSplitterInstance;
+}
+
+interface LcDocumentDefaultDataLoaderV1NodeBase {
+  type: '@n8n/n8n-nodes-langchain.documentDefaultDataLoader';
+  version: 1;
+}
+
+export type LcDocumentDefaultDataLoaderV1ParamsNode = LcDocumentDefaultDataLoaderV1NodeBase & {
+  config: NodeConfig<LcDocumentDefaultDataLoaderV1Params> & { subnodes: LcDocumentDefaultDataLoaderV1SubnodeConfig };
+};
+
+export type LcDocumentDefaultDataLoaderV1Node = LcDocumentDefaultDataLoaderV1ParamsNode;

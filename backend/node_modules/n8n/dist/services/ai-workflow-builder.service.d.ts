@@ -1,0 +1,39 @@
+import { ChatPayload } from '@n8n/ai-workflow-builder/dist/workflow-builder-agent';
+import { Logger } from '@n8n/backend-common';
+import { GlobalConfig } from '@n8n/config';
+import { InstanceSettings } from 'n8n-core';
+import type { IUser } from 'n8n-workflow';
+import { License } from '../license';
+import { LoadNodesAndCredentials } from '../load-nodes-and-credentials';
+import { WorkflowBuilderSessionRepository } from '../modules/workflow-builder';
+import { Push } from '../push';
+import { DynamicNodeParametersService } from '../services/dynamic-node-parameters.service';
+import { UrlService } from '../services/url.service';
+import { Telemetry } from '../telemetry';
+export declare class WorkflowBuilderService {
+    private readonly loadNodesAndCredentials;
+    private readonly license;
+    private readonly config;
+    private readonly logger;
+    private readonly urlService;
+    private readonly push;
+    private readonly telemetry;
+    private readonly instanceSettings;
+    private readonly dynamicNodeParametersService;
+    private readonly sessionRepository;
+    private service;
+    private client;
+    private initPromise;
+    constructor(loadNodesAndCredentials: LoadNodesAndCredentials, license: License, config: GlobalConfig, logger: Logger, urlService: UrlService, push: Push, telemetry: Telemetry, instanceSettings: InstanceSettings, dynamicNodeParametersService: DynamicNodeParametersService, sessionRepository: WorkflowBuilderSessionRepository);
+    refreshNodeTypes(): Promise<void>;
+    private getService;
+    private initializeService;
+    private resolveBuiltinNodeDefinitionDirs;
+    chat(payload: ChatPayload, user: IUser, abortSignal?: AbortSignal): AsyncGenerator<import("@n8n/ai-workflow-builder").StreamOutput, void, unknown>;
+    getSessions(workflowId: string | undefined, user: IUser, codeBuilder?: boolean): Promise<{
+        sessions: import("@n8n/ai-workflow-builder").Session[];
+    }>;
+    getBuilderInstanceCredits(user: IUser): Promise<import("@n8n_io/ai-assistant-sdk").AiAssistantSDK.BuilderInstanceCreditsResponse>;
+    clearSession(workflowId: string, user: IUser): Promise<void>;
+    truncateMessagesAfter(workflowId: string, user: IUser, messageId: string, codeBuilder?: boolean): Promise<boolean>;
+}

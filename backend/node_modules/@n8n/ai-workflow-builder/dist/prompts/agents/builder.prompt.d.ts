@@ -1,0 +1,7 @@
+export interface BuilderPromptOptions {
+    includeExamples: boolean;
+    enableIntrospection?: boolean;
+}
+export declare const INSTANCE_URL_PROMPT = "<instance_url>\nn8n instance URL: {instanceUrl}\nUse for webhook and chat trigger URLs.\n</instance_url>";
+export declare function buildRecoveryModeContext(nodeCount: number, nodeNames: string[]): string;
+export declare function buildBuilderPrompt(options?: BuilderPromptOptions): string;

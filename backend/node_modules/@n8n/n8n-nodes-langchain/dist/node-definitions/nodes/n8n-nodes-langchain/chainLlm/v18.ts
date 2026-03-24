@@ -1,0 +1,96 @@
+/**
+ * Basic LLM Chain Node - Version 1.8
+ * A simple chain to prompt a large language model
+ */
+
+
+export interface LcChainLlmV18Params {
+/**
+ * Source for Prompt (User Message)
+ * @builderHint Use 'auto' when following a chat trigger, 'define' when custom prompt needed
+ * @default auto
+ */
+    promptType?: 'auto' | 'define' | Expression<string>;
+/**
+ * Prompt (User Message)
+ * @displayOptions.show { promptType: ["guardrails", "auto", "define"] }
+ * @default ={{ $json.guardrailsInput }}
+ */
+    text?: string | Expression<string> | PlaceholderValue;
+/**
+ * Require Specific Output Format
+ * @default false
+ */
+    hasOutputParser?: boolean;
+/**
+ * Enable Fallback Model
+ * @default false
+ */
+    needsFallback?: boolean;
+  messages?: {
+        /** Prompt
+     */
+    messageValues?: Array<{
+      /** Type Name or ID
+       * @default SystemMessagePromptTemplate
+       */
+      type?: 'AIMessagePromptTemplate' | 'SystemMessagePromptTemplate' | 'HumanMessagePromptTemplate' | Expression<string>;
+      /** Message Type
+       * @displayOptions.show { type: ["HumanMessagePromptTemplate"] }
+       * @default text
+       */
+      messageType?: 'text' | 'imageBinary' | 'imageUrl' | Expression<string>;
+      /** The name of the field in the chain's input that contains the binary image file to be processed
+       * @displayOptions.show { messageType: ["imageBinary"] }
+       * @default data
+       */
+      binaryImageDataKey?: string | Expression<string> | PlaceholderValue;
+      /** URL to the image to be processed
+       * @displayOptions.show { messageType: ["imageUrl"] }
+       */
+      imageUrl?: string | Expression<string> | PlaceholderValue;
+      /** Control how the model processes the image and generates its textual understanding
+       * @displayOptions.show { type: ["HumanMessagePromptTemplate"], messageType: ["imageBinary", "imageUrl"] }
+       * @default auto
+       */
+      imageDetail?: 'auto' | 'low' | 'high' | Expression<string>;
+      /** Message
+       * @displayOptions.hide { messageType: ["imageBinary", "imageUrl"] }
+       */
+      message?: string | Expression<string> | PlaceholderValue;
+    }>;
+  };
+/**
+ * Batch processing options for rate limiting
+ * @default {}
+ */
+    batching?: {
+    /** How many items to process in parallel. This is useful for rate limiting, but might impact the log output ordering.
+     * @default 5
+     */
+    batchSize?: number | Expression<number>;
+    /** Delay in milliseconds between batches. This is useful for rate limiting.
+     * @default 0
+     */
+    delayBetweenBatches?: number | Expression<number>;
+  };
+}
+
+export interface LcChainLlmV18SubnodeConfig {
+  model: LanguageModelInstance | LanguageModelInstance[];
+  /**
+   * @displayOptions.show { hasOutputParser: [true] }
+   */
+  outputParser?: OutputParserInstance;
+}
+
+interface LcChainLlmV18NodeBase {
+  type: '@n8n/n8n-nodes-langchain.chainLlm';
+  version: 1.8;
+}
+
+export type LcChainLlmV18ParamsNode = LcChainLlmV18NodeBase & {
+  config: NodeConfig<LcChainLlmV18Params> & { subnodes: LcChainLlmV18SubnodeConfig };
+};
+
+export type LcChainLlmV18Node = LcChainLlmV18ParamsNode;

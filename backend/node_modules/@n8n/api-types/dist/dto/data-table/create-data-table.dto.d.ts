@@ -1,0 +1,31 @@
+import { z } from 'zod';
+declare const CreateDataTableDto_base: import("../../zod-class").ZodClass<{
+    name: string;
+    columns: {
+        type: "string" | "number" | "boolean" | "date";
+        name: string;
+        csvColumnName?: string | undefined;
+    }[];
+    fileId?: string | undefined;
+    hasHeaders?: boolean | undefined;
+}, {
+    name: z.ZodString;
+    columns: z.ZodArray<z.ZodObject<{
+        name: z.ZodString;
+        type: z.ZodEnum<["string", "number", "boolean", "date"]>;
+        csvColumnName: z.ZodOptional<z.ZodString>;
+    }, z.UnknownKeysParam, z.ZodTypeAny, {
+        type: "string" | "number" | "boolean" | "date";
+        name: string;
+        csvColumnName?: string | undefined;
+    }, {
+        type: "string" | "number" | "boolean" | "date";
+        name: string;
+        csvColumnName?: string | undefined;
+    }>, "many">;
+    fileId: z.ZodOptional<z.ZodString>;
+    hasHeaders: z.ZodOptional<z.ZodBoolean>;
+}>;
+export declare class CreateDataTableDto extends CreateDataTableDto_base {
+}
+export {};

@@ -1,0 +1,57 @@
+import { LicenseState } from '@n8n/backend-common';
+import type { CredentialsEntity, User } from '@n8n/db';
+import { SharedCredentials, SharedCredentialsRepository } from '@n8n/db';
+import { type EntityManager } from '@n8n/typeorm';
+import type { ICredentialDataDecryptedObject } from 'n8n-workflow';
+import { ExternalSecretsConfig } from '../modules/external-secrets.ee/external-secrets.config';
+import { SecretsProviderAccessCheckService } from '../modules/external-secrets.ee/secret-provider-access-check.service.ee';
+import { OwnershipService } from '../services/ownership.service';
+import { ProjectService } from '../services/project.service.ee';
+import { RoleService } from '../services/role.service';
+import { CredentialsFinderService } from './credentials-finder.service';
+import { CredentialsService } from './credentials.service';
+export declare class EnterpriseCredentialsService {
+    private readonly sharedCredentialsRepository;
+    private readonly ownershipService;
+    private readonly credentialsService;
+    private readonly projectService;
+    private readonly credentialsFinderService;
+    private readonly roleService;
+    private readonly externalSecretsConfig;
+    private readonly externalSecretsProviderAccessCheckService;
+    private readonly licenseState;
+    constructor(sharedCredentialsRepository: SharedCredentialsRepository, ownershipService: OwnershipService, credentialsService: CredentialsService, projectService: ProjectService, credentialsFinderService: CredentialsFinderService, roleService: RoleService, externalSecretsConfig: ExternalSecretsConfig, externalSecretsProviderAccessCheckService: SecretsProviderAccessCheckService, licenseState: LicenseState);
+    shareWithProjects(user: User, credentialId: string, shareWithIds: string[], entityManager?: EntityManager): Promise<SharedCredentials[]>;
+    getOne(credentialId: string): Promise<CredentialsEntity | null>;
+    getOneForUser(user: User, credentialId: string, includeDecryptedData: boolean): Promise<{
+        name: string;
+        type: string;
+        shared: SharedCredentials[];
+        isManaged: boolean;
+        isGlobal: boolean;
+        isResolvable: boolean;
+        resolvableAllowFallback: boolean;
+        resolverId: string | null;
+        id: string;
+        generateId(): void;
+        createdAt: Date;
+        updatedAt: Date;
+        setUpdateDate(): void;
+        data: ICredentialDataDecryptedObject;
+    } | {
+        name: string;
+        type: string;
+        shared: SharedCredentials[];
+        isManaged: boolean;
+        isGlobal: boolean;
+        isResolvable: boolean;
+        resolvableAllowFallback: boolean;
+        resolverId: string | null;
+        id: string;
+        generateId(): void;
+        createdAt: Date;
+        updatedAt: Date;
+        setUpdateDate(): void;
+    }>;
+    transferOne(user: User, credentialId: string, destinationProjectId: string): Promise<void>;
+}

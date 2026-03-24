@@ -1,0 +1,54 @@
+/**
+ * Wordpress Node - Version 1
+ * Discriminator: resource=user, operation=get
+ */
+
+
+interface Credentials {
+  wordpressApi: CredentialReference;
+}
+
+/** Get a post */
+export type WordpressV1UserGetParams = {
+  resource: 'user';
+  operation: 'get';
+/**
+ * Unique identifier for the user
+ */
+    userId?: string | Expression<string> | PlaceholderValue;
+/**
+ * Options
+ * @default {}
+ */
+    options?: {
+    /** Scope under which the request is made; determines fields present in response
+     * @default view
+     */
+    context?: 'view' | 'embed' | 'edit' | Expression<string>;
+  };
+};
+
+export type WordpressV1UserGetOutput = {
+  _links?: {
+    collection?: Array<{
+      href?: string;
+    }>;
+    self?: Array<{
+      href?: string;
+    }>;
+  };
+  description?: string;
+  id?: number;
+  link?: string;
+  name?: string;
+  slug?: string;
+  url?: string;
+};
+
+export type WordpressV1UserGetNode = {
+  type: 'n8n-nodes-base.wordpress';
+  version: 1;
+  credentials?: Credentials;
+  config: NodeConfig<WordpressV1UserGetParams>;
+  output?: Items<WordpressV1UserGetOutput>;
+};

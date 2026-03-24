@@ -1,0 +1,9 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createFromAIExpression = exports.expr = exports.isExpression = exports.parseExpression = void 0;
+var index_1 = require("./expression/index");
+Object.defineProperty(exports, "parseExpression", { enumerable: true, get: function () { return index_1.parseExpression; } });
+Object.defineProperty(exports, "isExpression", { enumerable: true, get: function () { return index_1.isExpression; } });
+Object.defineProperty(exports, "expr", { enumerable: true, get: function () { return index_1.expr; } });
+Object.defineProperty(exports, "createFromAIExpression", { enumerable: true, get: function () { return index_1.createFromAIExpression; } });
+//# sourceMappingURL=expression.js.map

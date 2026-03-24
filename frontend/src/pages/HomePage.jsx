@@ -152,7 +152,6 @@ export default function HomePage() {
 
   const getNavLinks = () => [
     { name: "Accueil", path: "/" },
-    { name: "Événements", path: "/evenements" },
     { name: "Ressources", path: "/les_ressources" },
     { name: "Contact", path: "#contact" },
   ];
@@ -380,7 +379,7 @@ export default function HomePage() {
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/les_ressources")} className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-2xl font-semibold text-lg hover:bg-white/20 transition-all">🔍 Voir la plateforme</motion.button>
                 </>)}
                 {role === "organisateur" && (<>
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/CreerEvenement")} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-lg"> cree votre evenement</motion.button>
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/CreerEvenement")} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-lg">Créer votre événement</motion.button>
                 </>)}
                 {role === "prestataire" && (<>
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/les_ressources")} className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-semibold text-lg hover:bg-gray-100 transition-all">🔍 Explorer</motion.button>

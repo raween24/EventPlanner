@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import "../styles/AdminDashboard.css";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -16,15 +17,6 @@ const getImgUrl = (image) => {
   if (!image) return null;
   if (image.startsWith("http")) return image;
   return `http://localhost:5000/uploads/${image.replace(/\\/g, "/").split("/").pop()}`;
-};
-
-// ═══════════════════════════════════════════════════════════════
-// STYLES RESPONSIVES
-// ═══════════════════════════════════════════════════════════════
-const breakpoints = {
-  mobile: "@media (max-width: 640px)",
-  tablet: "@media (max-width: 1024px)",
-  desktop: "@media (min-width: 1025px)"
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -40,18 +32,12 @@ const Toast = ({ toasts, removeToast }) => (
     flexDirection: "column",
     gap: 10,
     maxWidth: "calc(100% - 40px)",
-    [breakpoints.mobile]: {
-      top: 10,
-      right: 10,
-      left: 10,
-      maxWidth: "none"
-    }
   }}>
     {toasts.map(t => {
       const cfg = {
         success: { bg: "#f0fdf4", border: "#86efac", color: "#16a34a", icon: <CheckCircle size={16} /> },
-        error: { bg: "#fef2f2", border: "#fca5a5", color: "#dc2626", icon: <XCircle size={16} /> },
-        info: { bg: "#eff6ff", border: "#93c5fd", color: "#2563eb", icon: <Info size={16} /> },
+        error:   { bg: "#fef2f2", border: "#fca5a5", color: "#dc2626", icon: <XCircle size={16} /> },
+        info:    { bg: "#eff6ff", border: "#93c5fd", color: "#2563eb", icon: <Info size={16} /> },
       }[t.type] || {};
       return (
         <div
@@ -66,17 +52,15 @@ const Toast = ({ toasts, removeToast }) => (
             borderRadius: 12,
             padding: "12px 16px",
             minWidth: 280,
-            [breakpoints.mobile]: {
-              minWidth: "auto",
-              width: "100%"
-            },
             boxShadow: "0 4px 20px rgba(0,0,0,.1)",
-            animation: "toastSlideIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)"
           }}
         >
           <span style={{ color: cfg.color, flexShrink: 0 }}>{cfg.icon}</span>
           <span style={{ fontSize: 13, color: "#1e293b", fontWeight: 500, flex: 1 }}>{t.message}</span>
-          <button onClick={() => removeToast(t.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, flexShrink: 0 }}>
+          <button
+            onClick={() => removeToast(t.id)}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, flexShrink: 0 }}
+          >
             <X size={14} />
           </button>
         </div>
@@ -88,9 +72,9 @@ const Toast = ({ toasts, removeToast }) => (
 const ConfirmModal = ({ modal, onConfirm, onCancel }) => {
   if (!modal) return null;
   const cfg = {
-    danger: { icon: <Trash2 size={24} />, iconBg: "#fef2f2", iconColor: "#ef4444", btnBg: "linear-gradient(135deg,#ef4444,#dc2626)" },
-    warning: { icon: <AlertTriangle size={24} />, iconBg: "#fffbeb", iconColor: "#f59e0b", btnBg: "linear-gradient(135deg,#f59e0b,#d97706)" },
-    info: { icon: <Info size={24} />, iconBg: "#eff6ff", iconColor: "#3b82f6", btnBg: "linear-gradient(135deg,#3b82f6,#2563eb)" },
+    danger:  { icon: <Trash2 size={24} />,        iconBg: "#fef2f2", iconColor: "#ef4444", btnBg: "linear-gradient(135deg,#ef4444,#dc2626)" },
+    warning: { icon: <AlertTriangle size={24} />,  iconBg: "#fffbeb", iconColor: "#f59e0b", btnBg: "linear-gradient(135deg,#f59e0b,#d97706)" },
+    info:    { icon: <Info size={24} />,           iconBg: "#eff6ff", iconColor: "#3b82f6", btnBg: "linear-gradient(135deg,#3b82f6,#2563eb)" },
   }[modal.type] || {};
   return (
     <div style={{
@@ -103,7 +87,7 @@ const ConfirmModal = ({ modal, onConfirm, onCancel }) => {
       alignItems: "center",
       justifyContent: "center",
       padding: 20,
-      animation: "fadeIn 0.2s ease"
+      animation: "fadeIn 0.2s ease",
     }}>
       <div
         className="modal-pop-in"
@@ -114,12 +98,7 @@ const ConfirmModal = ({ modal, onConfirm, onCancel }) => {
           maxWidth: 420,
           width: "100%",
           margin: 20,
-          [breakpoints.mobile]: {
-            padding: 24,
-            margin: 16
-          },
           boxShadow: "0 20px 60px rgba(0,0,0,.2)",
-          animation: "modalPopIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)"
         }}
       >
         <div style={{
@@ -132,37 +111,17 @@ const ConfirmModal = ({ modal, onConfirm, onCancel }) => {
           justifyContent: "center",
           color: cfg.iconColor,
           margin: "0 auto 20px",
-          transform: "scale(1)",
-          transition: "transform 0.2s ease",
-          animation: "iconPulse 2s infinite"
+          animation: "iconPulse 2s infinite",
         }}>
           {cfg.icon}
         </div>
-        <h3 style={{
-          textAlign: "center",
-          fontSize: 18,
-          fontWeight: 700,
-          color: "#0f172a",
-          margin: "0 0 10px"
-        }}>
+        <h3 style={{ textAlign: "center", fontSize: 18, fontWeight: 700, color: "#0f172a", margin: "0 0 10px" }}>
           {modal.title}
         </h3>
-        <p style={{
-          textAlign: "center",
-          fontSize: 14,
-          color: "#64748b",
-          margin: "0 0 28px",
-          lineHeight: 1.6
-        }}>
+        <p style={{ textAlign: "center", fontSize: 14, color: "#64748b", margin: "0 0 28px", lineHeight: 1.6 }}>
           {modal.message}
         </p>
-        <div style={{
-          display: "flex",
-          gap: 10,
-          [breakpoints.mobile]: {
-            flexDirection: "column"
-          }
-        }}>
+        <div style={{ display: "flex", gap: 10 }}>
           <button
             onClick={onCancel}
             className="btn-hover"
@@ -177,7 +136,7 @@ const ConfirmModal = ({ modal, onConfirm, onCancel }) => {
               fontWeight: 600,
               cursor: "pointer",
               fontFamily: "inherit",
-              transition: "all 0.2s ease"
+              transition: "all 0.2s ease",
             }}
           >
             Annuler
@@ -197,7 +156,7 @@ const ConfirmModal = ({ modal, onConfirm, onCancel }) => {
               cursor: "pointer",
               fontFamily: "inherit",
               boxShadow: "0 2px 8px rgba(0,0,0,.15)",
-              transition: "all 0.2s ease"
+              transition: "all 0.2s ease",
             }}
           >
             {modal.confirmLabel || "Confirmer"}
@@ -224,23 +183,23 @@ const useConfirm = () => {
   const [resolve, setResolve] = useState(null);
   const confirm = (opts) => new Promise(res => { setModal(opts); setResolve(() => res); });
   const handleConfirm = () => { setModal(null); resolve(true); };
-  const handleCancel = () => { setModal(null); resolve(false); };
+  const handleCancel  = () => { setModal(null); resolve(false); };
   return { modal, confirm, handleConfirm, handleCancel };
 };
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 const StatusBadge = ({ statut }) => {
   const map = {
-    valide: { bg: "#dcfce7", color: "#16a34a", label: "Validé" },
-    en_attente: { bg: "#fef9c3", color: "#ca8a04", label: "En attente" },
-    rejected: { bg: "#fee2e2", color: "#dc2626", label: "Rejeté" },
-    organisateur: { bg: "#eff6ff", color: "#3b82f6", label: "Organisateur" },
-    prestataire: { bg: "#f5f3ff", color: "#8b5cf6", label: "Prestataire" },
-    admin: { bg: "#fef2f2", color: "#ef4444", label: "Admin" },
-    salle: { bg: "#ecfdf5", color: "#10b981", label: "Salle" },
-    materiel: { bg: "#eff6ff", color: "#3b82f6", label: "Matériel" },
-    decoration: { bg: "#fdf4ff", color: "#a855f7", label: "Décoration" },
-    traiteur: { bg: "#fff7ed", color: "#f97316", label: "Traiteur" },
+    valide:        { bg: "#dcfce7", color: "#16a34a", label: "Validé" },
+    en_attente:    { bg: "#fef9c3", color: "#ca8a04", label: "En attente" },
+    rejected:      { bg: "#fee2e2", color: "#dc2626", label: "Rejeté" },
+    organisateur:  { bg: "#eff6ff", color: "#3b82f6", label: "Organisateur" },
+    prestataire:   { bg: "#f5f3ff", color: "#8b5cf6", label: "Prestataire" },
+    admin:         { bg: "#fef2f2", color: "#ef4444", label: "Admin" },
+    salle:         { bg: "#ecfdf5", color: "#10b981", label: "Salle" },
+    materiel:      { bg: "#eff6ff", color: "#3b82f6", label: "Matériel" },
+    decoration:    { bg: "#fdf4ff", color: "#a855f7", label: "Décoration" },
+    traiteur:      { bg: "#fff7ed", color: "#f97316", label: "Traiteur" },
   };
   const s = map[statut] || { bg: "#f1f5f9", color: "#64748b", label: statut };
   return (
@@ -256,7 +215,7 @@ const StatusBadge = ({ statut }) => {
         borderRadius: 20,
         fontSize: 12,
         fontWeight: 600,
-        transition: "all 0.2s ease"
+        transition: "all 0.2s ease",
       }}
     >
       <span style={{
@@ -265,7 +224,7 @@ const StatusBadge = ({ statut }) => {
         borderRadius: "50%",
         background: s.color,
         display: "inline-block",
-        animation: "pulse 2s infinite"
+        animation: "pulse 2s infinite",
       }} />
       {s.label}
     </span>
@@ -275,16 +234,12 @@ const StatusBadge = ({ statut }) => {
 const TH = ({ children }) => (
   <th style={{
     padding: "12px 20px",
-    [breakpoints.mobile]: {
-      padding: "10px 12px",
-      fontSize: 11
-    },
     textAlign: "left",
     fontSize: 12,
     fontWeight: 600,
     color: "#94a3b8",
     fontFamily: "inherit",
-    whiteSpace: "nowrap"
+    whiteSpace: "nowrap",
   }}>
     {children}
   </th>
@@ -293,14 +248,10 @@ const TH = ({ children }) => (
 const TD = ({ children, style }) => (
   <td style={{
     padding: "14px 20px",
-    [breakpoints.mobile]: {
-      padding: "10px 12px",
-      fontSize: 12
-    },
     fontSize: 13,
     color: "#475569",
     fontFamily: "inherit",
-    ...style
+    ...style,
   }}>
     {children}
   </td>
@@ -309,26 +260,14 @@ const TD = ({ children, style }) => (
 const Skeleton = ({ w = "100%", h = 32, radius = 8 }) => (
   <div
     className="skeleton-shimmer"
-    style={{
-      width: w,
-      height: h,
-      borderRadius: radius,
-      background: "linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)",
-      backgroundSize: "200% 100%",
-      animation: "shimmer 1.5s infinite"
-    }}
+    style={{ width: w, height: h, borderRadius: radius }}
   />
 );
 
 const EmptyState = ({ icon: Icon, message }) => (
   <div
     className="empty-state-fade"
-    style={{
-      padding: "60px 20px",
-      textAlign: "center",
-      color: "#94a3b8",
-      animation: "fadeInUp 0.5s ease"
-    }}
+    style={{ padding: "60px 20px", textAlign: "center", color: "#94a3b8" }}
   >
     <Icon size={40} style={{ margin: "0 auto 12px", opacity: 0.4 }} />
     <div style={{ fontSize: 14 }}>{message}</div>
@@ -345,11 +284,6 @@ const ActionBtn = ({ icon: Icon, label, color, bg, onClick, disabled }) => (
       alignItems: "center",
       gap: 6,
       padding: "6px 12px",
-      [breakpoints.mobile]: {
-        padding: "4px 8px",
-        fontSize: 11,
-        gap: 4
-      },
       borderRadius: 8,
       border: "none",
       background: disabled ? "#f1f5f9" : bg,
@@ -359,7 +293,7 @@ const ActionBtn = ({ icon: Icon, label, color, bg, onClick, disabled }) => (
       fontWeight: 600,
       fontFamily: "inherit",
       transition: "all 0.2s ease",
-      transform: "scale(1)"
+      transform: "scale(1)",
     }}
   >
     <Icon size={13} />
@@ -370,18 +304,16 @@ const ActionBtn = ({ icon: Icon, label, color, bg, onClick, disabled }) => (
 // ─── UserImage ────────────────────────────────────────────────────────────────
 const UserImage = ({ image, firstname, lastname, isPrest }) => {
   const [err, setErr] = useState(false);
-  const url = getImgUrl(image);
-  const grad = isPrest ? "linear-gradient(135deg,#8b5cf6,#a855f7)" : "linear-gradient(135deg,#3b82f6,#60a5fa)";
+  const url  = getImgUrl(image);
+  const grad = isPrest
+    ? "linear-gradient(135deg,#8b5cf6,#a855f7)"
+    : "linear-gradient(135deg,#3b82f6,#60a5fa)";
   return (
     <div
       className="user-image"
       style={{
         width: 36,
         height: 36,
-        [breakpoints.mobile]: {
-          width: 32,
-          height: 32
-        },
         borderRadius: "50%",
         background: grad,
         display: "flex",
@@ -389,7 +321,7 @@ const UserImage = ({ image, firstname, lastname, isPrest }) => {
         justifyContent: "center",
         flexShrink: 0,
         overflow: "hidden",
-        transition: "transform 0.2s ease"
+        transition: "transform 0.2s ease",
       }}
     >
       {url && !err
@@ -402,17 +334,14 @@ const UserImage = ({ image, firstname, lastname, isPrest }) => {
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 const navItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "comptes", label: "Gestion des comptes", icon: Users },
+  { id: "dashboard",  label: "Dashboard",              icon: LayoutDashboard },
+  { id: "comptes",    label: "Gestion des comptes",    icon: Users },
   { id: "ressources", label: "Gestion des ressources", icon: Wrench },
 ];
-
-// Dans le composant Sidebar, modifions la gestion de l'affichage mobile
 
 const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMobileOpen }) => {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  // Ne pas rendre la sidebar sur mobile si elle n'est pas ouverte
   if (isMobile && !isMobileOpen) {
     return (
       <button
@@ -432,7 +361,7 @@ const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMob
           alignItems: "center",
           justifyContent: "center",
           boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-          transition: "all 0.2s ease"
+          transition: "all 0.2s ease",
         }}
       >
         <Menu size={20} />
@@ -456,10 +385,9 @@ const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMob
         boxShadow: "2px 0 20px rgba(0,0,0,.3)",
         transform: isMobile ? (isMobileOpen ? "translateX(0)" : "translateX(-100%)") : "none",
         transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-        overflowY: "auto"
+        overflowY: "auto",
       }}
     >
-      {/* Bouton de fermeture pour mobile */}
       {isMobile && (
         <button
           onClick={() => setIsMobileOpen(false)}
@@ -476,14 +404,13 @@ const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMob
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "all 0.2s ease"
+            transition: "all 0.2s ease",
           }}
         >
           <X size={18} />
         </button>
       )}
 
-      {/* Reste du contenu de la sidebar */}
       <div style={{ padding: "24px 20px", borderBottom: "1px solid #1e293b" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div
@@ -496,7 +423,6 @@ const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMob
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              animation: "rotateIn 0.5s ease"
             }}
           >
             <Star size={18} color="white" />
@@ -518,11 +444,8 @@ const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMob
           return (
             <button
               key={id}
-              onClick={() => {
-                setActive(id);
-                if (isMobile) setIsMobileOpen(false);
-              }}
-              className={`nav-item ${on ? 'active' : ''}`}
+              onClick={() => { setActive(id); if (isMobile) setIsMobileOpen(false); }}
+              className={`nav-item ${on ? "active" : ""}`}
               style={{
                 width: "100%",
                 display: "flex",
@@ -538,7 +461,7 @@ const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMob
                 fontSize: 14,
                 fontWeight: on ? 600 : 400,
                 fontFamily: "inherit",
-                transition: "all 0.2s ease"
+                transition: "all 0.2s ease",
               }}
             >
               <Icon size={18} />
@@ -552,7 +475,6 @@ const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMob
                     height: 6,
                     borderRadius: "50%",
                     background: "#3b82f6",
-                    animation: "pulse 2s infinite"
                   }}
                 />
               )}
@@ -572,7 +494,7 @@ const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMob
             borderRadius: 10,
             background: "#1e293b",
             marginBottom: 8,
-            transition: "transform 0.2s ease"
+            transition: "transform 0.2s ease",
           }}
         >
           <div style={{
@@ -583,7 +505,7 @@ const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMob
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            flexShrink: 0
+            flexShrink: 0,
           }}>
             <Shield size={16} color="white" />
           </div>
@@ -614,7 +536,7 @@ const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMob
             fontSize: 13,
             fontWeight: 500,
             fontFamily: "inherit",
-            transition: "all 0.2s ease"
+            transition: "all 0.2s ease",
           }}
         >
           <LogOut size={16} /> Déconnexion
@@ -623,6 +545,8 @@ const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMob
     </aside>
   );
 };
+
+// ─── TopBar ───────────────────────────────────────────────────────────────────
 const TopBar = ({ title, showSearch = true, searchValue, onSearchChange, isMobile }) => {
   const [searchVisible, setSearchVisible] = useState(!isMobile);
 
@@ -637,21 +561,13 @@ const TopBar = ({ title, showSearch = true, searchValue, onSearchChange, isMobil
         alignItems: "center",
         justifyContent: "space-between",
         padding: isMobile ? "0 16px 0 60px" : "0 28px",
-        [breakpoints.mobile]: {
-          padding: "0 16px 0 60px"
-        },
         position: "sticky",
         top: 0,
         zIndex: 50,
-        transition: "all 0.2s ease"
+        transition: "all 0.2s ease",
       }}
     >
-      <h1 style={{
-        fontSize: isMobile ? 18 : 22,
-        fontWeight: 700,
-        color: "#0f172a",
-        margin: 0
-      }}>
+      <h1 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: "#0f172a", margin: 0 }}>
         {title}
       </h1>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -666,7 +582,7 @@ const TopBar = ({ title, showSearch = true, searchValue, onSearchChange, isMobil
                   borderRadius: 10,
                   padding: 8,
                   cursor: "pointer",
-                  color: "#64748b"
+                  color: "#64748b",
                 }}
               >
                 <Search size={16} />
@@ -683,17 +599,7 @@ const TopBar = ({ title, showSearch = true, searchValue, onSearchChange, isMobil
                   border: "1px solid #e2e8f0",
                   borderRadius: 10,
                   padding: "8px 14px",
-                  [breakpoints.mobile]: {
-                    position: searchVisible ? "absolute" : "static",
-                    top: 64,
-                    left: 0,
-                    right: 0,
-                    margin: "0 16px",
-                    width: "auto",
-                    background: "white",
-                    boxShadow: "0 4px 12px rgba(0,0,0,.1)"
-                  },
-                  transition: "all 0.3s ease"
+                  transition: "all 0.3s ease",
                 }}
               >
                 <Search size={15} color="#94a3b8" />
@@ -708,7 +614,7 @@ const TopBar = ({ title, showSearch = true, searchValue, onSearchChange, isMobil
                     fontSize: 13,
                     color: "#475569",
                     width: isMobile ? "100%" : 180,
-                    fontFamily: "inherit"
+                    fontFamily: "inherit",
                   }}
                 />
               </div>
@@ -726,7 +632,7 @@ const TopBar = ({ title, showSearch = true, searchValue, onSearchChange, isMobil
             alignItems: "center",
             justifyContent: "center",
             animation: "pulse 3s infinite",
-            transition: "transform 0.2s ease"
+            transition: "transform 0.2s ease",
           }}
         >
           <Shield size={16} color="white" />
@@ -740,19 +646,19 @@ const TopBar = ({ title, showSearch = true, searchValue, onSearchChange, isMobil
 // PAGE 1 — DASHBOARD
 // ═══════════════════════════════════════════════════════════════
 const DashboardPage = () => {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [roleData, setRoleData] = useState([]);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const isMobile = windowWidth <= 640;
-  const isTablet = windowWidth <= 1024;
+  const isMobile  = windowWidth <= 640;
+  const isTablet  = windowWidth <= 1024;
 
   useEffect(() => {
     const load = async () => {
@@ -761,14 +667,14 @@ const DashboardPage = () => {
         setStats(data);
         const usersRes = await axios.get(`${API}/admin/users`, { headers: authHeaders() });
         const users = usersRes.data;
-        const orga = users.filter(u => u.role === "organisateur").length;
+        const orga  = users.filter(u => u.role === "organisateur").length;
         const prest = users.filter(u => u.role === "prestataire").length;
-        const pend = users.filter(u => u.role === "prestataire" && u.status === "en_attente").length;
+        const pend  = users.filter(u => u.role === "prestataire" && u.status === "en_attente").length;
         const total = users.length || 1;
         setRoleData([
-          { label: "Organisateurs", count: orga, color: "#3b82f6", pct: Math.round(orga / total * 100) },
-          { label: "Prestataires", count: prest, color: "#8b5cf6", pct: Math.round(prest / total * 100) },
-          { label: "En attente validation", count: pend, color: "#f59e0b", pct: Math.round(pend / total * 100) },
+          { label: "Organisateurs",            count: orga,  color: "#3b82f6", pct: Math.round(orga  / total * 100) },
+          { label: "Prestataires",             count: prest, color: "#8b5cf6", pct: Math.round(prest / total * 100) },
+          { label: "En attente validation",    count: pend,  color: "#f59e0b", pct: Math.round(pend  / total * 100) },
         ]);
       } catch {
         setStats({ users: 0, events: 0, resources: 0, pending: 0 });
@@ -780,10 +686,10 @@ const DashboardPage = () => {
   }, []);
 
   const cards = [
-    { label: "Utilisateurs total", value: stats?.users, icon: Users, color: "#3b82f6", bg: "#eff6ff" },
-    { label: "Ressources publiées", value: stats?.resources, icon: Package, color: "#8b5cf6", bg: "#f5f3ff" },
-    { label: "Événements", value: stats?.events, icon: Calendar, color: "#10b981", bg: "#ecfdf5" },
-    { label: "Prestataires en attente", value: stats?.pending, icon: Clock, color: "#f59e0b", bg: "#fffbeb" },
+    { label: "Utilisateurs total",       value: stats?.users,     icon: Users,    color: "#3b82f6", bg: "#eff6ff" },
+    { label: "Ressources publiées",      value: stats?.resources, icon: Package,  color: "#8b5cf6", bg: "#f5f3ff" },
+    { label: "Événements",              value: stats?.events,    icon: Calendar, color: "#10b981", bg: "#ecfdf5" },
+    { label: "Prestataires en attente", value: stats?.pending,   icon: Clock,    color: "#f59e0b", bg: "#fffbeb" },
   ];
 
   const getGridColumns = () => {
@@ -794,147 +700,11 @@ const DashboardPage = () => {
 
   return (
     <div>
-      <style>{`
-        @keyframes shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-        @keyframes slideIn {
-          from { transform: translateX(40px); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes popIn {
-          from { transform: scale(.85); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.8; transform: scale(1.05); }
-        }
-        @keyframes rotateIn {
-          from { transform: rotate(-180deg) scale(0); opacity: 0; }
-          to { transform: rotate(0) scale(1); opacity: 1; }
-        }
-        @keyframes toastSlideIn {
-          from { transform: translateX(100%) scale(0.8); opacity: 0; }
-          to { transform: translateX(0) scale(1); opacity: 1; }
-        }
-        @keyframes modalPopIn {
-          from { transform: scale(0.8) translateY(20px); opacity: 0; }
-          to { transform: scale(1) translateY(0); opacity: 1; }
-        }
-        @keyframes iconPulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.1); }
-        }
-        @keyframes countUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .stat-card {
-          animation: fadeInUp 0.5s ease;
-          transition: all 0.3s ease;
-        }
-        .stat-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 24px rgba(0,0,0,0.1);
-        }
-        .nav-item:hover:not(.active) {
-          background: rgba(255,255,255,0.05);
-          transform: translateX(4px);
-        }
-        .action-btn:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        .logout-btn:hover {
-          background: rgba(239,68,68,0.2);
-          transform: translateX(4px);
-        }
-        .user-profile:hover {
-          transform: scale(1.02);
-        }
-        .admin-avatar:hover {
-          transform: scale(1.1) rotate(5deg);
-        }
-        .status-badge:hover {
-          transform: scale(1.05);
-        }
-        .toast-slide-in {
-          animation: toastSlideIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-        .modal-pop-in {
-          animation: modalPopIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .empty-state-fade {
-          animation: fadeInUp 0.5s ease;
-        }
-        .skeleton-shimmer {
-          animation: shimmer 1.5s infinite;
-        }
-        .active-dot {
-          animation: pulse 2s infinite;
-        }
-        .logo-animation {
-          animation: rotateIn 0.5s ease;
-        }
-        
-        /* Responsive table */
-        @media (max-width: 640px) {
-          table, thead, tbody, th, td, tr {
-            display: block;
-          }
-          thead tr {
-            position: absolute;
-            top: -9999px;
-            left: -9999px;
-          }
-          tr {
-            border: 1px solid #e2e8f0;
-            margin-bottom: 16px;
-            border-radius: 12px;
-            overflow: hidden;
-          }
-          td {
-            border: none;
-            position: relative;
-            padding-left: 50% !important;
-            text-align: left;
-            border-bottom: 1px solid #f1f5f9;
-          }
-          td:before {
-            position: absolute;
-            top: 50%;
-            left: 12px;
-            transform: translateY(-50%);
-            width: 45%;
-            padding-right: 10px;
-            white-space: nowrap;
-            font-weight: 600;
-            color: #64748b;
-            font-size: 11px;
-            content: attr(data-label);
-          }
-          td:last-child {
-            border-bottom: 0;
-          }
-        }
-      `}</style>
-
       <div style={{
         display: "grid",
         gridTemplateColumns: getGridColumns(),
         gap: isMobile ? 12 : 20,
-        marginBottom: isMobile ? 16 : 28
+        marginBottom: isMobile ? 16 : 28,
       }}>
         {cards.map((c, i) => (
           <div
@@ -946,7 +716,7 @@ const DashboardPage = () => {
               padding: isMobile ? 16 : 20,
               border: "1px solid #f1f5f9",
               boxShadow: "0 1px 3px rgba(0,0,0,.04)",
-              animation: `fadeInUp 0.5s ease ${i * 0.1}s both`
+              animationDelay: `${i * 0.1}s`,
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -957,15 +727,12 @@ const DashboardPage = () => {
                 {loading ? (
                   <Skeleton w="70px" h={isMobile ? 28 : 34} radius={6} />
                 ) : (
-                  <div
-                    className="stat-value"
-                    style={{
-                      fontSize: isMobile ? 24 : 30,
-                      fontWeight: 800,
-                      color: "#0f172a",
-                      animation: "countUp 0.5s ease"
-                    }}
-                  >
+                  <div style={{
+                    fontSize: isMobile ? 24 : 30,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    animation: "countUp 0.5s ease",
+                  }}>
                     {c.value ?? 0}
                   </div>
                 )}
@@ -978,7 +745,7 @@ const DashboardPage = () => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                flexShrink: 0
+                flexShrink: 0,
               }}>
                 <c.icon size={isMobile ? 16 : 20} color={c.color} />
               </div>
@@ -990,73 +757,21 @@ const DashboardPage = () => {
       <div style={{
         display: "grid",
         gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-        gap: isMobile ? 12 : 20
+        gap: isMobile ? 12 : 20,
       }}>
-        <div style={{
-          background: "white",
-          borderRadius: 16,
-          border: "1px solid #f1f5f9",
-          padding: isMobile ? 16 : 24
-        }}>
+        {/* User distribution */}
+        <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: isMobile ? 16 : 24 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: isMobile ? 14 : 15, fontWeight: 700, color: "#0f172a" }}>
             Répartition des utilisateurs
           </h3>
-          {loading ? [1, 2, 3].map(i => (
-            <div key={i} style={{ marginBottom: 16 }}>
-              <Skeleton h={10} radius={6} />
-            </div>
-          )) : roleData.map(r => (
-            <div key={r.label} style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{r.label}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-                  {r.count} <span style={{ color: "#94a3b8", fontWeight: 400 }}>({r.pct}%)</span>
-                </span>
-              </div>
-              <div style={{ height: 8, background: "#f1f5f9", borderRadius: 6, overflow: "hidden" }}>
-                <div
-                  className="progress-bar"
-                  style={{
-                    height: "100%",
-                    width: `${r.pct}%`,
-                    background: r.color,
-                    borderRadius: 6,
-                    transition: "width 1s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                    animation: "countUp 0.5s ease"
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{
-          background: "white",
-          borderRadius: 16,
-          border: "1px solid #f1f5f9",
-          padding: isMobile ? 16 : 24
-        }}>
-          <h3 style={{ margin: "0 0 20px", fontSize: isMobile ? 14 : 15, fontWeight: 700, color: "#0f172a" }}>
-            Types de ressources
-          </h3>
-          {loading ? [1, 2, 3, 4].map(i => (
-            <div key={i} style={{ marginBottom: 16 }}>
-              <Skeleton h={10} radius={6} />
-            </div>
-          )) : [
-            { label: "Salle", color: "#10b981", key: "salle" },
-            { label: "Matériel", color: "#3b82f6", key: "materiel" },
-            { label: "Décoration", color: "#a855f7", key: "decoration" },
-            { label: "Traiteur", color: "#f97316", key: "traiteur" },
-          ].map(t => {
-            const count = stats?.resourcesByType?.[t.key] || 0;
-            const pct = Math.round(count / (stats?.resources || 1) * 100);
-            return (
-              <div key={t.key} style={{ marginBottom: 16 }}>
+          {loading
+            ? [1, 2, 3].map(i => <div key={i} style={{ marginBottom: 16 }}><Skeleton h={10} radius={6} /></div>)
+            : roleData.map(r => (
+              <div key={r.label} style={{ marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{t.label}</span>
+                  <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{r.label}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-                    {count} <span style={{ color: "#94a3b8", fontWeight: 400 }}>({pct}%)</span>
+                    {r.count} <span style={{ color: "#94a3b8", fontWeight: 400 }}>({r.pct}%)</span>
                   </span>
                 </div>
                 <div style={{ height: 8, background: "#f1f5f9", borderRadius: 6, overflow: "hidden" }}>
@@ -1064,16 +779,57 @@ const DashboardPage = () => {
                     className="progress-bar"
                     style={{
                       height: "100%",
-                      width: `${pct}%`,
-                      background: t.color,
+                      width: `${r.pct}%`,
+                      background: r.color,
                       borderRadius: 6,
-                      transition: "width 1s cubic-bezier(0.34, 1.56, 0.64, 1)"
+                      transition: "width 1s cubic-bezier(0.34, 1.56, 0.64, 1)",
                     }}
                   />
                 </div>
               </div>
-            );
-          })}
+            ))
+          }
+        </div>
+
+        {/* Resource types */}
+        <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: isMobile ? 16 : 24 }}>
+          <h3 style={{ margin: "0 0 20px", fontSize: isMobile ? 14 : 15, fontWeight: 700, color: "#0f172a" }}>
+            Types de ressources
+          </h3>
+          {loading
+            ? [1, 2, 3, 4].map(i => <div key={i} style={{ marginBottom: 16 }}><Skeleton h={10} radius={6} /></div>)
+            : [
+              { label: "Salle",       color: "#10b981", key: "salle" },
+              { label: "Matériel",   color: "#3b82f6", key: "materiel" },
+              { label: "Décoration", color: "#a855f7", key: "decoration" },
+              { label: "Traiteur",   color: "#f97316", key: "traiteur" },
+            ].map(t => {
+              const count = stats?.resourcesByType?.[t.key] || 0;
+              const pct   = Math.round(count / (stats?.resources || 1) * 100);
+              return (
+                <div key={t.key} style={{ marginBottom: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{t.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                      {count} <span style={{ color: "#94a3b8", fontWeight: 400 }}>({pct}%)</span>
+                    </span>
+                  </div>
+                  <div style={{ height: 8, background: "#f1f5f9", borderRadius: 6, overflow: "hidden" }}>
+                    <div
+                      className="progress-bar"
+                      style={{
+                        height: "100%",
+                        width: `${pct}%`,
+                        background: t.color,
+                        borderRadius: 6,
+                        transition: "width 1s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          }
         </div>
       </div>
     </div>
@@ -1084,19 +840,19 @@ const DashboardPage = () => {
 // PAGE 2 — GESTION DES COMPTES
 // ═══════════════════════════════════════════════════════════════
 const ComptesPage = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("tous");
+  const [users, setUsers]           = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [filter, setFilter]         = useState("tous");
   const [actionLoading, setActionLoading] = useState(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch]         = useState("");
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const toast = useToast();
   const { modal, confirm, handleConfirm, handleCancel } = useConfirm();
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const isMobile = windowWidth <= 640;
@@ -1124,7 +880,12 @@ const ComptesPage = () => {
   };
 
   const handleReject = async (userId, name) => {
-    const ok = await confirm({ type: "warning", title: "Rejeter ce compte ?", message: `Le prestataire "${name}" ne pourra pas accéder à la plateforme. Cette action peut être annulée plus tard.`, confirmLabel: "Oui, rejeter" });
+    const ok = await confirm({
+      type: "warning",
+      title: "Rejeter ce compte ?",
+      message: `Le prestataire "${name}" ne pourra pas accéder à la plateforme. Cette action peut être annulée plus tard.`,
+      confirmLabel: "Oui, rejeter",
+    });
     if (!ok) return;
     try {
       setActionLoading(userId + "_reject");
@@ -1137,7 +898,12 @@ const ComptesPage = () => {
   };
 
   const handleDelete = async (userId, name) => {
-    const ok = await confirm({ type: "danger", title: "Supprimer ce compte ?", message: `Le compte de "${name}" sera définitivement supprimé. Cette action est irréversible.`, confirmLabel: "Supprimer" });
+    const ok = await confirm({
+      type: "danger",
+      title: "Supprimer ce compte ?",
+      message: `Le compte de "${name}" sera définitivement supprimé. Cette action est irréversible.`,
+      confirmLabel: "Supprimer",
+    });
     if (!ok) return;
     try {
       setActionLoading(userId + "_delete");
@@ -1150,14 +916,16 @@ const ComptesPage = () => {
   };
 
   const filters = [
-    { key: "tous", label: "Tous" },
-    { key: "prestataire", label: "Prestataires" },
+    { key: "tous",         label: "Tous" },
+    { key: "prestataire",  label: "Prestataires" },
     { key: "organisateur", label: "Organisateurs" },
-    { key: "en_attente", label: "En attente" },
+    { key: "en_attente",   label: "En attente" },
   ];
 
   const filtered = users.filter(u => {
-    const matchRole = filter === "tous" ? true : filter === "en_attente" ? (u.role === "prestataire" && u.status === "en_attente") : u.role === filter;
+    const matchRole   = filter === "tous" ? true
+      : filter === "en_attente" ? (u.role === "prestataire" && u.status === "en_attente")
+      : u.role === filter;
     const matchSearch = search === "" || `${u.firstname} ${u.lastname} ${u.email}`.toLowerCase().includes(search.toLowerCase());
     return matchRole && matchSearch;
   });
@@ -1170,45 +938,31 @@ const ComptesPage = () => {
       <Toast toasts={toast.toasts} removeToast={toast.removeToast} />
 
       {pendingCount > 0 && (
-        <div
-          className="alert-banner"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            background: "#fffbeb",
-            border: "1px solid #fcd34d",
-            borderRadius: 12,
-            padding: isMobile ? "10px 14px" : "12px 18px",
-            marginBottom: 20,
-            fontSize: 13,
-            color: "#92400e",
-            animation: "fadeInUp 0.5s ease"
-          }}
-        >
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          background: "#fffbeb",
+          border: "1px solid #fcd34d",
+          borderRadius: 12,
+          padding: isMobile ? "10px 14px" : "12px 18px",
+          marginBottom: 20,
+          fontSize: 13,
+          color: "#92400e",
+          animation: "fadeInUp 0.5s ease",
+        }}>
           <AlertCircle size={16} color="#f59e0b" />
           <strong>{pendingCount} prestataire{pendingCount > 1 ? "s" : ""}</strong>&nbsp;en attente de validation
         </div>
       )}
 
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 20,
-        flexWrap: "wrap",
-        gap: 12
-      }}>
-        <div style={{
-          display: "flex",
-          gap: isMobile ? 4 : 8,
-          flexWrap: "wrap"
-        }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", gap: isMobile ? 4 : 8, flexWrap: "wrap" }}>
           {filters.map(f => (
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`filter-btn ${filter === f.key ? 'active' : ''}`}
+              className={`filter-btn ${filter === f.key ? "active" : ""}`}
               style={{
                 padding: isMobile ? "6px 12px" : "7px 16px",
                 borderRadius: 20,
@@ -1219,7 +973,7 @@ const ComptesPage = () => {
                 color: filter === f.key ? "white" : "#64748b",
                 border: filter === f.key ? "1px solid #3b82f6" : "1px solid #e2e8f0",
                 fontFamily: "inherit",
-                transition: "all 0.2s ease"
+                transition: "all 0.2s ease",
               }}
             >
               {f.label}
@@ -1230,7 +984,7 @@ const ComptesPage = () => {
                   color: "white",
                   borderRadius: 10,
                   padding: "1px 6px",
-                  fontSize: 11
+                  fontSize: 11,
                 }}>
                   {pendingCount}
                 </span>
@@ -1247,7 +1001,7 @@ const ComptesPage = () => {
           border: "1px solid #e2e8f0",
           borderRadius: 10,
           padding: isMobile ? "6px 12px" : "8px 14px",
-          width: isMobile ? "100%" : "auto"
+          width: isMobile ? "100%" : "auto",
         }}>
           <Search size={14} color="#94a3b8" />
           <input
@@ -1260,35 +1014,22 @@ const ComptesPage = () => {
               fontSize: 13,
               color: "#475569",
               width: isMobile ? "100%" : 200,
-              fontFamily: "inherit"
+              fontFamily: "inherit",
             }}
           />
         </div>
       </div>
 
-      <div style={{
-        background: "white",
-        borderRadius: 16,
-        border: "1px solid #f1f5f9",
-        overflow: "hidden"
-      }}>
+      <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
         {loading ? (
           <div style={{ padding: 24 }}>
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} style={{ marginBottom: 12 }}>
-                <Skeleton h={40} radius={8} />
-              </div>
-            ))}
+            {[1, 2, 3, 4, 5].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={40} radius={8} /></div>)}
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState icon={Users} message="Aucun utilisateur trouvé" />
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              minWidth: isMobile ? "auto" : 800
-            }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "auto" : 800 }}>
               <thead>
                 <tr style={{ background: "#f8fafc" }}>
                   <TH>Utilisateur</TH>
@@ -1301,7 +1042,7 @@ const ComptesPage = () => {
               </thead>
               <tbody>
                 {filtered.map((u, index) => {
-                  const name = `${u.firstname} ${u.lastname}`;
+                  const name   = `${u.firstname} ${u.lastname}`;
                   const isPrest = u.role === "prestataire";
                   return (
                     <tr
@@ -1310,7 +1051,7 @@ const ComptesPage = () => {
                       style={{
                         borderTop: "1px solid #f8fafc",
                         transition: "all 0.2s ease",
-                        animation: `fadeInUp 0.5s ease ${index * 0.05}s both`
+                        animationDelay: `${index * 0.05}s`,
                       }}
                       onMouseEnter={e => e.currentTarget.style.background = "#fafafa"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}
@@ -1328,53 +1069,23 @@ const ComptesPage = () => {
                       <TD data-label="Téléphone">{u.numTel || "—"}</TD>
                       <TD data-label="Rôle"><StatusBadge statut={u.role} /></TD>
                       <TD data-label="Statut">
-                        {isPrest ? <StatusBadge statut={u.status || "en_attente"} /> : <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>}
+                        {isPrest
+                          ? <StatusBadge statut={u.status || "en_attente"} />
+                          : <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>
+                        }
                       </TD>
                       <TD data-label="Actions">
-                        <div style={{
-                          display: "flex",
-                          gap: 6,
-                          flexWrap: "wrap",
-                          justifyContent: isMobile ? "flex-start" : "flex-end"
-                        }}>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                           {isPrest && u.status === "en_attente" && (
-                            <ActionBtn
-                              icon={CheckCircle}
-                              label="Valider"
-                              color="#16a34a"
-                              bg="#dcfce7"
-                              onClick={() => handleValidate(u._id, name)}
-                              disabled={actionLoading === u._id + "_validate"}
-                            />
+                            <ActionBtn icon={CheckCircle} label="Valider"  color="#16a34a" bg="#dcfce7" onClick={() => handleValidate(u._id, name)} disabled={actionLoading === u._id + "_validate"} />
                           )}
                           {isPrest && u.status === "en_attente" && (
-                            <ActionBtn
-                              icon={XCircle}
-                              label="Rejeter"
-                              color="#dc2626"
-                              bg="#fee2e2"
-                              onClick={() => handleReject(u._id, name)}
-                              disabled={actionLoading === u._id + "_reject"}
-                            />
+                            <ActionBtn icon={XCircle}    label="Rejeter"  color="#dc2626" bg="#fee2e2" onClick={() => handleReject(u._id, name)}   disabled={actionLoading === u._id + "_reject"} />
                           )}
                           {isPrest && u.status === "rejected" && (
-                            <ActionBtn
-                              icon={CheckCircle}
-                              label="Ré-activer"
-                              color="#16a34a"
-                              bg="#dcfce7"
-                              onClick={() => handleValidate(u._id, name)}
-                              disabled={actionLoading === u._id + "_validate"}
-                            />
+                            <ActionBtn icon={CheckCircle} label="Ré-activer" color="#16a34a" bg="#dcfce7" onClick={() => handleValidate(u._id, name)} disabled={actionLoading === u._id + "_validate"} />
                           )}
-                          <ActionBtn
-                            icon={Trash2}
-                            label="Supprimer"
-                            color="#64748b"
-                            bg="#f1f5f9"
-                            onClick={() => handleDelete(u._id, name)}
-                            disabled={actionLoading === u._id + "_delete"}
-                          />
+                          <ActionBtn icon={Trash2} label="Supprimer" color="#64748b" bg="#f1f5f9" onClick={() => handleDelete(u._id, name)} disabled={actionLoading === u._id + "_delete"} />
                         </div>
                       </TD>
                     </tr>
@@ -1393,20 +1104,20 @@ const ComptesPage = () => {
 // PAGE 3 — GESTION DES RESSOURCES
 // ═══════════════════════════════════════════════════════════════
 const RessourcesPage = () => {
-  const [resources, setResources] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("tous");
-  const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState(null);
-  const [paniers, setPaniers] = useState({});
+  const [resources, setResources]   = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [filter, setFilter]         = useState("tous");
+  const [search, setSearch]         = useState("");
+  const [expanded, setExpanded]     = useState(null);
+  const [paniers, setPaniers]       = useState({});
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const toast = useToast();
   const { modal, confirm, handleConfirm, handleCancel } = useConfirm();
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const isMobile = windowWidth <= 640;
@@ -1439,7 +1150,12 @@ const RessourcesPage = () => {
   };
 
   const handleDelete = async (id, name) => {
-    const ok = await confirm({ type: "danger", title: "Supprimer cette ressource ?", message: `La ressource "${name}" sera définitivement supprimée. Cette action est irréversible.`, confirmLabel: "Supprimer" });
+    const ok = await confirm({
+      type: "danger",
+      title: "Supprimer cette ressource ?",
+      message: `La ressource "${name}" sera définitivement supprimée. Cette action est irréversible.`,
+      confirmLabel: "Supprimer",
+    });
     if (!ok) return;
     try {
       await axios.delete(`${API}/admin/resources/${id}`, { headers: authHeaders() });
@@ -1450,9 +1166,9 @@ const RessourcesPage = () => {
     }
   };
 
-  const types = ["tous", "salle", "materiel", "decoration", "traiteur"];
+  const types    = ["tous", "salle", "materiel", "decoration", "traiteur"];
   const filtered = resources.filter(r => {
-    const matchType = filter === "tous" || r.type === filter;
+    const matchType   = filter === "tous" || r.type === filter;
     const matchSearch = search === "" || `${r.name} ${r.provider_name}`.toLowerCase().includes(search.toLowerCase());
     return matchType && matchSearch;
   });
@@ -1462,24 +1178,13 @@ const RessourcesPage = () => {
       <ConfirmModal modal={modal} onConfirm={handleConfirm} onCancel={handleCancel} />
       <Toast toasts={toast.toasts} removeToast={toast.removeToast} />
 
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 20,
-        flexWrap: "wrap",
-        gap: 12
-      }}>
-        <div style={{
-          display: "flex",
-          gap: isMobile ? 4 : 8,
-          flexWrap: "wrap"
-        }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", gap: isMobile ? 4 : 8, flexWrap: "wrap" }}>
           {types.map(t => (
             <button
               key={t}
               onClick={() => setFilter(t)}
-              className={`filter-btn ${filter === t ? 'active' : ''}`}
+              className={`filter-btn ${filter === t ? "active" : ""}`}
               style={{
                 padding: isMobile ? "6px 12px" : "7px 16px",
                 borderRadius: 20,
@@ -1491,7 +1196,7 @@ const RessourcesPage = () => {
                 border: filter === t ? "1px solid #8b5cf6" : "1px solid #e2e8f0",
                 fontFamily: "inherit",
                 textTransform: "capitalize",
-                transition: "all 0.2s ease"
+                transition: "all 0.2s ease",
               }}
             >
               {t === "tous" ? "Toutes" : t}
@@ -1507,7 +1212,7 @@ const RessourcesPage = () => {
           border: "1px solid #e2e8f0",
           borderRadius: 10,
           padding: isMobile ? "6px 12px" : "8px 14px",
-          width: isMobile ? "100%" : "auto"
+          width: isMobile ? "100%" : "auto",
         }}>
           <Search size={14} color="#94a3b8" />
           <input
@@ -1520,35 +1225,22 @@ const RessourcesPage = () => {
               fontSize: 13,
               color: "#475569",
               width: isMobile ? "100%" : 200,
-              fontFamily: "inherit"
+              fontFamily: "inherit",
             }}
           />
         </div>
       </div>
 
-      <div style={{
-        background: "white",
-        borderRadius: 16,
-        border: "1px solid #f1f5f9",
-        overflow: "hidden"
-      }}>
+      <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
         {loading ? (
           <div style={{ padding: 24 }}>
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{ marginBottom: 12 }}>
-                <Skeleton h={48} radius={8} />
-              </div>
-            ))}
+            {[1, 2, 3, 4].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={48} radius={8} /></div>)}
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState icon={Package} message="Aucune ressource trouvée" />
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              minWidth: isMobile ? "auto" : 900
-            }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "auto" : 900 }}>
               <thead>
                 <tr style={{ background: "#f8fafc" }}>
                   <TH>Ressource</TH>
@@ -1569,18 +1261,14 @@ const RessourcesPage = () => {
                       style={{
                         borderTop: "1px solid #f8fafc",
                         transition: "all 0.2s ease",
-                        animation: `fadeInUp 0.5s ease ${index * 0.05}s both`
+                        animationDelay: `${index * 0.05}s`,
                       }}
                       onMouseEnter={e => e.currentTarget.style.background = "#fafafa"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >
-                      <TD data-label="Ressource" style={{ fontWeight: 600, color: "#0f172a" }}>
-                        {r.name}
-                      </TD>
+                      <TD data-label="Ressource" style={{ fontWeight: 600, color: "#0f172a" }}>{r.name}</TD>
                       <TD data-label="Type"><StatusBadge statut={r.type} /></TD>
-                      <TD data-label="Prix" style={{ fontWeight: 700, color: "#8b5cf6" }}>
-                        {Number(r.price).toFixed(2)} €
-                      </TD>
+                      <TD data-label="Prix" style={{ fontWeight: 700, color: "#8b5cf6" }}>{Number(r.price).toFixed(2)} €</TD>
                       <TD data-label="Prestataire">
                         <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 500 }}>{r.provider_name}</div>
                         <div style={{ fontSize: 11, color: "#94a3b8" }}>{r.provider_email}</div>
@@ -1603,7 +1291,7 @@ const RessourcesPage = () => {
                             fontSize: isMobile ? 11 : 12,
                             fontWeight: 600,
                             fontFamily: "inherit",
-                            transition: "all 0.2s ease"
+                            transition: "all 0.2s ease",
                           }}
                         >
                           <Eye size={isMobile ? 10 : 12} />
@@ -1612,7 +1300,7 @@ const RessourcesPage = () => {
                             size={isMobile ? 10 : 12}
                             style={{
                               transform: expanded === r._id ? "rotate(180deg)" : "none",
-                              transition: "transform 0.3s ease"
+                              transition: "transform 0.3s ease",
                             }}
                           />
                         </button>
@@ -1627,47 +1315,21 @@ const RessourcesPage = () => {
                         />
                       </TD>
                     </tr>
+
                     {expanded === r._id && (
-                      <tr
-                        key={r._id + "_exp"}
-                        className="expanded-row"
-                        style={{
-                          animation: "fadeInUp 0.3s ease"
-                        }}
-                      >
-                        <td colSpan={7} style={{
-                          padding: isMobile ? "0 12px 12px" : "0 20px 16px",
-                          background: "#faf9ff"
-                        }}>
-                          <div style={{
-                            borderRadius: 10,
-                            border: "1px solid #e9d5ff",
-                            overflow: "hidden"
-                          }}>
-                            <div style={{
-                              padding: isMobile ? "8px 12px" : "10px 16px",
-                              background: "#f5f3ff",
-                              fontSize: isMobile ? 11 : 12,
-                              fontWeight: 600,
-                              color: "#7c3aed"
-                            }}>
+                      <tr key={r._id + "_exp"} style={{ animation: "fadeInUp 0.3s ease" }}>
+                        <td colSpan={7} style={{ padding: isMobile ? "0 12px 12px" : "0 20px 16px", background: "#faf9ff" }}>
+                          <div style={{ borderRadius: 10, border: "1px solid #e9d5ff", overflow: "hidden" }}>
+                            <div style={{ padding: isMobile ? "8px 12px" : "10px 16px", background: "#f5f3ff", fontSize: isMobile ? 11 : 12, fontWeight: 600, color: "#7c3aed" }}>
                               👥 Organisateurs ayant ajouté "{r.name}" à leur panier
                             </div>
                             {!paniers[r._id] || paniers[r._id].length === 0 ? (
-                              <div style={{
-                                padding: isMobile ? "12px 12px" : "14px 16px",
-                                fontSize: 13,
-                                color: "#94a3b8"
-                              }}>
+                              <div style={{ padding: isMobile ? "12px 12px" : "14px 16px", fontSize: 13, color: "#94a3b8" }}>
                                 Aucun organisateur n'a ajouté cette ressource à son panier.
                               </div>
                             ) : (
                               <div style={{ overflowX: "auto" }}>
-                                <table style={{
-                                  width: "100%",
-                                  borderCollapse: "collapse",
-                                  minWidth: isMobile ? 400 : "auto"
-                                }}>
+                                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 400 : "auto" }}>
                                   <thead>
                                     <tr style={{ background: "#f8fafc" }}>
                                       <TH>Nom</TH>
@@ -1679,9 +1341,7 @@ const RessourcesPage = () => {
                                   <tbody>
                                     {paniers[r._id].map(u => (
                                       <tr key={u._id} style={{ borderTop: "1px solid #f1f5f9" }}>
-                                        <TD data-label="Nom" style={{ fontWeight: 500, color: "#0f172a" }}>
-                                          {u.firstname} {u.lastname}
-                                        </TD>
+                                        <TD data-label="Nom" style={{ fontWeight: 500, color: "#0f172a" }}>{u.firstname} {u.lastname}</TD>
                                         <TD data-label="Email">{u.email}</TD>
                                         <TD data-label="Téléphone">{u.numTel || "—"}</TD>
                                         <TD data-label="Région">{u.region || "—"}</TD>
@@ -1709,24 +1369,25 @@ const RessourcesPage = () => {
 // ═══════════════════════════════════════════════════════════════
 // ROOT
 // ═══════════════════════════════════════════════════════════════
-const pageTitles = { dashboard: "Dashboard", comptes: "Gestion des comptes", ressources: "Gestion des ressources" };
+const pageTitles = {
+  dashboard:  "Dashboard",
+  comptes:    "Gestion des comptes",
+  ressources: "Gestion des ressources",
+};
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activePage, setActivePage] = useState("dashboard");
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [activePage, setActivePage]     = useState("dashboard");
+  const [windowWidth, setWindowWidth]   = useState(window.innerWidth);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
-      // Fermer la sidebar mobile quand on passe en desktop
-      if (window.innerWidth > 640) {
-        setIsMobileOpen(false);
-      }
+      if (window.innerWidth > 640) setIsMobileOpen(false);
     };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const isMobile = windowWidth <= 640;
@@ -1738,17 +1399,13 @@ export default function AdminDashboard() {
   };
 
   const pages = {
-    dashboard: <DashboardPage />,
-    comptes: <ComptesPage />,
+    dashboard:  <DashboardPage />,
+    comptes:    <ComptesPage />,
     ressources: <RessourcesPage />,
   };
 
   return (
-    <div style={{
-      fontFamily: "'Inter',-apple-system,sans-serif",
-      background: "#f8fafc",
-      minHeight: "100vh"
-    }}>
+    <div style={{ fontFamily: "'Inter',-apple-system,sans-serif", background: "#f8fafc", minHeight: "100vh" }}>
       <Sidebar
         active={activePage}
         setActive={setActivePage}
@@ -1758,7 +1415,6 @@ export default function AdminDashboard() {
         setIsMobileOpen={setIsMobileOpen}
       />
 
-      {/* Overlay pour mobile quand la sidebar est ouverte */}
       {isMobile && isMobileOpen && (
         <div
           onClick={() => setIsMobileOpen(false)}
@@ -1768,58 +1424,23 @@ export default function AdminDashboard() {
             background: "rgba(0,0,0,0.5)",
             backdropFilter: "blur(2px)",
             zIndex: 150,
-            animation: "fadeIn 0.2s ease"
+            animation: "fadeIn 0.2s ease",
           }}
         />
       )}
 
-      <div style={{
-        marginLeft: isMobile ? 0 : 260,
-        transition: "margin-left 0.3s ease"
-      }}>
+      <div style={{ marginLeft: isMobile ? 0 : 260, transition: "margin-left 0.3s ease" }}>
         <TopBar
           title={pageTitles[activePage]}
           showSearch={activePage !== "dashboard"}
           isMobile={isMobile}
-          searchValue="" // À connecter avec votre état de recherche
-          onSearchChange={() => { }} // À connecter avec votre état de recherche
+          searchValue=""
+          onSearchChange={() => {}}
         />
-        <main style={{
-          padding: isMobile ? 16 : 28
-        }}>
+        <main style={{ padding: isMobile ? 16 : 28 }}>
           {pages[activePage]}
         </main>
       </div>
-
-      {/* Styles d'animation */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes rotateIn {
-          from { transform: rotate(-180deg) scale(0); opacity: 0; }
-          to { transform: rotate(0) scale(1); opacity: 1; }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.8; transform: scale(1.05); }
-        }
-        
-        .nav-item:hover:not(.active) {
-          background: rgba(255,255,255,0.05);
-          transform: translateX(4px);
-        }
-        
-        .logout-btn:hover {
-          background: rgba(239,68,68,0.2);
-          transform: translateX(4px);
-        }
-        
-        .user-profile:hover {
-          transform: scale(1.02);
-        }
-      `}</style>
     </div>
   );
 }
