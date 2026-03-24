@@ -29,4 +29,4 @@ pass: event123456
 ok binome
 
 les modification dans vcl sagar :
-payer tji  baed confirmation de commade mtjich f usecase hkaka wa7adha (d'apres sagar)
+payer tji  baed confirmation de commade (baed ma le prestataire valide ta reservation) mtjich f usecase hkaka wa7adha  (d'apres sagar) 
