@@ -1,9 +1,10 @@
 
 des noms pour le site 
-******Eventix******
-******NextEvent****
-******Eventora*****
-
+****Eventix****
+****NextEvent****
+****Eventora****
+****Yalla Events****
+****GoEvent****
 .......................Donc pour le moment on a fait la partie du haut alors la porchen foix on va discuter et distrubee les tache entre nous
 
 notifications pour la verification des commande ou des alert ou des nv ressources --.......
