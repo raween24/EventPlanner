@@ -1,0 +1,31 @@
+import type { INodeTypeDescription } from 'n8n-workflow';
+import { type StrapiFilters } from './strapi-utils';
+export type StrapiCommunityNodeType = {
+    id: number;
+    authorGithubUrl: string;
+    authorName: string;
+    checksum: string;
+    description: string;
+    displayName: string;
+    name: string;
+    numberOfStars: number;
+    numberOfDownloads: number;
+    packageName: string;
+    createdAt: string;
+    updatedAt: string;
+    npmVersion: string;
+    isOfficialNode: boolean;
+    companyName?: string;
+    nodeDescription: INodeTypeDescription;
+    nodeVersions?: Array<{
+        npmVersion: string;
+        checksum: string;
+    }>;
+    aiNodeSdkVersion?: number;
+};
+export type CommunityNodesMetadata = Pick<StrapiCommunityNodeType, 'id' | 'name' | 'npmVersion' | 'updatedAt'>;
+export declare function getCommunityNodeTypes(environment: 'staging' | 'production', qs: {
+    filters?: StrapiFilters;
+    fields?: string[];
+} | undefined, maxAiNodeSdkVersion: number): Promise<StrapiCommunityNodeType[]>;
+export declare function getCommunityNodesMetadata(environment: 'staging' | 'production', maxAiNodeSdkVersion: number): Promise<CommunityNodesMetadata[]>;

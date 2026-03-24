@@ -1,0 +1,32 @@
+/**
+ * OpenAI Node - Version 1.3
+ * Discriminator: resource=assistant, operation=deleteAssistant
+ */
+
+
+interface Credentials {
+  openAiApi: CredentialReference;
+}
+
+/** Delete an assistant from the account */
+export type LcOpenAiV13AssistantDeleteAssistantParams = {
+  resource: 'assistant';
+  operation: 'deleteAssistant';
+/**
+ * Assistant to respond to the message. You can add, modify or remove assistants in the &lt;a href="https://platform.openai.com/playground?mode=assistant" target="_blank"&gt;playground&lt;/a&gt;.
+ * @default {"mode":"list","value":""}
+ */
+    assistantId?: { __rl: true; mode: 'list' | 'id'; value: string; cachedResultName?: string };
+};
+
+export interface LcOpenAiV13AssistantDeleteAssistantSubnodeConfig {
+  tools?: ToolInstance[];
+  memory?: MemoryInstance;
+}
+
+export type LcOpenAiV13AssistantDeleteAssistantNode = {
+  type: '@n8n/n8n-nodes-langchain.openAi';
+  version: 1.3;
+  credentials?: Credentials;
+  config: NodeConfig<LcOpenAiV13AssistantDeleteAssistantParams> & { subnodes?: LcOpenAiV13AssistantDeleteAssistantSubnodeConfig };
+};

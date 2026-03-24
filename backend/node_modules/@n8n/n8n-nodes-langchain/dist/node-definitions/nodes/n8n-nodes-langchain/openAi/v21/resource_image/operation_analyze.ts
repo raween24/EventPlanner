@@ -1,0 +1,73 @@
+/**
+ * OpenAI Node - Version 2.1
+ * Discriminator: resource=image, operation=analyze
+ */
+
+
+interface Credentials {
+  openAiApi: CredentialReference;
+}
+
+/** Take in images and answer questions about them */
+export type LcOpenAiV21ImageAnalyzeParams = {
+  resource: 'image';
+  operation: 'analyze';
+/**
+ * Model
+ * @default {"mode":"list","value":""}
+ */
+    modelId?: { __rl: true; mode: 'list' | 'id'; value: string; cachedResultName?: string };
+/**
+ * Text Input
+ * @default What's in this image?
+ */
+    text?: string | Expression<string> | PlaceholderValue;
+/**
+ * Input Type
+ * @default url
+ */
+    inputType?: 'url' | 'base64' | Expression<string>;
+/**
+ * URL(s) of the image(s) to analyze, multiple URLs can be added separated by comma
+ * @displayOptions.show { inputType: ["url"] }
+ */
+    imageUrls?: string | Expression<string> | PlaceholderValue;
+/**
+ * Name of the binary property which contains the image(s)
+ * @hint The name of the input field containing the binary file data to be processed
+ * @displayOptions.show { inputType: ["base64"] }
+ * @default data
+ */
+    binaryPropertyName?: string | Expression<string> | PlaceholderValue;
+/**
+ * Whether to simplify the response or not
+ * @default true
+ */
+    simplify?: boolean | Expression<boolean>;
+/**
+ * Options
+ * @default {}
+ */
+    options?: {
+    /** Detail
+     * @default auto
+     */
+    detail?: 'auto' | 'low' | 'high' | Expression<string>;
+    /** Fewer tokens will result in shorter, less detailed image description
+     * @default 300
+     */
+    maxTokens?: number | Expression<number>;
+  };
+};
+
+export interface LcOpenAiV21ImageAnalyzeSubnodeConfig {
+  tools?: ToolInstance[];
+  memory?: MemoryInstance;
+}
+
+export type LcOpenAiV21ImageAnalyzeNode = {
+  type: '@n8n/n8n-nodes-langchain.openAi';
+  version: 2.1;
+  credentials?: Credentials;
+  config: NodeConfig<LcOpenAiV21ImageAnalyzeParams> & { subnodes?: LcOpenAiV21ImageAnalyzeSubnodeConfig };
+};

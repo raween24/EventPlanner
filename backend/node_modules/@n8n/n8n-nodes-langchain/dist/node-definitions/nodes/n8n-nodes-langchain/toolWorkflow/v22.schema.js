@@ -1,0 +1,28 @@
+/**
+ * Call n8n Workflow Tool Node - Version 2.2 - Zod Validation Schemas
+ *
+ * These schemas validate node configuration at runtime.
+ * Use .parse() for strict validation or .safeParse() for error handling.
+ *
+ * Schema helpers (z, expressionSchema, etc.) are passed as parameters
+ * by the schema-validator, not imported from external files.
+ *
+ * @generated - CommonJS JavaScript for runtime loading
+ */
+
+module.exports = function getSchema({ parameters, z, expressionSchema, stringOrExpression, numberOrExpression, booleanOrExpression, resourceLocatorValueSchema, resourceMapperValueSchema, filterValueSchema, assignmentCollectionValueSchema, iDataObjectSchema, resolveSchema }) {
+
+  // Parameters schema
+  const parametersSchema = z.object({
+    description: stringOrExpression.optional(),
+    source: z.union([z.literal('database'), z.literal('parameter'), expressionSchema]).optional(),
+    workflowId: resolveSchema({ parameters, schema: z.unknown(), required: false, displayOptions: {"show":{"source":["database"]}}, defaults: {"source":"database"} }),
+    workflowInputs: resolveSchema({ parameters, schema: resourceMapperValueSchema, required: false, displayOptions: {"show":{"source":["database"]},"hide":{"workflowId":[""]}}, defaults: {"source":"database","workflowId":""} }),
+    workflowJson: resolveSchema({ parameters, schema: z.union([iDataObjectSchema, z.string()]), required: false, displayOptions: {"show":{"source":["parameter"]}}, defaults: {"source":"database"} }),
+  });
+
+  // Return combined config schema
+  return z.object({
+    parameters: parametersSchema.optional(),
+  });
+};

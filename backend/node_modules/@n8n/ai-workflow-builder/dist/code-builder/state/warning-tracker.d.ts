@@ -1,0 +1,9 @@
+import type { ValidationWarning } from '../types';
+export declare class WarningTracker {
+    private seenWarnings;
+    private preExistingKeys;
+    markAsPreExisting(warnings: ValidationWarning[]): void;
+    isPreExisting(warning: ValidationWarning): boolean;
+    filterNewWarnings(warnings: ValidationWarning[]): ValidationWarning[];
+    markAsSeen(warnings: ValidationWarning[]): void;
+}

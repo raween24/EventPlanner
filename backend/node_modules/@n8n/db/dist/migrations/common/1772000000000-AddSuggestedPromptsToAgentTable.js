@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AddSuggestedPromptsToAgentTable1772000000000 = void 0;
+const table = 'chat_hub_agents';
+class AddSuggestedPromptsToAgentTable1772000000000 {
+    async up({ schemaBuilder: { addColumns, column } }) {
+        await addColumns(table, [column('suggestedPrompts').json.notNull.default("'[]'")]);
+    }
+    async down({ schemaBuilder: { dropColumns } }) {
+        await dropColumns(table, ['suggestedPrompts']);
+    }
+}
+exports.AddSuggestedPromptsToAgentTable1772000000000 = AddSuggestedPromptsToAgentTable1772000000000;
+//# sourceMappingURL=1772000000000-AddSuggestedPromptsToAgentTable.js.map

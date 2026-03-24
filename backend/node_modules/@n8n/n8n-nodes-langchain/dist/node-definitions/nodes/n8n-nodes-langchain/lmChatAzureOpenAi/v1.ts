@@ -1,0 +1,69 @@
+/**
+ * Azure OpenAI Chat Model Node - Version 1
+ * For advanced usage with an AI chain
+ */
+
+
+export interface LcLmChatAzureOpenAiV1Params {
+  authentication?: 'azureOpenAiApi' | 'azureEntraCognitiveServicesOAuth2Api' | Expression<string>;
+/**
+ * The name of the model(deployment) to use (e.g., gpt-4, gpt-35-turbo)
+ */
+    model?: string | Expression<string> | PlaceholderValue;
+/**
+ * Additional options to add
+ * @default {}
+ */
+    options?: {
+    /** Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim
+     * @default 0
+     */
+    frequencyPenalty?: number | Expression<number>;
+    /** The maximum number of tokens to generate in the completion. Most models have a context length of 2048 tokens (except for the newest models, which support 32,768). Use -1 for default.
+     * @default -1
+     */
+    maxTokens?: number | Expression<number>;
+    /** Response Format
+     * @default text
+     */
+    responseFormat?: 'text' | 'json_object' | Expression<string>;
+    /** Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics
+     * @default 0
+     */
+    presencePenalty?: number | Expression<number>;
+    /** Controls randomness: Lowering results in less random completions. As the temperature approaches zero, the model will become deterministic and repetitive.
+     * @default 0.7
+     */
+    temperature?: number | Expression<number>;
+    /** Maximum amount of time a request is allowed to take in milliseconds
+     * @default 60000
+     */
+    timeout?: number | Expression<number>;
+    /** Maximum number of retries to attempt on failure
+     * @default 2
+     */
+    maxRetries?: number | Expression<number>;
+    /** Controls diversity via nucleus sampling: 0.5 means half of all likelihood-weighted options are considered. We generally recommend altering this or temperature but not both.
+     * @default 1
+     */
+    topP?: number | Expression<number>;
+  };
+}
+
+export interface LcLmChatAzureOpenAiV1Credentials {
+  azureOpenAiApi: CredentialReference;
+  azureEntraCognitiveServicesOAuth2Api: CredentialReference;
+}
+
+interface LcLmChatAzureOpenAiV1NodeBase {
+  type: '@n8n/n8n-nodes-langchain.lmChatAzureOpenAi';
+  version: 1;
+  credentials?: LcLmChatAzureOpenAiV1Credentials;
+  isTrigger: true;
+}
+
+export type LcLmChatAzureOpenAiV1ParamsNode = LcLmChatAzureOpenAiV1NodeBase & {
+  config: NodeConfig<LcLmChatAzureOpenAiV1Params>;
+};
+
+export type LcLmChatAzureOpenAiV1Node = LcLmChatAzureOpenAiV1ParamsNode;

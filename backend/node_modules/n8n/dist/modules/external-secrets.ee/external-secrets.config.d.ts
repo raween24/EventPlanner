@@ -1,0 +1,7 @@
+export declare class ExternalSecretsConfig {
+    updateInterval: number;
+    preferGet: boolean;
+    externalSecretsForProjects: boolean;
+    externalSecretsMultipleConnections: boolean;
+    externalSecretsRoleBasedAccess: boolean;
+}
