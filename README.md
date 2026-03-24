@@ -27,3 +27,6 @@ w ha9a mail mt3a application mt3na:
 eventplanner315@gmail.com
 pass: event123456
 ok binome
+
+les modification dans vcl sagar :
+payer tji  baed confirmation de commade mtjich f usecase hkaka wa7adha (d'apres sagar)
