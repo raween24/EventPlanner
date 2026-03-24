@@ -92,7 +92,7 @@ export default function OrganizerDashboard() {
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
     const user = userStr ? JSON.parse(userStr) : null;
-   const userId = user?._id || user?.id;
+    const userId = user?._id || user?.id;
 
 
     // Configuration axios avec token
@@ -994,7 +994,6 @@ export default function OrganizerDashboard() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Nombre de participants</label><input type="number" value={editEventFormData.nombreParticipants} onChange={(e) => setEditEventFormData({ ...editEventFormData, nombreParticipants: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" min="0" /></div>
-                                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Statut</label><select value={editEventFormData.status} onChange={(e) => setEditEventFormData({ ...editEventFormData, status: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"><option value="en attente">En attente</option><option value="en cours">En cours</option><option value="terminé">Terminé</option></select></div>
                                     </div>
                                     <div className="pt-4 flex gap-3"><button type="button" onClick={() => setShowEditEventModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button><button type="submit" disabled={editEventLoading} className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">{editEventLoading ? <><RefreshCw size={16} className="animate-spin" /> Modification...</> : <><CheckCircle size={16} /> Enregistrer</>}</button></div>
                                 </form>
