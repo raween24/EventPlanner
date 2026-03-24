@@ -42,6 +42,6 @@ valiser le compte de quii ??? il faut specifier !
 vous allez rien a modifier f compte prestataire !! na7uha ca pas de sens 
 cest pas gerer les events cest gerer les ressources dun compte (kima amlyn ahna f site taana deja akaka ana amltha )
 galt na7uha modifier compte adhika gotlha ana madame rw kif yscani prestataire  par expl l document w ghlot par exemple wla taswira floue ywali ykalem ladmin yfsakhhelu wla ymodifiha w kol gatly la hawka andu f bd kif tgolu y7el bd w ybadlha cest pas la paine galt tamou menha 7kye 
-<===> cest bon sala7t ly galt alyh madame kol f use case mzelt faze heritege kamlha a adem w tbadel chy ken kif ntfhmou fyha saa chtodkhlch denya baadhha 
+<===> cest bon sala7t ly galt alyh madame kol f use case mzelt faze heritege kamlha + les systeme adhukom ly fi les carreaux a adem w tbadel chy ken kif ntfhmou fyha saa chtodkhlch denya baadhha 
 remaarque :
 galt zidu des pâtisseries par exemple et des adresses de decorations et hajet akaak
