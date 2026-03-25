@@ -547,64 +547,136 @@ export default function HomePage() {
       </section>
 
       {/* ── Contact ────────────────────────────────────────────────────────── */}
-      <section id="contact" className="py-24 bg-gradient-to-br from-slate-50 to-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Contactez-<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Nous</span></h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">Une question ? Notre équipe est là pour vous répondre</p>
-          </motion.div>
-          <div className="grid lg:grid-cols-2 gap-12">
-            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nom complet</label>
-                    <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" placeholder="Jean Dupont" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input type="email" name="email" value={formData.email} onChange={handleInputChange} required className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" placeholder="jean@email.com" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Sujet</label>
-                  <input type="text" name="subject" value={formData.subject} onChange={handleInputChange} required className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" placeholder="Demande d'information" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                  <textarea name="message" value={formData.message} onChange={handleInputChange} required rows="5" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none" placeholder="Bonjour, j'aimerais en savoir plus sur..." />
-                </div>
-                <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={formStatus === 'sending'} className={`w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 ${formStatus === 'sending' ? 'opacity-75 cursor-not-allowed' : ''}`}>
-                  {formStatus === 'sending' ? <>Envoi en cours...</> : formStatus === 'success' ? <>Message envoyé ! <Mail className="w-5 h-5" /></> : <>Envoyer le message <Send className="w-5 h-5" /></>}
-                </motion.button>
-              </form>
+<section id="contact" className="py-24 bg-gradient-to-br from-slate-50 to-white">
+  <div className="max-w-5xl mx-auto px-6">
 
-            </motion.div>
-            <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="space-y-6">
-              <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Nos coordonnées</h3>
-                <div className="space-y-4">
-                  {[
-                    { icon: Mail, color: "blue", label: "Email", value: "contact@smarteventplanner.com", href: "mailto:contact@smarteventplanner.com" },
-                    { icon: Phone, color: "purple", label: "Téléphone", value: "+216 54 809 630", href: "tel:+21654809630" },
-                    { icon: MapPinned, color: "green", label: "Adresse", value: "Sousse, Tunisie", href: null },
-                  ].map(({ icon: Icon, color, label, value, href }) => (
-                    <div key={label} className="flex items-start gap-4">
-                      <div className={`w-12 h-12 rounded-xl bg-${color}-100 flex items-center justify-center flex-shrink-0`}>
-                        <Icon className={`w-6 h-6 text-${color}-600`} />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">{label}</p>
-                        {href ? <a href={href} className={`text-gray-900 font-medium hover:text-${color}-600 transition`}>{value}</a> : <p className="text-gray-900 font-medium">{value}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
+    {/* Title */}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="text-center mb-12"
+    >
+      <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+        Contactez-
+        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+          Nous
+        </span>
+      </h2>
+      <p className="text-xl text-gray-600">
+        Une question ? Notre équipe est là pour vous répondre
+      </p>
+    </motion.div>
+
+    {/* Card */}
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="bg-white rounded-3xl shadow-xl p-10 border border-gray-100"
+    >
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+
+        {/* Inputs */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleInputChange}
+            placeholder="Nom complet"
+            required
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            placeholder="Email"
+            required
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+        </div>
+
+        <input
+          type="text"
+          name="subject"
+          value={formData.subject}
+          onChange={handleInputChange}
+          placeholder="Sujet"
+          required
+          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+        />
+
+        <textarea
+          name="message"
+          value={formData.message}
+          onChange={handleInputChange}
+          rows="5"
+          placeholder="Votre message..."
+          required
+          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+        />
+
+        {/* Button */}
+        <motion.button
+          type="submit"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          disabled={formStatus === "sending"}
+          className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition"
+        >
+          {formStatus === "sending"
+            ? "Envoi en cours..."
+            : formStatus === "success"
+            ? "Message envoyé !"
+            : "Envoyer le message"}
+        </motion.button>
+
+        {/* ── Coordonnées (MAINTENANT EN DESSOUS) ── */}
+        <div className="pt-6 border-t border-gray-100">
+          <h3 className="text-xl font-bold text-gray-900 mb-6 text-center">
+            Nos coordonnées
+          </h3>
+
+          <div className="flex flex-col md:flex-row justify-center items-center gap-6">
+
+            {/* Email */}
+            <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl hover:shadow-md transition">
+              <Mail className="w-5 h-5 text-blue-600" />
+              <a href="mailto:contact@smarteventplanner.com" className="text-gray-700 font-medium hover:text-blue-600">
+                contact@smarteventplanner.com
+              </a>
+            </div>
+
+            {/* Phone */}
+            <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl hover:shadow-md transition">
+              <Phone className="w-5 h-5 text-purple-600" />
+              <a href="tel:+21654809630" className="text-gray-700 font-medium hover:text-purple-600">
+                +216 54 809 630
+              </a>
+            </div>
+
+            {/* Address */}
+            <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl hover:shadow-md transition">
+              <MapPinned className="w-5 h-5 text-green-600" />
+              <span className="text-gray-700 font-medium">
+                Sousse, Tunisie
+              </span>
+            </div>
+
           </div>
         </div>
-      </section>
+
+      </form>
+
+    </motion.div>
+
+  </div>
+</section>
 
       <Footer />
     </div>
