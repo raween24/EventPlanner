@@ -18,7 +18,6 @@ les messages entre les ladmin et prestataire
 ya rawen ken mamchalekche installer hadhom :
 1/axios : tod5l lil backend w ba3de --- npm install axios
 2/npm install n8n 
-w kaml installation talnssha bi n8n
 w ha9a mail mt3a application mt3na:
 eventplanner315@gmail.com
 pass: event123456
