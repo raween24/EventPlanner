@@ -11,12 +11,8 @@ notifications pour la verification des commande ou des alert ou des nv ressource
 créer  un systeme de vérification des documents --......
 les messages entres le prestataire  et organisateurs
 les messages entre les ladmin et prestataire 
-////////
 
 
-
-ya rawen ken mamchalekche installer hadhom :
-2/npm install n8n 
 w ha9a mail mt3a application mt3na:
 eventplanner315@gmail.com
 pass: event123456
