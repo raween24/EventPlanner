@@ -5,7 +5,7 @@ const router = express.Router();
 router.post("/addEvent", verifyToken, addEvent);
 router.get("/allEvent", get_all_Event);
 router.get("/Event/:id", get_event_by_id);
-router.put("/update_event/:id", updateEvent);
+router.put("/update_event/:id", verifyToken,updateEvent);
 router.delete("/dell_event/:id", deleteEvent);
 router.get("/user_event/:id",verifyToken,get_Event_by_user);
 export default router;

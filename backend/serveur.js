@@ -16,6 +16,7 @@ import googleAuthRoutes from "./routes/googleAuthRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
+import LocationRoutes from "./routes/locationRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -57,7 +58,8 @@ app.use("/api/auth", googleAuthRoutes);
 app.use("/api/document", documentRoutes);
 
 app.use("/api/admin", adminRoutes);
-app.use("/api/comment",commentRoutes);
+app.use("/api/comment", commentRoutes);
+app.use("/api/location", LocationRoutes);
 
 // test API
 app.get("/", (req, res) => {

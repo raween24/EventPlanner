@@ -50,8 +50,21 @@ export default function OrganizerDashboard() {
     const [resources, setResources] = useState([]);
     const [filteredResources, setFilteredResources] = useState([]);
     const [eventHistory, setEventHistory] = useState([]);
-    // Ajoutez cet état avec les autres états (vers la ligne 50)
-    const [selectedEventFilter, setSelectedEventFilter] = useState('all'); // 'all' ou id d'événement
+    const [demandes, setDemandes] = useState([]);
+    const [selectedEventFilter, setSelectedEventFilter] = useState('all');
+    const [demandeLoading, setDemandeLoading] = useState(false);
+
+    // États pour la modification de demande
+    const [showEditDemandeModal, setShowEditDemandeModal] = useState(false);
+    const [editingDemande, setEditingDemande] = useState(null);
+    const [editDemandeFormData, setEditDemandeFormData] = useState({
+        dateDebut: '',
+        dateFin: '',
+        status: ''
+    });
+    const [editDemandeLoading, setEditDemandeLoading] = useState(false);
+    const [editDemandeError, setEditDemandeError] = useState('');
+
     // États pour la modification du profil
     const [showProfileEditModal, setShowProfileEditModal] = useState(false);
     const [profileFormData, setProfileFormData] = useState({
@@ -78,6 +91,7 @@ export default function OrganizerDashboard() {
     const [editEventFormData, setEditEventFormData] = useState({
         title: '',
         description: '',
+        lieu: '',
         category: '',
         type: 'public',
         dateDebut: '',
@@ -94,7 +108,6 @@ export default function OrganizerDashboard() {
     const user = userStr ? JSON.parse(userStr) : null;
     const userId = user?._id || user?.id;
 
-
     // Configuration axios avec token
     const api = axios.create({
         baseURL: 'http://localhost:5000/api',
@@ -110,8 +123,22 @@ export default function OrganizerDashboard() {
             return;
         }
         fetchOrganizerData();
+        fetchDemandes();
         loadNotifications();
     }, []);
+
+    // Charger les demandes
+    const fetchDemandes = async () => {
+        try {
+            setDemandeLoading(true);
+            const response = await api.get('/location/get');
+            setDemandes(response.data);
+        } catch (err) {
+            console.error('Erreur chargement demandes:', err);
+        } finally {
+            setDemandeLoading(false);
+        }
+    };
 
     // Charger les notifications
     const loadNotifications = () => {
@@ -188,6 +215,84 @@ export default function OrganizerDashboard() {
             setLoading(false);
         }
     };
+
+
+    // Supprimer une demande
+    const handleDeleteDemande = async (demandeId) => {
+        if (window.confirm('Voulez-vous vraiment supprimer cette demande ?')) {
+            console.log(demandeId);
+            try {
+                await api.delete(`/location/del/${demandeId}`);
+                fetchDemandes();
+                alert('Demande supprimée avec succès');
+            } catch (err) {
+                console.error('Erreur:', err);
+                alert('Erreur lors de la suppression');
+            }
+        }
+    };
+
+    // Ouvrir le modal de modification de demande
+    const handleEditDemande = (demande) => {
+        setEditingDemande(demande);
+        setEditDemandeFormData({
+            dateDebut: demande.dateDebut ? format(parseISO(demande.dateDebut), "yyyy-MM-dd'T'HH:mm") : '',
+            dateFin: demande.dateFin ? format(parseISO(demande.dateFin), "yyyy-MM-dd'T'HH:mm") : '',
+            status: demande.status || 'en attente'
+        });
+
+        setEditDemandeError('');
+        setShowEditDemandeModal(true);
+    };
+
+    // Soumettre la modification de demande
+    const handleEditDemandeSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!editingDemande || !editingDemande._id) {
+            setEditDemandeError('Demande invalide');
+            return;
+        }
+
+        setEditDemandeLoading(true);
+        setEditDemandeError('');
+
+        try {
+            const submitData = {
+                dateDebut: new Date(editDemandeFormData.dateDebut),
+                dateFin: new Date(editDemandeFormData.dateFin),
+                status: editDemandeFormData.status
+            };
+            
+            // Vérifier que les dates sont valides
+            if (submitData.dateFin <= submitData.dateDebut) {
+                setEditDemandeError('La date de fin doit être après la date de début');
+                setEditDemandeLoading(false);
+                return;
+            }
+
+            const response = await api.put(`/location/update/${editingDemande._id}`, submitData);
+
+            // Mettre à jour la liste des demandes
+            const updatedDemandes = demandes.map(d =>
+                d._id === editingDemande._id ? response.data.location : d
+            );
+            setDemandes(updatedDemandes);
+
+            setShowEditDemandeModal(false);
+            setEditingDemande(null);
+            alert('Demande modifiée avec succès !');
+
+        } catch (err) {
+            console.error("ERREUR:", err.response?.data);
+            setEditDemandeError(
+                err.response?.data?.message || 'Erreur lors de la modification'
+            );
+        } finally {
+            setEditDemandeLoading(false);
+        }
+    };
+    
 
     // Fonction pour modifier le profil
     const handleProfileEdit = () => {
@@ -308,6 +413,7 @@ export default function OrganizerDashboard() {
         setEditEventFormData({
             title: event.title || '',
             description: event.description || '',
+            lieu: event.lieu || '',
             category: event.category || '',
             type: event.type || 'public',
             dateDebut: event.dateDebut ? format(parseISO(event.dateDebut), "yyyy-MM-dd'T'HH:mm") : '',
@@ -320,23 +426,48 @@ export default function OrganizerDashboard() {
 
     const handleEditEventSubmit = async (e) => {
         e.preventDefault();
+
+        if (!editingEvent || !editingEvent._id) {
+            setEditEventError('Événement invalide');
+            return;
+        }
+
         setEditEventLoading(true);
         setEditEventError('');
 
         try {
-            const response = await api.put(`/event/update_event/${editingEvent._id}`, editEventFormData);
+            const submitData = {
+                title: editEventFormData.title?.trim(),
+                description: editEventFormData.description?.trim(),
+                lieu: editEventFormData.lieu?.trim(),
+                category: editEventFormData.category,
+                type: editEventFormData.type,
+                dateDebut: new Date(editEventFormData.dateDebut),
+                dateFin: new Date(editEventFormData.dateFin),
+                nombreParticipants: Number(editEventFormData.nombreParticipants) || 0,
+                status: editEventFormData.status
+            };
+
+            const response = await api.put(
+                `/event/update_event/${editingEvent._id}`,
+                submitData
+            );
 
             const updatedEvents = events.map(ev =>
                 ev._id === editingEvent._id ? response.data : ev
             );
-            setEvents(updatedEvents);
 
+            setEvents(updatedEvents);
             setShowEditEventModal(false);
             setEditingEvent(null);
+
             alert('Événement modifié avec succès !');
+
         } catch (err) {
-            console.error('Erreur:', err);
-            setEditEventError(err.response?.data?.message || 'Erreur lors de la modification');
+            console.error("ERREUR:", err.response?.data);
+            setEditEventError(
+                err.response?.data?.message || 'Erreur lors de la modification'
+            );
         } finally {
             setEditEventLoading(false);
         }
@@ -374,6 +505,11 @@ export default function OrganizerDashboard() {
         return format(parseISO(date), 'dd MMMM yyyy', { locale: fr });
     };
 
+    const formatDateTime = (date) => {
+        if (!date) return 'Date non définie';
+        return format(parseISO(date), 'dd MMMM yyyy HH:mm', { locale: fr });
+    };
+
     const formatTime = (date) => {
         if (!date) return '';
         return format(parseISO(date), 'HH:mm', { locale: fr });
@@ -390,7 +526,6 @@ export default function OrganizerDashboard() {
     const getEventsForDay = (day) => {
         let filteredEvents = events;
 
-        // Filtrer par événement si sélectionné
         if (selectedEventFilter !== 'all') {
             filteredEvents = filteredEvents.filter(event => event._id === selectedEventFilter);
         }
@@ -456,26 +591,44 @@ export default function OrganizerDashboard() {
     const stats = getStats();
     const getMonthName = (date) => format(date, 'MMMM yyyy', { locale: fr });
 
+    // Badge de statut pour les demandes
+    const DemandeStatusBadge = ({ status }) => {
+        const config = {
+            'en attente': { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: ClockIcon, label: 'En attente' },
+            'acceptée': { bg: 'bg-green-100', text: 'text-green-700', icon: CheckCircleIcon, label: 'Acceptée' },
+            'refusée': { bg: 'bg-red-100', text: 'text-red-700', icon: XCircle, label: 'Refusée' }
+        };
+        const conf = config[status] || config['en attente'];
+        const Icon = conf.icon;
+        return (
+            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${conf.bg} ${conf.text}`}>
+                <Icon size={12} /> {conf.label}
+            </span>
+        );
+    };
+
     const Tabs = () => (
         <div className="border-b border-gray-200 mb-6 overflow-x-auto">
             <div className="flex space-x-4 sm:space-x-8 min-w-max px-2">
                 <button onClick={() => setActiveTab('events')} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'events' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
                     <Calendar size={16} />
-                    <span className="hidden xs:inline">Mes événements</span>
-                    <span className="xs:hidden">Events</span>
+                    <span>Mes événements</span>
                     {events.length > 0 && <span className="bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{events.length}</span>}
                 </button>
                 <button onClick={() => setActiveTab('resources')} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'resources' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
                     <Package size={16} />
-                    <span className="hidden xs:inline">Ressources</span>
-                    <span className="xs:hidden">Ress.</span>
+                    <span>Mes Ressources</span>
                     {resources.length > 0 && <span className="bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{resources.length}</span>}
                 </button>
                 <button onClick={() => setActiveTab('history')} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'history' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
                     <History size={16} />
-                    <span className="hidden xs:inline">Historique</span>
-                    <span className="xs:hidden">Hist.</span>
+                    <span>Historique</span>
                     {eventHistory.length > 0 && <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{eventHistory.length}</span>}
+                </button>
+                <button onClick={() => { setActiveTab('demandes'); fetchDemandes(); }} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'demandes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
+                    <FileText size={16} />
+                    <span>Mes Demandes</span>
+                    {demandes.length > 0 && <span className="bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{demandes.length}</span>}
                 </button>
             </div>
         </div>
@@ -643,135 +796,52 @@ export default function OrganizerDashboard() {
 
                     {/* Calendrier */}
                     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-2">
-
                         <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-6 border border-gray-100 hover:shadow-2xl transition-all duration-300">
-                            {/* En-tête du calendrier avec filtre */}
                             <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 mb-4 sm:mb-6">
                                 <div className="flex items-center gap-2">
                                     <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
                                         <CalendarIcon className="text-blue-600" size={18} />
                                     </div>
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                                        Agenda des événements
-                                    </h3>
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">Agenda des événements</h3>
                                 </div>
                                 <div className="flex items-center gap-2 w-full xs:w-auto">
-                                    {/* Filtre par événement */}
-                                    <select
-                                        value={selectedEventFilter}
-                                        onChange={(e) => setSelectedEventFilter(e.target.value)}
-                                        className="px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                                    >
+                                    <select value={selectedEventFilter} onChange={(e) => setSelectedEventFilter(e.target.value)} className="px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
                                         <option value="all">Tous les événements</option>
-                                        {events.map(event => (
-                                            <option key={event._id} value={event._id}>
-                                                {event.title}
-                                            </option>
-                                        ))}
+                                        {events.map(event => (<option key={event._id} value={event._id}>{event.title}</option>))}
                                     </select>
-
-                                    {/* Bouton Aujourd'hui */}
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={goToToday}
-                                        className="flex-1 xs:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-1 group"
-                                    >
-                                        <Home size={14} className="group-hover:rotate-12 transition-transform" />
-                                        <span>Aujourd'hui</span>
+                                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={goToToday} className="flex-1 xs:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-1 group">
+                                        <Home size={14} className="group-hover:rotate-12 transition-transform" /><span>Aujourd'hui</span>
                                     </motion.button>
-
-                                    {/* Navigation mois */}
                                     <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-                                        <motion.button
-                                            whileHover={{ scale: 1.1 }}
-                                            whileTap={{ scale: 0.9 }}
-                                            onClick={prevMonth}
-                                            className="p-1.5 sm:p-2 bg-white rounded-lg hover:bg-gray-200 shadow-sm transition-all"
-                                            title="Mois précédent"
-                                        >
-                                            <ChevronLeft size={16} />
-                                        </motion.button>
-                                        <motion.button
-                                            whileHover={{ scale: 1.1 }}
-                                            whileTap={{ scale: 0.9 }}
-                                            onClick={nextMonth}
-                                            className="p-1.5 sm:p-2 bg-white rounded-lg hover:bg-gray-200 shadow-sm transition-all"
-                                            title="Mois suivant"
-                                        >
-                                            <ChevronRight size={16} />
-                                        </motion.button>
+                                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={prevMonth} className="p-1.5 sm:p-2 bg-white rounded-lg hover:bg-gray-200 shadow-sm transition-all"><ChevronLeft size={16} /></motion.button>
+                                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={nextMonth} className="p-1.5 sm:p-2 bg-white rounded-lg hover:bg-gray-200 shadow-sm transition-all"><ChevronRight size={16} /></motion.button>
                                     </div>
                                 </div>
                             </div>
-                            {/* Légende du calendrier */}
                             <div className="flex flex-wrap items-center gap-4 mb-4 text-xs">
-
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 bg-blue-600 rounded-full ring-2 ring-blue-300"></div>
-                                    <span className="text-gray-600">Jour sélectionné</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 bg-blue-100 border border-blue-300 rounded-full"></div>
-                                    <span className="text-gray-600">Événement</span>
-                                </div>
-                                {selectedEventFilter !== 'all' && (
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                        <span className="text-gray-600">Filtre actif: {events.find(e => e._id === selectedEventFilter)?.title}</span>
-                                    </div>
-                                )}
+                                <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-600 rounded-full ring-2 ring-blue-300"></div><span className="text-gray-600">Jour sélectionné</span></div>
+                                <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-100 border border-blue-300 rounded-full"></div><span className="text-gray-600">Événement</span></div>
+                                {selectedEventFilter !== 'all' && (<div className="flex items-center gap-2"><div className="w-3 h-3 bg-green-500 rounded-full"></div><span className="text-gray-600">Filtre actif: {events.find(e => e._id === selectedEventFilter)?.title}</span></div>)}
                             </div>
                             <motion.h4 key={currentMonth.toString()} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center font-semibold text-gray-700 mb-3 sm:mb-4 text-sm sm:text-base bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{getMonthName(currentMonth)}</motion.h4>
                             <div className="grid grid-cols-7 gap-1 mb-2">{['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (<div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 sm:py-2">{day}</div>))}</div>
                             <div className="grid grid-cols-7 gap-1">
                                 {Array.from({ length: (getDay(startOfMonth(currentMonth)) + 6) % 7 }).map((_, i) => (<div key={`empty-${i}`} className="p-1 sm:p-3" />))}
-                                {/* Dans la grille du calendrier, modifiez l'affichage des jours */}
                                 {getDaysInMonth().map((day, index) => {
                                     const dayEvents = getEventsForDay(day);
                                     const hasEvents = dayEvents.length > 0;
                                     const isSelected = isSameDay(day, selectedDate);
                                     const isTodayDate = isToday(day);
                                     const isFiltered = selectedEventFilter !== 'all';
-
                                     return (
-                                        <motion.button
-                                            key={index}
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={() => handleDayClick(day)}
-                                            className={`
-                relative p-1.5 sm:p-3 rounded-lg sm:rounded-xl transition-all text-xs sm:text-sm font-medium
-                ${isSelected ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg scale-105' : ''}
-                ${!isSelected && isTodayDate ? 'ring-2 ring-blue-400 bg-blue-50' : ''}
-                ${!isSelected && !isTodayDate && hasEvents ? 'bg-blue-50 hover:bg-blue-100' : ''}
-                ${!isSelected && !isTodayDate && !hasEvents ? 'hover:bg-gray-100' : ''}
-            `}
-                                        >
+                                        <motion.button key={index} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleDayClick(day)} className={`relative p-1.5 sm:p-3 rounded-lg sm:rounded-xl transition-all text-xs sm:text-sm font-medium ${isSelected ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg scale-105' : ''} ${!isSelected && isTodayDate ? 'ring-2 ring-blue-400 bg-blue-50' : ''} ${!isSelected && !isTodayDate && hasEvents ? 'bg-blue-50 hover:bg-blue-100' : ''} ${!isSelected && !isTodayDate && !hasEvents ? 'hover:bg-gray-100' : ''}`}>
                                             <span>{format(day, 'd')}</span>
-
-                                            {/* Indicateur de filtre actif */}
-                                            {isFiltered && hasEvents && !isSelected && (
-                                                <div className="absolute -top-1 -right-1">
-                                                    <span className="flex h-3 w-3 items-center justify-center rounded-full bg-green-500 text-[6px] font-medium text-white">
-                                                        ✓
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                            {/* Points indicateurs d'événements */}
-                                            {hasEvents && !isSelected && !isFiltered && (
-                                                <div className="absolute bottom-0.5 sm:bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5">
-                                                    {dayEvents.slice(0, 3).map((_, idx) => (
-                                                        <div key={idx} className="w-0.5 h-0.5 sm:w-1 sm:h-1 bg-blue-600 rounded-full" />
-                                                    ))}
-                                                </div>
-                                            )}
+                                            {isFiltered && hasEvents && !isSelected && (<div className="absolute -top-1 -right-1"><span className="flex h-3 w-3 items-center justify-center rounded-full bg-green-500 text-[6px] font-medium text-white">✓</span></div>)}
+                                            {hasEvents && !isSelected && !isFiltered && (<div className="absolute bottom-0.5 sm:bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5">{dayEvents.slice(0, 3).map((_, idx) => (<div key={idx} className="w-0.5 h-0.5 sm:w-1 sm:h-1 bg-blue-600 rounded-full" />))}</div>)}
                                         </motion.button>
                                     );
                                 })}
                             </div>
-
                             <div className="mt-4 sm:mt-6">
                                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                                     <h4 className="text-xs sm:text-sm font-medium text-gray-500 flex items-center gap-1 sm:gap-2"><Calendar size={12} /><span className="truncate max-w-[120px] xs:max-w-[200px] sm:max-w-none">{format(selectedDate, 'EEEE d MMMM', { locale: fr })}</span></h4>
@@ -914,6 +984,116 @@ export default function OrganizerDashboard() {
                                 ) : (<div className="text-center py-8 sm:py-16 bg-white rounded-xl sm:rounded-2xl"><History size={32} className="sm:w-12 sm:h-12 text-gray-300 mx-auto mb-3 sm:mb-4" /><p className="text-gray-500 text-xs sm:text-sm">Aucun historique</p></div>)}
                             </motion.div>
                         )}
+                        {activeTab === 'demandes' && (
+                            <motion.div key="demandes" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                        <FileText size={24} className="text-orange-600" />
+                                        Mes demandes de réservation
+                                    </h2>
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={fetchDemandes}
+                                        className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all flex items-center gap-2 text-sm"
+                                    >
+                                        <RefreshCw size={16} />
+                                        Actualiser
+                                    </motion.button>
+                                </div>
+
+                                {demandeLoading ? (
+                                    <div className="flex justify-center py-12">
+                                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full" />
+                                    </div>
+                                ) : demandes.length === 0 ? (
+                                    <div className="text-center py-16 bg-gray-50 rounded-2xl">
+                                        <FileText size={48} className="mx-auto text-gray-300 mb-4" />
+                                        <p className="text-gray-500">Aucune demande de réservation pour le moment</p>
+                                        <p className="text-sm text-gray-400 mt-2">Vos demandes apparaîtront ici</p>
+                                    </div>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ressource</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Événement</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Période</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {demandes.map((demande) => (
+                                                    <motion.tr
+                                                        key={demande._id}
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        className="hover:bg-gray-50 transition-colors"
+                                                    >
+                                                        <td className="px-4 py-3">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                                                    {demande.resource?.media?.[0]?.img_vd?.[0] ? (
+                                                                        <img
+                                                                            src={`http://localhost:5000/${demande.resource.media[0].img_vd[0]}`}
+                                                                            alt={demande.resource?.name}
+                                                                            className="w-full h-full object-cover"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center">
+                                                                            <Package size={16} className="text-gray-400" />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-medium text-gray-900 text-sm">{demande.resource?.name || 'Ressource'}</p>
+                                                                    <p className="text-xs text-gray-500">{demande.resource?.type}</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <p className="text-sm text-gray-900">{demande.event?.title || 'Événement'}</p>
+                                                            <p className="text-xs text-gray-500">{demande.event?.category}</p>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <p className="text-sm text-gray-900">{formatDateTime(demande.dateDebut)}</p>
+                                                            <p className="text-xs text-gray-500">au {formatDateTime(demande.dateFin)}</p>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <DemandeStatusBadge status={demande.status} />
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <motion.button
+                                                                    whileHover={{ scale: 1.1 }}
+                                                                    whileTap={{ scale: 0.95 }}
+                                                                    onClick={() => handleEditDemande(demande)}
+                                                                    className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-all"
+                                                                    title="Modifier"
+                                                                >
+                                                                    <Edit2 size={16} />
+                                                                </motion.button>
+                                                                <motion.button
+                                                                    whileHover={{ scale: 1.1 }}
+                                                                    whileTap={{ scale: 0.95 }}
+                                                                    onClick={() => handleDeleteDemande(demande._id)}
+                                                                    className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all"
+                                                                    title="Supprimer"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </motion.button>
+                                                            </div>
+                                                        </td>
+                                                    </motion.tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </motion.div>
+                        )}
                     </AnimatePresence>
                 </div>
 
@@ -948,7 +1128,7 @@ export default function OrganizerDashboard() {
                                     {profileSuccess && (<div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-600 text-sm"><CheckCircle size={16} /> {profileSuccess}</div>)}
                                     {profileActiveTab === 'info' && (
                                         <>
-                                            <div className="flex flex-col items-center mb-4"><div className="relative"><div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-blue-100 shadow-lg bg-gray-100">{profileImagePreview ? (<img src={profileImagePreview} alt="Aperçu" className="w-full h-full object-cover" />) : organizer?.image ? (<img src={`http://localhost:5000${organizer.image}`} alt={organizer.firstname} className="w-full h-full object-cover" />) : (<div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center"><User size={32} className="text-white" /></div>)}</div><label className="absolute bottom-0 right-0 p-1 bg-blue-600 rounded-full cursor-pointer hover:bg-blue-700"><Camera size={16} className="text-white" /><input type="file" accept="image/*" onChange={handleProfileImageChange} className="hidden" /></label>{profileImagePreview && (<button type="button" onClick={handleRemoveProfileImage} className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600"><X size={12} /></button>)}</div><p className="text-xs text-gray-500 mt-2">Cliquez sur l'icône caméra pour changer la photo</p></div>
+                                            <div className="flex flex-col items-center mb-4"><div className="relative"><div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-blue-100 shadow-lg bg-gray-100">{profileImagePreview ? (<img src={profileImagePreview} alt="Aperçu" className="w-full h-full object-cover" />) : organizer?.image ? (<img src={`http://localhost:5000/${organizer.image}`} alt={organizer.firstname} className="w-full h-full object-cover" />) : (<div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center"><User size={32} className="text-white" /></div>)}</div><label className="absolute bottom-0 right-0 p-1 bg-blue-600 rounded-full cursor-pointer hover:bg-blue-700"><Camera size={16} className="text-white" /><input type="file" accept="image/*" onChange={handleProfileImageChange} className="hidden" /></label>{profileImagePreview && (<button type="button" onClick={handleRemoveProfileImage} className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600"><X size={12} /></button>)}</div><p className="text-xs text-gray-500 mt-2">Cliquez sur l'icône caméra pour changer la photo</p></div>
                                             <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label><input type="text" value={profileFormData.firstname} onChange={(e) => setProfileFormData({ ...profileFormData, firstname: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" value={profileFormData.lastname} onChange={(e) => setProfileFormData({ ...profileFormData, lastname: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required /></div></div>
                                             <div><label className="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" value={profileFormData.email} onChange={(e) => setProfileFormData({ ...profileFormData, email: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required /></div>
                                             <div><label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label><input type="tel" value={profileFormData.numTel} onChange={(e) => setProfileFormData({ ...profileFormData, numTel: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="+33 6 12 34 56 78" /></div>
@@ -977,25 +1157,182 @@ export default function OrganizerDashboard() {
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowEditEventModal(false)}>
                             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden mx-3 sm:mx-4" onClick={(e) => e.stopPropagation()}>
                                 <div className="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-                                    <div className="flex justify-between items-center"><div className="flex items-center gap-3"><div className="p-2 bg-blue-100 rounded-xl"><Edit2 size={20} className="text-blue-600" /></div><h3 className="text-lg sm:text-xl font-bold text-gray-900">Modifier l'événement</h3></div><motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowEditEventModal(false)} className="p-1.5 sm:p-2 hover:bg-white rounded-lg sm:rounded-xl transition-all"><X size={18} className="sm:w-5 sm:h-5 text-gray-500" /></motion.button></div>
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-blue-100 rounded-xl">
+                                                <Edit2 size={20} className="text-blue-600" />
+                                            </div>
+                                            <h3 className="text-lg sm:text-xl font-bold text-gray-900">Modifier l'événement</h3>
+                                        </div>
+                                        <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowEditEventModal(false)} className="p-1.5 sm:p-2 hover:bg-white rounded-lg sm:rounded-xl transition-all">
+                                            <X size={18} className="sm:w-5 sm:h-5 text-gray-500" />
+                                        </motion.button>
+                                    </div>
                                     <p className="text-xs sm:text-sm text-gray-500 mt-2">Modifiez les informations de "{editingEvent.title}"</p>
                                 </div>
                                 <form onSubmit={handleEditEventSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto max-h-[60vh]">
-                                    {editEventError && (<div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-sm"><AlertCircle size={16} /> {editEventError}</div>)}
-                                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label><input type="text" value={editEventFormData.title} onChange={(e) => setEditEventFormData({ ...editEventFormData, title: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required /></div>
-                                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Description *</label><textarea value={editEventFormData.description} onChange={(e) => setEditEventFormData({ ...editEventFormData, description: e.target.value })} rows={3} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 resize-none" required /></div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label><select value={editEventFormData.category} onChange={(e) => setEditEventFormData({ ...editEventFormData, category: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required><option value="Mariage">Mariage 💒</option><option value="Conference">Conférence 🎤</option><option value="Anniversaire">Anniversaire 🎂</option><option value="Seminaire">Séminaire 📚</option><option value="autre">Autre 📅</option></select></div>
-                                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Type *</label><select value={editEventFormData.type} onChange={(e) => setEditEventFormData({ ...editEventFormData, type: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required><option value="public">Public</option><option value="privé">Privé</option></select></div>
+                                    {editEventError && (
+                                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-sm">
+                                            <AlertCircle size={16} /> {editEventError}
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+                                        <input type="text" value={editEventFormData.title} onChange={(e) => setEditEventFormData({ ...editEventFormData, title: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Date début *</label><input type="datetime-local" value={editEventFormData.dateDebut} onChange={(e) => setEditEventFormData({ ...editEventFormData, dateDebut: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required /></div>
-                                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Date fin *</label><input type="datetime-local" value={editEventFormData.dateFin} onChange={(e) => setEditEventFormData({ ...editEventFormData, dateFin: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required /></div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                                        <textarea value={editEventFormData.description} onChange={(e) => setEditEventFormData({ ...editEventFormData, description: e.target.value })} rows={3} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 resize-none" required />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Nombre de participants</label><input type="number" value={editEventFormData.nombreParticipants} onChange={(e) => setEditEventFormData({ ...editEventFormData, nombreParticipants: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" min="0" /></div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                                            <MapPin size={16} className="text-blue-500" />
+                                            Lieu *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={editEventFormData.lieu}
+                                            onChange={(e) => setEditEventFormData({ ...editEventFormData, lieu: e.target.value })}
+                                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                                            placeholder="Ex: Paris, France | Salle des fêtes..."
+                                            required
+                                        />
                                     </div>
-                                    <div className="pt-4 flex gap-3"><button type="button" onClick={() => setShowEditEventModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button><button type="submit" disabled={editEventLoading} className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">{editEventLoading ? <><RefreshCw size={16} className="animate-spin" /> Modification...</> : <><CheckCircle size={16} /> Enregistrer</>}</button></div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label>
+                                            <select value={editEventFormData.category} onChange={(e) => setEditEventFormData({ ...editEventFormData, category: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required>
+                                                <option value="Mariage">Mariage 💒</option>
+                                                <option value="Conference">Conférence 🎤</option>
+                                                <option value="Anniversaire">Anniversaire 🎂</option>
+                                                <option value="Seminaire">Séminaire 📚</option>
+                                                <option value="autre">Autre 📅</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+                                            <select value={editEventFormData.type} onChange={(e) => setEditEventFormData({ ...editEventFormData, type: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required>
+                                                <option value="public">Public</option>
+                                                <option value="privé">Privé</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Date début *</label>
+                                            <input type="datetime-local" value={editEventFormData.dateDebut} onChange={(e) => setEditEventFormData({ ...editEventFormData, dateDebut: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Date fin *</label>
+                                            <input type="datetime-local" value={editEventFormData.dateFin} onChange={(e) => setEditEventFormData({ ...editEventFormData, dateFin: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de participants</label>
+                                        <input type="number" value={editEventFormData.nombreParticipants} onChange={(e) => setEditEventFormData({ ...editEventFormData, nombreParticipants: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" min="0" />
+                                    </div>
+
+                                    <div className="pt-4 flex gap-3">
+                                        <button type="button" onClick={() => setShowEditEventModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                                        <button type="submit" disabled={editEventLoading} className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">
+                                            {editEventLoading ? <><RefreshCw size={16} className="animate-spin" /> Modification...</> : <><CheckCircle size={16} /> Enregistrer</>}
+                                        </button>
+                                    </div>
+                                </form>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Modal de modification de demande */}
+                <AnimatePresence>
+                    {showEditDemandeModal && editingDemande && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowEditDemandeModal(false)}>
+                            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden mx-3 sm:mx-4" onClick={(e) => e.stopPropagation()}>
+                                <div className="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-red-50">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-orange-100 rounded-xl">
+                                                <Edit2 size={20} className="text-orange-600" />
+                                            </div>
+                                            <h3 className="text-lg sm:text-xl font-bold text-gray-900">Modifier la demande</h3>
+                                        </div>
+                                        <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowEditDemandeModal(false)} className="p-1.5 sm:p-2 hover:bg-white rounded-lg sm:rounded-xl transition-all">
+                                            <X size={18} className="sm:w-5 sm:h-5 text-gray-500" />
+                                        </motion.button>
+                                    </div>
+                                    <p className="text-xs sm:text-sm text-gray-500 mt-2">
+                                        Modifiez les dates de votre reservation
+                                    </p>
+                                </div>
+
+                                <form onSubmit={handleEditDemandeSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto max-h-[60vh]">
+                                    {editDemandeError && (
+                                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-sm">
+                                            <AlertCircle size={16} /> {editDemandeError}
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                                            <Calendar size={16} className="text-blue-500" />
+                                            Date début *
+                                        </label>
+                                        <input
+                                            type="datetime-local"
+                                            value={editDemandeFormData.dateDebut}
+                                            onChange={(e) => setEditDemandeFormData({ ...editDemandeFormData, dateDebut: e.target.value })}
+                                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                                            <Calendar size={16} className="text-blue-500" />
+                                            Date fin *
+                                        </label>
+                                        <input
+                                            type="datetime-local"
+                                            value={editDemandeFormData.dateFin}
+                                            onChange={(e) => setEditDemandeFormData({ ...editDemandeFormData, dateFin: e.target.value })}
+                                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="pt-4 flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowEditDemandeModal(false)}
+                                            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium"
+                                        >
+                                            Annuler
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={editDemandeLoading}
+                                            className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all font-medium"
+                                        >
+                                            {editDemandeLoading ? (
+                                                <>
+                                                    <RefreshCw size={16} className="animate-spin" />
+                                                    Modification...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CheckCircle size={16} />
+                                                    Enregistrer
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
                                 </form>
                             </motion.div>
                         </motion.div>
@@ -1003,7 +1340,7 @@ export default function OrganizerDashboard() {
                 </AnimatePresence>
             </div>
 
-            <style jsx>{`
+            <style >{`
                 @keyframes shake { 0%, 100% { transform: rotate(0deg); } 10%, 30%, 50%, 70%, 90% { transform: rotate(-5deg); } 20%, 40%, 60%, 80% { transform: rotate(5deg); } }
                 .animate-shake { animation: shake 0.5s ease-in-out; }
             `}</style>
