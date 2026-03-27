@@ -3,6 +3,7 @@ import { Search, Filter } from "lucide-react";
 import ResourceCard from "../components/ResourceCard";
 import BookingModal from "../components/BookingModal";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 const resourceTypes = [
   { value: "", label: "Tous les types" },
@@ -21,7 +22,8 @@ export default function OrganizerPage() {
   const [selectedType, setSelectedType] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [loading, setLoading] = useState(true);
-
+  const location = useLocation();
+  const eventId = location.state?.eventId;
   useEffect(() => {
     loadResources();
   }, []);
@@ -29,6 +31,7 @@ export default function OrganizerPage() {
   useEffect(() => {
     filterResources();
   }, [resources, searchTerm, selectedType, maxPrice]);
+  console.log(localStorage);
 
   const loadResources = async () => {
     try {
@@ -50,6 +53,7 @@ export default function OrganizerPage() {
       setLoading(false);
     }
   };
+
 
   const filterResources = () => {
     let filtered = [...resources];
@@ -84,7 +88,7 @@ export default function OrganizerPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-10 px-4">
       <div className="max-w-7xl mx-auto">
-  
+
         {/* 🔹 Header */}
         <div className="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -95,7 +99,7 @@ export default function OrganizerPage() {
               Trouvez les meilleures ressources pour organiser votre événement
             </p>
           </div>
-  
+
           <button
             onClick={() => navigate(-1)}
             className="px-6 py-2 rounded-xl bg-white shadow hover:bg-blue-600 hover:text-white transition font-medium"
@@ -103,19 +107,19 @@ export default function OrganizerPage() {
             ← Retour
           </button>
         </div>
-  
+
         {/* 🔹 Filtres */}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-10 border border-gray-100">
-  
+
           <div className="flex items-center gap-2 mb-6">
             <Filter className="w-5 h-5 text-blue-600" />
             <h2 className="text-xl font-semibold text-slate-800">
               Recherche & Filtres
             </h2>
           </div>
-  
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-  
+
             {/* 🔍 Search */}
             <div className="lg:col-span-2">
               <label className="block text-sm font-medium mb-2">
@@ -132,7 +136,7 @@ export default function OrganizerPage() {
                 />
               </div>
             </div>
-  
+
             {/* 📂 Type */}
             <div>
               <label className="block text-sm font-medium mb-2">
@@ -150,7 +154,7 @@ export default function OrganizerPage() {
                 ))}
               </select>
             </div>
-  
+
             {/* 💰 Max Price */}
             <div>
               <label className="block text-sm font-medium mb-2">
@@ -166,7 +170,7 @@ export default function OrganizerPage() {
             </div>
           </div>
         </div>
-  
+
         {/* 🔹 Content */}
         {loading ? (
           <div className="text-center py-16">
@@ -190,6 +194,7 @@ export default function OrganizerPage() {
             {filteredResources.map((resource) => (
               <ResourceCard
                 key={resource._id}
+                eventId={eventId}
                 resource={resource}
                 onBook={handleBook}
               />
@@ -197,7 +202,7 @@ export default function OrganizerPage() {
           </div>
         )}
       </div>
-  
+
       {selectedResource && (
         <BookingModal
           resource={selectedResource}

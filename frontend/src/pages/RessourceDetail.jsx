@@ -26,8 +26,8 @@ import {
   Edit3,
   Trash2,
   Flag
-} from "lucide-react"
-
+} from "lucide-react";
+import { useLocation } from "react-router-dom";
 export default function ResourceDetailsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -37,7 +37,8 @@ export default function ResourceDetailsPage() {
   const [reserved, setReserved] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showLightbox, setShowLightbox] = useState(false)
-
+const location = useLocation();
+const eventId = location.state?.eventId;
   // État pour l'utilisateur connecté
   const [currentUser, setCurrentUser] = useState(null)
 

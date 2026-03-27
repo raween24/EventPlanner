@@ -14,6 +14,7 @@ export const createLocation = async (req, res) => {
             });
         }
 
+
         // ✅ vérifier que l'événement appartient à l'utilisateur
         const eventExists = await Event.findOne({
             _id: event,
@@ -33,11 +34,11 @@ export const createLocation = async (req, res) => {
                 message: "Ressource non trouvée"
             });
         }
-
-
-        const conflict = await Location.findOne({
-            resource,
-            status: "acceptée",
+        // 🔥 vérifier doublon AVANT création
+        const existingRequest = await Location.findOne({
+            resource: resource,
+            organisateur: req.user.id,
+            status: { $in: ["en attente", "acceptée"] },
             $or: [
                 {
                     dateDebut: { $lte: new Date(dateFin) },
@@ -46,11 +47,14 @@ export const createLocation = async (req, res) => {
             ]
         });
 
-        if (conflict) {
+        if (existingRequest) {
             return res.status(400).json({
-                message: "Ressource déjà réservée pour cette période"
+                message: "Vous avez déjà une demande pour cette ressource dans cette période"
             });
         }
+
+
+
 
         const newLocation = new Location({
             event,
@@ -90,6 +94,25 @@ export const getMyLocations = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+export const getLocationsForProvider = async (req, res) => {
+
+    try {
+        const locations = await Location.find()
+            .populate({
+                path: "resource",
+                match: { prestataire: req.user.id }
+            })
+            .populate("event")
+            .populate("organisateur");
+
+        const filtered = locations.filter(loc => loc.resource);
+
+        res.status(200).json(filtered);
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
 
 
 
@@ -104,10 +127,10 @@ export const updateLocationStatus = async (req, res) => {
         // Récupérer la demande
         const location = await Location.findById(id).populate("resource");
         if (["acceptée", "refusée"].includes(location.status)) {
-    return res.status(400).json({
-        message: "Impossible de modifier une demande déjà traitée"
-    });
-}
+            return res.status(400).json({
+                message: "Impossible de modifier une demande déjà traitée"
+            });
+        }
         if (!location) {
             return res.status(404).json({ message: "Demande non trouvée" });
         }
@@ -193,6 +216,87 @@ export const updateLocationStatus = async (req, res) => {
 
     } catch (error) {
         console.error("ERREUR updateLocation:", error);
+        res.status(500).json({ message: error.message });
+    }
+};
+export const updateStatusByProvider = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        const location = await Location.findById(id).populate("resource");
+
+        if (!location) {
+            return res.status(404).json({ message: "Demande non trouvée" });
+        }
+
+        // 🔒 bloquer si déjà traitée
+        if (["acceptée", "refusée"].includes(location.status)) {
+            return res.status(400).json({
+                message: "Demande déjà traitée"
+            });
+        }
+
+        // ✅ vérifier prestataire
+        if (location.resource.prestataire.toString() !== req.user.id.toString()) {
+            return res.status(403).json({ message: "Non autorisé (prestataire)" });
+        }
+
+        // ✅ validation status
+        if (!["acceptée", "refusée"].includes(status)) {
+            return res.status(400).json({ message: "Statut invalide" });
+        }
+
+        // 🔥 vérifier conflit si acceptée
+        if (status === "acceptée") {
+            const conflict = await Location.findOne({
+                resource: location.resource._id,
+                status: "acceptée",
+                _id: { $ne: location._id },
+                $or: [
+                    {
+                        dateDebut: { $lte: location.dateFin },
+                        dateFin: { $gte: location.dateDebut }
+                    }
+                ]
+            });
+
+            if (conflict) {
+                return res.status(400).json({
+                    message: "Conflit avec une autre réservation"
+                });
+            }
+        }
+
+        // ✅ mettre à jour le statut
+        location.status = status;
+        await location.save();
+
+        // 🔥🔥 NOUVEAU : auto-refuser les autres demandes
+        if (status === "acceptée") {
+            await Location.updateMany(
+                {
+                    resource: location.resource._id,
+                    _id: { $ne: location._id },
+                    status: "en attente",
+                    $or: [
+                        {
+                            dateDebut: { $lte: location.dateFin },
+                            dateFin: { $gte: location.dateDebut }
+                        }
+                    ]
+                },
+                { $set: { status: "refusée" } }
+            );
+        }
+
+        res.status(200).json({
+            message: `Demande ${status}`,
+            location
+        });
+
+    } catch (error) {
+        console.error("ERREUR updateStatusByProvider:", error);
         res.status(500).json({ message: error.message });
     }
 };

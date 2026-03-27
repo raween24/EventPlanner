@@ -11,6 +11,7 @@ import reunionImg from "../assets/reunion.jpg";
 import festivalImg from "../assets/festival.jpg";
 import Footer from "../components/footer";
 import DomeGallery from '../components/DomeGallery';
+import axios from "axios";
 
 const events = [
   { title: "Mariage", image: mariageImg, category: "Célébration" },
@@ -133,15 +134,22 @@ export default function HomePage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setFormStatus('sending');
-    setTimeout(() => {
-      setFormStatus('success');
-      setFormData({ name: '', email: '', subject: '', message: '' });
-      setTimeout(() => setFormStatus(''), 3000);
-    }, 1500);
-  };
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setFormStatus("sending");
+
+  try {
+    await axios.post("http://localhost:5000/api/send-mail", formData);
+
+    setFormStatus("success");
+    setFormData({ name: '', email: '', subject: '', message: '' });
+
+  } catch (error) {
+    setFormStatus("error");
+  }
+
+  setTimeout(() => setFormStatus(''), 3000);
+};
 
   const features = [
     { icon: Calendar, title: "Réservation intelligente", description: "Réservez vos salles, traiteurs et décorateurs en un clic grâce à notre système intuitif.", color: "from-blue-500 to-cyan-500" },
@@ -547,136 +555,136 @@ export default function HomePage() {
       </section>
 
       {/* ── Contact ────────────────────────────────────────────────────────── */}
-<section id="contact" className="py-24 bg-gradient-to-br from-slate-50 to-white">
-  <div className="max-w-5xl mx-auto px-6">
+      <section id="contact" className="py-24 bg-gradient-to-br from-slate-50 to-white">
+        <div className="max-w-5xl mx-auto px-6">
 
-    {/* Title */}
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className="text-center mb-12"
-    >
-      <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-        Contactez-
-        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-          Nous
-        </span>
-      </h2>
-      <p className="text-xl text-gray-600">
-        Une question ? Notre équipe est là pour vous répondre
-      </p>
-    </motion.div>
-
-    {/* Card */}
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className="bg-white rounded-3xl shadow-xl p-10 border border-gray-100"
-    >
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-
-        {/* Inputs */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            placeholder="Nom complet"
-            required
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            placeholder="Email"
-            required
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
-
-        <input
-          type="text"
-          name="subject"
-          value={formData.subject}
-          onChange={handleInputChange}
-          placeholder="Sujet"
-          required
-          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-        />
-
-        <textarea
-          name="message"
-          value={formData.message}
-          onChange={handleInputChange}
-          rows="5"
-          placeholder="Votre message..."
-          required
-          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-        />
-
-        {/* Button */}
-        <motion.button
-          type="submit"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          disabled={formStatus === "sending"}
-          className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition"
-        >
-          {formStatus === "sending"
-            ? "Envoi en cours..."
-            : formStatus === "success"
-            ? "Message envoyé !"
-            : "Envoyer le message"}
-        </motion.button>
-
-        {/* ── Coordonnées (MAINTENANT EN DESSOUS) ── */}
-        <div className="pt-6 border-t border-gray-100">
-          <h3 className="text-xl font-bold text-gray-900 mb-6 text-center">
-            Nos coordonnées
-          </h3>
-
-          <div className="flex flex-col md:flex-row justify-center items-center gap-6">
-
-            {/* Email */}
-            <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl hover:shadow-md transition">
-              <Mail className="w-5 h-5 text-blue-600" />
-              <a href="mailto:contact@smarteventplanner.com" className="text-gray-700 font-medium hover:text-blue-600">
-                contact@smarteventplanner.com
-              </a>
-            </div>
-
-            {/* Phone */}
-            <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl hover:shadow-md transition">
-              <Phone className="w-5 h-5 text-purple-600" />
-              <a href="tel:+21654809630" className="text-gray-700 font-medium hover:text-purple-600">
-                +216 54 809 630
-              </a>
-            </div>
-
-            {/* Address */}
-            <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl hover:shadow-md transition">
-              <MapPinned className="w-5 h-5 text-green-600" />
-              <span className="text-gray-700 font-medium">
-                Sousse, Tunisie
+          {/* Title */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Contactez-
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                Nous
               </span>
-            </div>
+            </h2>
+            <p className="text-xl text-gray-600">
+              Une question ? Notre équipe est là pour vous répondre
+            </p>
+          </motion.div>
 
-          </div>
+          {/* Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="bg-white rounded-3xl shadow-xl p-10 border border-gray-200"
+          >
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+
+              {/* Inputs */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="Nom complet"
+                  required
+                  className="w-full px-4 py-3 border border-gray-500 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="Email"
+                  required
+                  className="w-full px-4 py-3 border border-gray-500 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+
+              <input
+                type="text"
+                name="subject"
+                value={formData.subject}
+                onChange={handleInputChange}
+                placeholder="Sujet"
+                required
+                className="w-full px-4 py-3 border border-gray-500 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+
+              <textarea
+                name="message"
+                value={formData.message}
+                onChange={handleInputChange}
+                rows="5"
+                placeholder="Votre message..."
+                required
+                className="w-full px-4 py-3 border border-gray-500 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+              />
+
+              {/* Button */}
+              <motion.button
+                type="submit"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={formStatus === "sending"}
+                className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition"
+              >
+                {formStatus === "sending"
+                  ? "Envoi en cours..."
+                  : formStatus === "success"
+                    ? "Message envoyé !"
+                    : "Envoyer le message"}
+              </motion.button>
+
+              {/* ── Coordonnées (MAINTENANT EN DESSOUS) ── */}
+              <div className="pt-6 border-t border-gray-100">
+                <h3 className="text-xl font-bold text-gray-900 mb-6 text-center">
+                  Nos coordonnées
+                </h3>
+
+                <div className="flex flex-col md:flex-row justify-center items-center gap-6">
+
+                  {/* Email */}
+                  <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl hover:shadow-md transition">
+                    <Mail className="w-5 h-5 text-blue-600" />
+                    <a href="mailto:contact@smarteventplanner.com" className="text-gray-700 font-medium hover:text-blue-600">
+                      contact@smarteventplanner.com
+                    </a>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl hover:shadow-md transition">
+                    <Phone className="w-5 h-5 text-purple-600" />
+                    <a href="tel:+21654809630" className="text-gray-700 font-medium hover:text-purple-600">
+                      +216 54 809 630
+                    </a>
+                  </div>
+
+                  {/* Address */}
+                  <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl hover:shadow-md transition">
+                    <MapPinned className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700 font-medium">
+                      Sousse, Tunisie
+                    </span>
+                  </div>
+
+                </div>
+              </div>
+
+            </form>
+
+          </motion.div>
+
         </div>
-
-      </form>
-
-    </motion.div>
-
-  </div>
-</section>
+      </section>
 
       <Footer />
     </div>

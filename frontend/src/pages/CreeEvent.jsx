@@ -313,17 +313,18 @@ export default function CreerEvenement() {
         nombreParticipants: Number(formData.nombreParticipants),
       };
 
-      await api.post("/event/addEvent", dataToSend, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+    const response = await api.post("/event/addEvent", dataToSend, {
+  headers: { Authorization: `Bearer ${token}` }
+});
+
+const eventId = response.data.event._id;
 
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
-        navigate("/les_ressources");
-      }, 2000);
+navigate("/les_ressources", {
+  state: { eventId }
+});      }, 2000);
 
     } catch (error) {
       console.error(error);
@@ -791,8 +792,8 @@ export default function CreerEvenement() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-medium text-sm sm:text-base transition-all ${currentStep === 1
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               disabled={currentStep === 1}
             >

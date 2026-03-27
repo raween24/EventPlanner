@@ -132,6 +132,9 @@ export default function OrganizerDashboard() {
         try {
             setDemandeLoading(true);
             const response = await api.get('/location/get');
+            const sorted = response.data.sort((a, b) =>
+                new Date(b.dateDebut) - new Date(a.dateDebut)
+            );
             setDemandes(response.data);
         } catch (err) {
             console.error('Erreur chargement demandes:', err);
@@ -139,7 +142,16 @@ export default function OrganizerDashboard() {
             setDemandeLoading(false);
         }
     };
+    // Ajouter un useEffect pour l'auto‑rafraîchissement
+    useEffect(() => {
+    // Rafraîchir toutes les 30 secondes
+    const intervalId = setInterval(() => {
+        fetchDemandes();
+    }, 30000); // 30 secondes
 
+    // Nettoyer l'intervalle au démontage du composant
+    return () => clearInterval(intervalId);
+}, []);
     // Charger les notifications
     const loadNotifications = () => {
         setNotifications([]);
@@ -263,7 +275,7 @@ export default function OrganizerDashboard() {
                 dateFin: new Date(editDemandeFormData.dateFin),
                 status: editDemandeFormData.status
             };
-            
+
             // Vérifier que les dates sont valides
             if (submitData.dateFin <= submitData.dateDebut) {
                 setEditDemandeError('La date de fin doit être après la date de début');
@@ -292,7 +304,7 @@ export default function OrganizerDashboard() {
             setEditDemandeLoading(false);
         }
     };
-    
+
 
     // Fonction pour modifier le profil
     const handleProfileEdit = () => {
@@ -809,9 +821,7 @@ export default function OrganizerDashboard() {
                                         <option value="all">Tous les événements</option>
                                         {events.map(event => (<option key={event._id} value={event._id}>{event.title}</option>))}
                                     </select>
-                                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={goToToday} className="flex-1 xs:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-1 group">
-                                        <Home size={14} className="group-hover:rotate-12 transition-transform" /><span>Aujourd'hui</span>
-                                    </motion.button>
+                                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={goToToday} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-1 group"><Home size={14} className="group-hover:rotate-12 transition-transform" /><span>Aujourd'hui</span></motion.button>
                                     <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
                                         <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={prevMonth} className="p-1.5 sm:p-2 bg-white rounded-lg hover:bg-gray-200 shadow-sm transition-all"><ChevronLeft size={16} /></motion.button>
                                         <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={nextMonth} className="p-1.5 sm:p-2 bg-white rounded-lg hover:bg-gray-200 shadow-sm transition-all"><ChevronRight size={16} /></motion.button>

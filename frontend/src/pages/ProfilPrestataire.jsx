@@ -25,6 +25,8 @@ import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ProfilPres() {
+    const [showRequestDetailsModal, setShowRequestDetailsModal] = useState(false);
+    const [selectedRequest, setSelectedRequest] = useState(null);
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -47,6 +49,7 @@ export default function ProfilPres() {
     const [resources, setResources] = useState([]);
     const [filteredResources, setFilteredResources] = useState([]);
     const [requests, setRequests] = useState([]);
+    const [requestsLoading, setRequestsLoading] = useState(false); // État de chargement des demandes
     const [documents, setDocuments] = useState([]);
 
     // États pour les disponibilités
@@ -74,10 +77,10 @@ export default function ProfilPres() {
     });
     const [editCurrentMonth, setEditCurrentMonth] = useState(new Date());
 
-    // États pour les images - CORRIGÉS POUR LA STRUCTURE BACKEND
-    const [editImages, setEditImages] = useState([]); // Images existantes (objets avec _id et img_vd)
-    const [editNewImages, setEditNewImages] = useState([]); // Nouvelles images à uploader
-    const [editImagePreviews, setEditImagePreviews] = useState([]); // Aperçus des nouvelles images
+    // États pour les images
+    const [editImages, setEditImages] = useState([]);
+    const [editNewImages, setEditNewImages] = useState([]);
+    const [editImagePreviews, setEditImagePreviews] = useState([]);
 
     // États pour la modification du profil prestataire
     const [showProfileEditModal, setShowProfileEditModal] = useState(false);
@@ -112,120 +115,11 @@ export default function ProfilPres() {
             'Authorization': `Bearer ${token}`
         }
     });
-
-    // Charger les données au montage
-    useEffect(() => {
-        if (!token || !userId) {
-            navigate('/login');
-            return;
-        }
-        fetchProviderData();
-        loadMockData();
-    }, []);
-
-    // Gérer la sélection d'image
-    const handleProfileImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setProfileImage(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setProfileImagePreview(reader.result);
-            };
-            reader.readAsDataURL(file);
-        }
+    const handleRequestClick = (request) => {
+        setSelectedRequest(request);
+        setShowRequestDetailsModal(true);
     };
-
-    // Supprimer l'image sélectionnée
-    const handleRemoveProfileImage = () => {
-        setProfileImage(null);
-        setProfileImagePreview(null);
-    };
-
-    // Charger les données mockées pour la démo
-    const loadMockData = () => {
-        setRequests([
-            {
-                id: 1,
-                resourceName: 'Salle de conférence A',
-                clientName: 'Sophie Martin',
-                eventName: 'Conférence Tech 2026',
-                dateDebut: '2026-04-15T09:00:00',
-                dateFin: '2026-04-15T18:00:00',
-                status: 'en_attente',
-                price: 3500,
-                message: 'Besoin d\'un vidéoprojecteur supplémentaire',
-                resourceId: 1
-            },
-            {
-                id: 2,
-                resourceName: 'Traiteur Prestige',
-                clientName: 'Jean Dupont',
-                eventName: 'Mariage de Jean et Marie',
-                dateDebut: '2026-05-20T12:00:00',
-                dateFin: '2026-05-20T23:00:00',
-                status: 'confirmé',
-                price: 5200,
-                message: 'Menu végétarien pour 30 personnes',
-                resourceId: 2
-            },
-            {
-                id: 3,
-                resourceName: 'Décoration Florale',
-                clientName: 'Marie Lambert',
-                eventName: 'Anniversaire 50 ans',
-                dateDebut: '2026-04-10T14:00:00',
-                dateFin: '2026-04-10T22:00:00',
-                status: 'refusé',
-                price: 1200,
-                message: 'Thème champêtre',
-                resourceId: 3
-            }
-        ]);
-
-        setDocuments([
-            { id: 1, name: 'Devis - Salle de conférence.pdf', type: 'pdf', size: '2.4 MB', date: '2026-03-15', status: 'validé' },
-            { id: 2, name: 'Contrat prestation.docx', type: 'doc', size: '1.1 MB', date: '2026-03-10', status: 'en_attente' },
-            { id: 3, name: 'Facture Traiteur.pdf', type: 'pdf', size: '1.8 MB', date: '2026-03-05', status: 'validé' },
-            { id: 4, name: 'Photo salle principale.jpg', type: 'image', size: '3.2 MB', date: '2026-03-01', status: 'validé' },
-            { id: 5, name: 'Certification qualité.pdf', type: 'pdf', size: '0.8 MB', date: '2026-02-28', status: 'refusé' }
-        ]);
-    };
-
-    // Filtrer les ressources par recherche
-    useEffect(() => {
-        if (searchTerm) {
-            const filtered = resources.filter(resource =>
-                resource.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                resource.type?.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            setFilteredResources(filtered);
-        } else {
-            setFilteredResources(resources);
-        }
-    }, [searchTerm, resources]);
-
-    // Extraire toutes les disponibilités des ressources
-    useEffect(() => {
-        if (resources.length > 0) {
-            const availabilityList = [];
-            resources.forEach(resource => {
-                if (resource.availability && resource.availability.length > 0) {
-                    resource.availability.forEach(avail => {
-                        availabilityList.push({
-                            ...avail,
-                            resourceId: resource._id,
-                            resourceName: resource.name,
-                            resourceType: resource.type
-                        });
-                    });
-                }
-            });
-            setAllAvailability(availabilityList);
-        }
-    }, [resources]);
-
-    // Fonction pour charger toutes les données
+    // ==================== Fonctions de récupération des données ====================
     const fetchProviderData = async () => {
         try {
             setLoading(true);
@@ -258,7 +152,6 @@ export default function ProfilPres() {
                 }
             });
             setAllAvailability(availabilityList);
-
         } catch (err) {
             console.error('Erreur lors du chargement:', err);
             setError('Impossible de charger les données');
@@ -272,7 +165,221 @@ export default function ProfilPres() {
         }
     };
 
-    // Fonction pour modifier le profil prestataire
+    // Fonction pour récupérer les demandes de réservation (pour le prestataire)
+    const fetchRequests = async () => {
+    try {
+        setRequestsLoading(true);
+        const response = await api.get('/location/get_pres');
+        const locations = response.data;
+
+        const formattedRequests = locations.map(loc => ({
+            id: loc._id,
+            resourceName: loc.resource?.name || 'Ressource inconnue',
+            resourceId: loc.resource?._id,
+            clientName: loc.organisateur ? `${loc.organisateur.firstname} ${loc.organisateur.lastname}` : 'Client inconnu',
+            eventName: loc.event?.title || 'Événement inconnu',
+            dateDebut: loc.dateDebut,
+            dateFin: loc.dateFin,
+            status: loc.status === 'acceptée' ? 'confirmé' : loc.status === 'refusée' ? 'refusé' : 'en_attente',
+            price: loc.resource?.price || 0,
+            message: loc.message || '',
+        }));
+
+        // Tri : plus récent en premier (dateDebut décroissante)
+        formattedRequests.sort((a, b) => new Date(b.dateDebut) - new Date(a.dateDebut));
+
+        setRequests(formattedRequests);
+    } catch (err) {
+        console.error('Erreur lors du chargement des demandes:', err);
+    } finally {
+        setRequestsLoading(false);
+    }
+};
+
+    // Charger les données au montage
+    useEffect(() => {
+        if (!token || !userId) {
+            navigate('/login');
+            return;
+        }
+        fetchProviderData();
+        fetchRequests();
+
+        // Données mockées pour les documents (à remplacer plus tard)
+        setDocuments([
+            { id: 1, name: 'Devis - Salle de conférence.pdf', type: 'pdf', size: '2.4 MB', date: '2026-03-15', status: 'validé' },
+            { id: 2, name: 'Contrat prestation.docx', type: 'doc', size: '1.1 MB', date: '2026-03-10', status: 'en_attente' },
+            { id: 3, name: 'Facture Traiteur.pdf', type: 'pdf', size: '1.8 MB', date: '2026-03-05', status: 'validé' },
+            { id: 4, name: 'Photo salle principale.jpg', type: 'image', size: '3.2 MB', date: '2026-03-01', status: 'validé' },
+            { id: 5, name: 'Certification qualité.pdf', type: 'pdf', size: '0.8 MB', date: '2026-02-28', status: 'refusé' }
+        ]);
+    }, []);
+
+    // ==================== Gestion des demandes ====================
+    const handleRequestAction = async (requestId, action) => {
+        try {
+            const newStatus = action === 'accept' ? 'acceptée' : 'refusée';
+            await api.put(`/location/update_pres/${requestId}`, { status: newStatus });
+
+            // Mise à jour locale
+            setRequests(prev =>
+                prev.map(req =>
+                    req.id === requestId
+                        ? { ...req, status: action === 'accept' ? 'confirmé' : 'refusé' }
+                        : req
+                )
+            );
+            await fetchRequests();
+        } catch (err) {
+            console.error('Erreur lors de la mise à jour du statut:', err);
+            alert('Erreur lors de la mise à jour de la demande');
+        }
+    };
+
+    // ==================== Gestion des ressources (modification, suppression) ====================
+    const handleEditResource = (resource) => {
+        setEditingResource(resource);
+        setEditFormData({
+            name: resource.name || '',
+            description: resource.description || '',
+            type: resource.type || '',
+            price: resource.price || '',
+            location: resource.location || '',
+            capacity: resource.capacity || ''
+        });
+
+        const existingImages = (resource.media || []).map(media => ({
+            _id: media._id,
+            url: media.img_vd?.[0] || media,
+            name: media.name || 'Image'
+        }));
+        setEditImages(existingImages);
+        setEditImagePreviews([]);
+        setEditNewImages([]);
+
+        const availabilities = (resource.availability || []).map(avail => ({
+            id: avail._id,
+            start: avail.date_deb,
+            end: avail.date_fin,
+            status: avail.satut_disp
+        }));
+        setEditAvailabilities(availabilities);
+        setEditCurrentMonth(new Date());
+        setShowEditModal(true);
+    };
+
+    const handleAddEditImages = (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        const newImages = [...editNewImages];
+        const newPreviews = [...editImagePreviews];
+
+        files.forEach(file => {
+            newImages.push(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                newPreviews.push(reader.result);
+                setEditImagePreviews([...newPreviews]);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        setEditNewImages(newImages);
+    };
+
+    const handleRemoveEditImage = (imageId, isExisting = true) => {
+        if (isExisting) {
+            setEditImages(prev => prev.filter(img => img._id !== imageId));
+        } else {
+            const index = editNewImages.findIndex((_, i) => i === imageId);
+            setEditNewImages(prev => prev.filter((_, i) => i !== index));
+            setEditImagePreviews(prev => prev.filter((_, i) => i !== index));
+        }
+    };
+
+    const handleAddEditAvailability = () => {
+        if (editNewAvailability.start && editNewAvailability.end) {
+            setEditAvailabilities([
+                ...editAvailabilities,
+                {
+                    id: `temp_${Date.now()}`,
+                    start: editNewAvailability.start,
+                    end: editNewAvailability.end,
+                    status: false
+                }
+            ]);
+            setEditNewAvailability({ start: '', end: '', status: false });
+            setEditShowAvailabilityForm(false);
+        }
+    };
+
+    const handleRemoveEditAvailability = (index) => {
+        setEditAvailabilities(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        setEditLoading(true);
+        setEditError('');
+
+        try {
+            const formData = new FormData();
+            formData.append('name', editFormData.name);
+            formData.append('description', editFormData.description);
+            formData.append('type', editFormData.type);
+            formData.append('price', editFormData.price);
+            formData.append('location', editFormData.location || '');
+            formData.append('capacity', editFormData.capacity || '');
+
+            const imagesToKeep = editImages.map(img => img._id).filter(id => id);
+            formData.append('imagesToKeep', JSON.stringify(imagesToKeep));
+            editNewImages.forEach(image => {
+                formData.append('images', image);
+            });
+
+            const availabilityData = editAvailabilities.map(avail => ({
+                start: avail.start,
+                end: avail.end,
+                status: avail.status
+            }));
+            formData.append('availability', JSON.stringify(availabilityData));
+
+            const response = await api.put(`/ressources/modify/${editingResource._id}`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            const updatedResources = resources.map(r =>
+                r._id === editingResource._id ? response.data : r
+            );
+            setResources(updatedResources);
+            setFilteredResources(updatedResources);
+
+            setShowEditModal(false);
+            setEditingResource(null);
+            alert('Ressource modifiée avec succès !');
+        } catch (err) {
+            console.error('Erreur:', err);
+            setEditError(err.response?.data?.message || 'Erreur lors de la modification');
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
+    const handleDeleteResource = async (resourceId) => {
+        if (window.confirm('Voulez-vous vraiment supprimer cette ressource ?')) {
+            try {
+                await api.delete(`/ressources/dell/${resourceId}`);
+                setResources(prev => prev.filter(r => r._id !== resourceId));
+                setFilteredResources(prev => prev.filter(r => r._id !== resourceId));
+            } catch (err) {
+                console.error('Erreur:', err);
+                alert('Erreur lors de la suppression');
+            }
+        }
+    };
+
+    // ==================== Gestion du profil prestataire ====================
     const handleProfileEdit = () => {
         setProfileFormData({
             firstname: provider?.firstname || '',
@@ -289,7 +396,6 @@ export default function ProfilPres() {
         setShowProfileEditModal(true);
     };
 
-    // Fonction pour modifier le profil prestataire
     const handleProfileSubmit = async (e) => {
         e.preventDefault();
         setProfileLoading(true);
@@ -367,38 +473,24 @@ export default function ProfilPres() {
         }
     };
 
-    // Formater le prix
-    const formatPrice = (price) => {
-        if (!price) return '0 €';
-        return new Intl.NumberFormat('fr-FR', {
-            style: 'currency',
-            currency: 'EUR',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(price);
+    const handleProfileImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setProfileImage(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProfileImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
-    const formatDate = (date) => {
-        if (!date) return 'Date non définie';
-        return format(parseISO(date), 'dd MMMM yyyy', { locale: fr });
+    const handleRemoveProfileImage = () => {
+        setProfileImage(null);
+        setProfileImagePreview(null);
     };
 
-    const formatTime = (date) => {
-        if (!date) return '';
-        return format(parseISO(date), 'HH:mm', { locale: fr });
-    };
-
-    // Gérer les demandes de réservation
-    const handleRequestAction = (requestId, action) => {
-        setRequests(prev =>
-            prev.map(req =>
-                req.id === requestId
-                    ? { ...req, status: action === 'accept' ? 'confirmé' : 'refusé' }
-                    : req
-            )
-        );
-    };
-
+    // ==================== Gestion des documents (mock) ====================
     const handleDocumentUpload = () => {
         alert('Fonctionnalité d\'upload à implémenter');
     };
@@ -409,7 +501,7 @@ export default function ProfilPres() {
         }
     };
 
-    // Obtenir les disponibilités pour un jour spécifique
+    // ==================== Gestion du calendrier et des disponibilités ====================
     const getAvailabilityForDay = (day) => {
         if (!allAvailability || allAvailability.length === 0) return [];
         const dayStr = format(day, 'yyyy-MM-dd');
@@ -458,7 +550,6 @@ export default function ProfilPres() {
         return { available, unavailable, total: dayAvail.length };
     };
 
-    // Navigation du calendrier
     const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
     const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
     const goToToday = () => {
@@ -493,160 +584,7 @@ export default function ProfilPres() {
         }
     };
 
-    // Fonctions pour la modification de ressource
-    const handleEditResource = (resource) => {
-        setEditingResource(resource);
-        setEditFormData({
-            name: resource.name || '',
-            description: resource.description || '',
-            type: resource.type || '',
-            price: resource.price || '',
-            location: resource.location || '',
-            capacity: resource.capacity || ''
-        });
-
-        // Récupérer les images existantes - Adaptation à la structure backend
-        const existingImages = (resource.media || []).map(media => ({
-            _id: media._id,
-            url: media.img_vd?.[0] || media,
-            name: media.name || 'Image'
-        }));
-        setEditImages(existingImages);
-        setEditImagePreviews([]);
-        setEditNewImages([]);
-
-        // Récupérer les disponibilités existantes
-        const availabilities = (resource.availability || []).map(avail => ({
-            id: avail._id,
-            start: avail.date_deb,
-            end: avail.date_fin,
-            status: avail.satut_disp
-        }));
-        setEditAvailabilities(availabilities);
-        setEditCurrentMonth(new Date());
-        setShowEditModal(true);
-    };
-
-    // Gérer l'ajout de nouvelles images
-    const handleAddEditImages = (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-
-        const newImages = [...editNewImages];
-        const newPreviews = [...editImagePreviews];
-
-        files.forEach(file => {
-            newImages.push(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                newPreviews.push(reader.result);
-                setEditImagePreviews([...newPreviews]);
-            };
-            reader.readAsDataURL(file);
-        });
-
-        setEditNewImages(newImages);
-    };
-
-    // Supprimer une image existante
-    const handleRemoveEditImage = (imageId, isExisting = true) => {
-        if (isExisting) {
-            setEditImages(prev => prev.filter(img => img._id !== imageId));
-        } else {
-            const index = editNewImages.findIndex((_, i) => i === imageId);
-            setEditNewImages(prev => prev.filter((_, i) => i !== imageId));
-            setEditImagePreviews(prev => prev.filter((_, i) => i !== imageId));
-        }
-    };
-    const handleAddEditAvailability = () => {
-        if (editNewAvailability.start && editNewAvailability.end) {
-            setEditAvailabilities([
-                ...editAvailabilities,
-                {
-                    id: `temp_${Date.now()}`,
-                    start: editNewAvailability.start,
-                    end: editNewAvailability.end,
-                    status: false // ❗ toujours indisponible
-                }
-            ]);
-
-            setEditNewAvailability({ start: '', end: '', status: false });
-            setEditShowAvailabilityForm(false);
-        }
-    };
-
-    const handleRemoveEditAvailability = (index) => {
-        setEditAvailabilities(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const handleEditSubmit = async (e) => {
-        e.preventDefault();
-        setEditLoading(true);
-        setEditError('');
-
-        try {
-            const formData = new FormData();
-
-            // Ajouter les champs texte
-            formData.append('name', editFormData.name);
-            formData.append('description', editFormData.description);
-            formData.append('type', editFormData.type);
-            formData.append('price', editFormData.price);
-            formData.append('location', editFormData.location || '');
-            formData.append('capacity', editFormData.capacity || '');
-
-            // Ajouter les IDs des images à conserver (format attendu par le backend)
-            const imagesToKeep = editImages.map(img => img._id).filter(id => id);
-            formData.append('imagesToKeep', JSON.stringify(imagesToKeep));
-
-            // Ajouter les nouvelles images
-            editNewImages.forEach(image => {
-                formData.append('images', image);
-            });
-
-            // Ajouter les disponibilités (format attendu par le backend)
-            const availabilityData = editAvailabilities.map(avail => ({
-                start: avail.start,
-                end: avail.end,
-                status: avail.status // Le backend attend status (boolean)
-            }));
-            formData.append('availability', JSON.stringify(availabilityData));
-
-            const response = await api.put(`/ressources/modify/${editingResource._id}`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            // Mettre à jour la liste des ressources
-            const updatedResources = resources.map(r =>
-                r._id === editingResource._id ? response.data : r
-            );
-            setResources(updatedResources);
-            setFilteredResources(updatedResources);
-
-            setShowEditModal(false);
-            setEditingResource(null);
-            alert('Ressource modifiée avec succès !');
-        } catch (err) {
-            console.error('Erreur:', err);
-            setEditError(err.response?.data?.message || 'Erreur lors de la modification');
-        } finally {
-            setEditLoading(false);
-        }
-    };
-
-    const handleDeleteResource = async (resourceId) => {
-        if (window.confirm('Voulez-vous vraiment supprimer cette ressource ?')) {
-            try {
-                await api.delete(`/ressources/dell/${resourceId}`);
-                setResources(prev => prev.filter(r => r._id !== resourceId));
-                setFilteredResources(prev => prev.filter(r => r._id !== resourceId));
-            } catch (err) {
-                console.error('Erreur:', err);
-                alert('Erreur lors de la suppression');
-            }
-        }
-    };
-
+    // ==================== Fonctions utilitaires ====================
     const handleGoBack = () => navigate('/');
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -654,14 +592,25 @@ export default function ProfilPres() {
         navigate('/');
     };
 
-    const getStats = () => {
-        const totalRevenue = resources.reduce((acc, r) => acc + (r.price || 0), 0);
-        const pendingRequests = requests.filter(r => r.status === 'en_attente').length;
-        const totalDocuments = documents.length;
-        return { totalRevenue, pendingRequests, totalDocuments };
+    const formatPrice = (price) => {
+        if (!price) return '0 €';
+        return new Intl.NumberFormat('fr-FR', {
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(price);
     };
 
-    const stats = getStats();
+    const formatDate = (date) => {
+        if (!date) return 'Date non définie';
+        return format(parseISO(date), 'dd MMMM yyyy', { locale: fr });
+    };
+
+    const formatTime = (date) => {
+        if (!date) return '';
+        return format(parseISO(date), 'HH:mm', { locale: fr });
+    };
 
     const getMonthName = (date) => format(date, 'MMMM yyyy', { locale: fr });
     const getDaysInMonth = () => {
@@ -670,6 +619,11 @@ export default function ProfilPres() {
         return eachDayOfInterval({ start, end });
     };
 
+    // Statistiques
+    const pendingRequestsCount = requests.filter(r => r.status === 'en_attente').length;
+    const totalDocuments = documents.length;
+
+    // ==================== Composants d'affichage ====================
     const Tabs = () => (
         <div className="border-b border-gray-200 mb-6 overflow-x-auto">
             <div className="flex space-x-4 sm:space-x-8 min-w-max px-2">
@@ -683,7 +637,7 @@ export default function ProfilPres() {
                     <ClockIcon size={16} />
                     <span className="hidden xs:inline">Demandes</span>
                     <span className="xs:hidden">Dem.</span>
-                    {requests.filter(r => r.status === 'en_attente').length > 0 && <span className="bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{requests.filter(r => r.status === 'en_attente').length}</span>}
+                    {pendingRequestsCount > 0 && <span className="bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{pendingRequestsCount}</span>}
                 </button>
                 <button onClick={() => setActiveTab('documents')} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'documents' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
                     <FileText size={16} />
@@ -812,8 +766,8 @@ export default function ProfilPres() {
                                 </div>
                                 <div className="w-full grid grid-cols-3 gap-1 sm:gap-2 mt-4 sm:mt-6">
                                     <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer"><p className="text-base sm:text-lg font-bold text-purple-600">{resources.length}</p><p className="text-[10px] sm:text-xs text-gray-600">Ressources</p></motion.div>
-                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer"><p className="text-base sm:text-lg font-bold text-yellow-600">{stats.pendingRequests}</p><p className="text-[10px] sm:text-xs text-gray-600">Demandes</p></motion.div>
-                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer"><p className="text-base sm:text-lg font-bold text-blue-600">{stats.totalDocuments}</p><p className="text-[10px] sm:text-xs text-gray-600">Documents</p></motion.div>
+                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer"><p className="text-base sm:text-lg font-bold text-yellow-600">{pendingRequestsCount}</p><p className="text-[10px] sm:text-xs text-gray-600">Demandes</p></motion.div>
+                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer"><p className="text-base sm:text-lg font-bold text-blue-600">{totalDocuments}</p><p className="text-[10px] sm:text-xs text-gray-600">Documents</p></motion.div>
                                 </div>
                             </div>
                         </div>
@@ -893,27 +847,226 @@ export default function ProfilPres() {
                         {activeTab === 'requests' && (
                             <motion.div key="requests" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
                                 <h2 className="text-base sm:text-xl font-bold text-gray-900 flex items-center gap-2 mb-4"><ClockIcon size={20} className="text-yellow-600" /> Demandes de réservation</h2>
-                                {requests.length > 0 ? (
-                                    <div className="space-y-3">{requests.map((request, index) => (<motion.div key={request.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }} whileHover={{ scale: 1.01 }} className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all">
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                            <div className="flex items-start gap-3"><div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${request.status === 'en_attente' ? 'bg-yellow-100' : request.status === 'confirmé' ? 'bg-green-100' : 'bg-red-100'}`}>{request.status === 'en_attente' ? <Clock size={20} className="text-yellow-600" /> : request.status === 'confirmé' ? <CheckCircle size={20} className="text-green-600" /> : <XCircle size={20} className="text-red-600" />}</div>
-                                                <div><h3 className="font-semibold text-gray-900">{request.resourceName}</h3><p className="text-sm text-gray-600 mt-1">{request.eventName}</p><div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-500"><span className="flex items-center gap-1"><User size={12} />{request.clientName}</span><span className="flex items-center gap-1"><Calendar size={12} />{formatDate(request.dateDebut)}</span><span className="flex items-center gap-1"><Clock size={12} />{formatTime(request.dateDebut)} - {formatTime(request.dateFin)}</span></div>{request.message && (<p className="text-xs text-gray-500 mt-2 italic">"{request.message}"</p>)}</div></div>
-                                            <div className="flex items-center gap-3"><StatusBadge status={request.status} /><span className="text-lg font-bold text-blue-600">{formatPrice(request.price)}</span>{request.status === 'en_attente' && (<div className="flex gap-2"><motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleRequestAction(request.id, 'accept')} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"><CheckCircle size={18} /></motion.button><motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleRequestAction(request.id, 'reject')} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"><XCircle size={18} /></motion.button></div>)}</div>
-                                        </div>
-                                    </motion.div>))}</div>
-                                ) : (<div className="text-center py-12"><ClockIcon size={48} className="mx-auto mb-4 text-gray-300" /><p className="text-gray-500">Aucune demande de réservation</p></div>)}
+                                {requestsLoading ? (
+                                    <div className="flex justify-center py-12">
+                                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full" />
+                                    </div>
+                                ) : requests.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <ClockIcon size={48} className="mx-auto mb-4 text-gray-300" />
+                                        <p className="text-gray-500">Aucune demande de réservation</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {requests.map((request, index) => (
+                                            <motion.div
+                                                key={request.id}
+                                                initial={{ opacity: 0, x: -20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: index * 0.05 }}
+                                                whileHover={{ scale: 1.01 }}
+                                                onClick={() => handleRequestClick(request)}
+                                                className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all cursor-pointer"
+                                            >
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${request.status === 'en_attente' ? 'bg-yellow-100' : request.status === 'confirmé' ? 'bg-green-100' : 'bg-red-100'}`}>
+                                                            {request.status === 'en_attente' ? <Clock size={20} className="text-yellow-600" /> : request.status === 'confirmé' ? <CheckCircle size={20} className="text-green-600" /> : <XCircle size={20} className="text-red-600" />}
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-semibold text-gray-900">{request.resourceName}</h3>
+                                                            <p className="text-sm text-gray-600 mt-1">{request.eventName}</p>
+                                                            <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-500">
+                                                                <span className="flex items-center gap-1"><User size={12} />{request.clientName}</span>
+                                                                <span className="flex items-center gap-1"><Calendar size={12} />{formatDate(request.dateDebut)}</span>
+                                                                <span className="flex items-center gap-1"><Clock size={12} />{formatTime(request.dateDebut)} - {formatTime(request.dateFin)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <StatusBadge status={request.status} />
+                                                        <span className="text-lg font-bold text-blue-600">{formatPrice(request.price)}</span>
+                                                        {request.status === 'en_attente' && (
+                                                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                                                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleRequestAction(request.id, 'accept')} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"><CheckCircle size={18} /></motion.button>
+                                                                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleRequestAction(request.id, 'reject')} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"><XCircle size={18} /></motion.button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                )}
                             </motion.div>
                         )}
                         {activeTab === 'documents' && (
                             <motion.div key="documents" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4"><h2 className="text-base sm:text-xl font-bold text-gray-900 flex items-center gap-2"><FileText size={20} className="text-blue-600" /> Mes documents</h2><motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleDocumentUpload} className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:shadow-lg"><Upload size={16} /> Upload document</motion.button></div>
-                                {documents.length > 0 ? (<div className="overflow-x-auto"><table className="w-full"><thead><tr className="border-b border-gray-200"><th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Nom</th><th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Type</th><th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Taille</th><th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Date</th><th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Statut</th><th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>   </tr></thead><tbody>{documents.map((doc, index) => (<motion.tr key={doc.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="border-b border-gray-100 hover:bg-gray-50 transition-colors"><td className="py-3 px-4"><div className="flex items-center gap-2">{doc.type === 'pdf' ? <FileText size={16} className="text-red-500" /> : doc.type === 'image' ? <ImageIcon size={16} className="text-blue-500" /> : <File size={16} className="text-gray-500" />}<span className="text-sm font-medium text-gray-900">{doc.name}</span></div></td><td className="py-3 px-4 text-sm text-gray-600 uppercase">{doc.type}</td><td className="py-3 px-4 text-sm text-gray-600">{doc.size}</td><td className="py-3 px-4 text-sm text-gray-600">{formatDate(doc.date)}</td><td className="py-3 px-4"><StatusBadge status={doc.status} /></td><td className="py-3 px-4"><div className="flex items-center gap-2"><motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><Download size={16} /></motion.button><motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDocumentDelete(doc.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></motion.button></div></td></motion.tr>))}</tbody></table></div>) : (<div className="text-center py-12"><FileText size={48} className="mx-auto mb-4 text-gray-300" /><p className="text-gray-500 mb-4">Aucun document</p></div>)}
+                                {documents.length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead>
+                                                <tr className="border-b border-gray-200">
+                                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Nom</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Type</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Taille</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Date</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Statut</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {documents.map((doc, index) => (
+                                                    <motion.tr key={doc.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                                        <td className="py-3 px-4">
+                                                            <div className="flex items-center gap-2">
+                                                                {doc.type === 'pdf' ? <FileText size={16} className="text-red-500" /> : doc.type === 'image' ? <ImageIcon size={16} className="text-blue-500" /> : <File size={16} className="text-gray-500" />}
+                                                                <span className="text-sm font-medium text-gray-900">{doc.name}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-3 px-4 text-sm text-gray-600 uppercase">{doc.type}</td>
+                                                        <td className="py-3 px-4 text-sm text-gray-600">{doc.size}</td>
+                                                        <td className="py-3 px-4 text-sm text-gray-600">{formatDate(doc.date)}</td>
+                                                        <td className="py-3 px-4"><StatusBadge status={doc.status} /></td>
+                                                        <td className="py-3 px-4">
+                                                            <div className="flex items-center gap-2">
+                                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><Download size={16} /></motion.button>
+                                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDocumentDelete(doc.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></motion.button>
+                                                            </div>
+                                                        </td>
+                                                    </motion.tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12"><FileText size={48} className="mx-auto mb-4 text-gray-300" /><p className="text-gray-500 mb-4">Aucun document</p></div>
+                                )}
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
 
-                {/* Modal de modification de ressource avec gestion des images et disponibilités */}
+                <AnimatePresence>
+                    {showRequestDetailsModal && selectedRequest && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm"
+                            onClick={() => setShowRequestDetailsModal(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, y: 20 }}
+                                animate={{ scale: 1, y: 0 }}
+                                exit={{ scale: 0.9, y: 20 }}
+                                className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden mx-3 sm:mx-4"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-blue-100 rounded-xl">
+                                                <FileText size={20} className="text-blue-600" />
+                                            </div>
+                                            <h3 className="text-lg sm:text-xl font-bold text-gray-900">Détails de la demande</h3>
+                                        </div>
+                                        <motion.button
+                                            whileHover={{ scale: 1.1, rotate: 90 }}
+                                            whileTap={{ scale: 0.9 }}
+                                            onClick={() => setShowRequestDetailsModal(false)}
+                                            className="p-1.5 sm:p-2 hover:bg-white rounded-lg transition-all"
+                                        >
+                                            <X size={18} className="sm:w-5 sm:h-5 text-gray-500" />
+                                        </motion.button>
+                                    </div>
+                                    <p className="text-xs sm:text-sm text-gray-500 mt-2">Informations complètes sur la réservation</p>
+                                </div>
+
+                                <div className="p-4 sm:p-6 space-y-4 overflow-y-auto max-h-[60vh]">
+                                    {/* Statut avec badge */}
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-medium text-gray-500">Statut</span>
+                                        <StatusBadge status={selectedRequest.status} />
+                                    </div>
+
+                                    {/* Ressource */}
+                                    <div className="border-t border-gray-100 pt-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-purple-100 rounded-lg">
+                                                <Package size={16} className="text-purple-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">Ressource</p>
+                                                <p className="font-semibold text-gray-900">{selectedRequest.resourceName}</p>
+                                                <p className="text-xs text-gray-500 mt-1">ID: {selectedRequest.resourceId}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+
+                                    {/* Client */}
+                                    <div className="border-t border-gray-100 pt-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-green-100 rounded-lg">
+                                                <User size={16} className="text-green-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">Client</p>
+                                                <p className="font-semibold text-gray-900">{selectedRequest.clientName}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Période */}
+                                    <div className="border-t border-gray-100 pt-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-orange-100 rounded-lg">
+                                                <Clock size={16} className="text-orange-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">Période</p>
+                                                <p className="font-semibold text-gray-900">{formatDate(selectedRequest.dateDebut)}</p>
+                                                <p className="text-sm text-gray-600">De {formatTime(selectedRequest.dateDebut)} à {formatTime(selectedRequest.dateFin)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Prix */}
+                                    <div className="border-t border-gray-100 pt-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-red-100 rounded-lg">
+                                                <Euro size={16} className="text-red-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">Prix total</p>
+                                                <p className="text-2xl font-bold text-blue-600">{formatPrice(selectedRequest.price)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+
+                                </div>
+
+                                <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50">
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => setShowRequestDetailsModal(false)}
+                                        className="w-full py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg sm:rounded-xl font-medium text-xs sm:text-sm hover:shadow-lg transition-all"
+                                    >
+                                        Fermer
+                                    </motion.button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Modal de modification de ressource */}
                 <AnimatePresence>
                     {showEditModal && editingResource && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto" onClick={() => setShowEditModal(false)}>
@@ -1078,13 +1231,8 @@ export default function ProfilPres() {
                                                         </div>
                                                         <div>
                                                             <div>
-                                                                <label className="block text-[10px] sm:text-xs text-gray-600 mb-1">
-                                                                    Statut
-                                                                </label>
-
-                                                                <div className="w-full px-2 py-1 text-xs sm:text-sm border border-gray-200 rounded-lg bg-gray-100 text-gray-500">
-                                                                    Indisponible
-                                                                </div>
+                                                                <label className="block text-[10px] sm:text-xs text-gray-600 mb-1">Statut</label>
+                                                                <div className="w-full px-2 py-1 text-xs sm:text-sm border border-gray-200 rounded-lg bg-gray-100 text-gray-500">Indisponible</div>
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-2">
@@ -1181,7 +1329,7 @@ export default function ProfilPres() {
                 </AnimatePresence>
             </div>
 
-            <style jsx>{`
+            <style >{`
                 @keyframes shake { 0%, 100% { transform: rotate(0deg); } 10%, 30%, 50%, 70%, 90% { transform: rotate(-5deg); } 20%, 40%, 60%, 80% { transform: rotate(5deg); } }
                 .animate-shake { animation: shake 0.5s ease-in-out; }
             `}</style>
