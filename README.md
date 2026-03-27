@@ -10,7 +10,6 @@ des noms pour le site
 notifications pour la verification des commande ou des alert ou des nv ressources --.......
 créer  un systeme de vérification des documents --......
 les messages entres le prestataire  et organisateurs
-les messages entre les ladmin et prestataire 
 
 
 w ha9a mail mt3a application mt3na:
