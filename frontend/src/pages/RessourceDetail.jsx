@@ -67,6 +67,10 @@ export default function ResourceDetailsPage() {
   const [editingRating, setEditingRating] = useState(5);
   const [commentFilter, setCommentFilter] = useState("all");
 
+  // États pour les conditions
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTermsPopup, setShowTermsPopup] = useState(false);
+
   // Récupération de l'utilisateur connecté
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -211,7 +215,7 @@ export default function ResourceDetailsPage() {
 
   // Gestion de la sélection d'un créneau
   const handleTimeSlotSelect = (slot) => {
-    if (!slot.available) return;
+    // if (!slot.available) return;  // À SUPPRIMER
     if (selectionMode === "single") {
       setSelectedTime(slot);
       setSelectedTimes([slot]);
@@ -1262,6 +1266,28 @@ export default function ResourceDetailsPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Case à cocher Conditions générales */}
+              <div className="mb-4 flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                />
+                <label htmlFor="terms" className="text-sm text-gray-600">
+                  J'accepte les{" "}
+                  <button
+                    type="button"
+                    onClick={() => setShowTermsPopup(true)}
+                    className="text-black underline hover:text-gray-700 font-medium"
+                  >
+                    conditions générales
+                  </button>
+                </label>
+              </div>
+
               {reserved ? (
                 <div className="bg-green-50 p-4 rounded-xl text-center animate-fade-in">
                   <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto mb-2" />
@@ -1283,7 +1309,7 @@ export default function ResourceDetailsPage() {
                   className={`
                     w-full py-4 rounded-xl font-semibold transition-all duration-300
                     flex items-center justify-center gap-2
-                    ${selectedTimes.length > 0 || (startDate && endDate && isRangeValid())
+                    ${(selectedTimes.length > 0 || (startDate && endDate && isRangeValid())) && termsAccepted
                       ? "bg-black text-white hover:bg-gray-800 transform hover:scale-[1.02] active:scale-[0.98]"
                       : "bg-gray-200 text-gray-500 cursor-not-allowed"}
                   `}
@@ -1308,7 +1334,7 @@ export default function ResourceDetailsPage() {
                       });
                     }
                   }}
-                  disabled={selectedTimes.length === 0 && !(startDate && endDate && isRangeValid())}
+                  disabled={!((selectedTimes.length > 0 || (startDate && endDate && isRangeValid())) && termsAccepted)}
                 >
                   <CalendarClock className="h-5 w-5" />
                   {!selectedDate
@@ -1368,6 +1394,61 @@ export default function ResourceDetailsPage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Popup Conditions générales */}
+      {showTermsPopup && (
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowTermsPopup(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Conditions Générales</h2>
+              <button
+                onClick={() => setShowTermsPopup(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-gray-700">
+              <p className="font-semibold text-gray-900">1. Objet</p>
+              <p>Les présentes conditions générales régissent l'utilisation de la plateforme de réservation et la location des ressources mises à disposition par les prestataires.</p>
+
+              <p className="font-semibold text-gray-900">2. Réservation</p>
+              <p>La réservation devient définitive après validation du paiement. Toute réservation est personnelle et non transférable.</p>
+
+              <p className="font-semibold text-gray-900">3. Annulation et remboursement</p>
+              <p>Les annulations effectuées plus de 48h avant la date de début donnent droit à un remboursement intégral. Passé ce délai, aucun remboursement ne sera effectué.</p>
+
+              <p className="font-semibold text-gray-900">4. Utilisation des ressources</p>
+              <p>L'utilisateur s'engage à utiliser la ressource de manière conforme à sa destination et à respecter le règlement intérieur du prestataire.</p>
+
+              <p className="font-semibold text-gray-900">5. Responsabilité</p>
+              <p>L'utilisateur est responsable de tout dommage causé à la ressource pendant la période de réservation. Une caution peut être demandée par le prestataire.</p>
+
+              <p className="font-semibold text-gray-900">6. Données personnelles</p>
+              <p>Les données collectées sont nécessaires à la gestion des réservations et ne sont pas transmises à des tiers sans consentement.</p>
+
+              <p className="font-semibold text-gray-900">7. Modifications</p>
+              <p>Nous nous réservons le droit de modifier les présentes conditions à tout moment. Les nouvelles conditions s'appliquent aux réservations futures.</p>
+
+              <p className="text-sm text-gray-500 mt-6">Dernière mise à jour : 29 mars 2026</p>
+            </div>
+            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setShowTermsPopup(false)}
+                className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         </div>
       )}
