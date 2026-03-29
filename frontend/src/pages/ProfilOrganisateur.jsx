@@ -54,6 +54,7 @@ export default function OrganizerDashboard() {
     const [selectedEventFilter, setSelectedEventFilter] = useState('all');
     const [demandeLoading, setDemandeLoading] = useState(false);
 
+
     // États pour la modification de demande
     const [showEditDemandeModal, setShowEditDemandeModal] = useState(false);
     const [editingDemande, setEditingDemande] = useState(null);
@@ -102,6 +103,9 @@ export default function OrganizerDashboard() {
     const [editEventLoading, setEditEventLoading] = useState(false);
     const [editEventError, setEditEventError] = useState('');
 
+    //mes favorit
+    const [favorites, setFavorites] = useState([]);
+    const [favoritesLoading, setFavoritesLoading] = useState(false);
     // Récupérer le token et userId du localStorage
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
@@ -144,14 +148,14 @@ export default function OrganizerDashboard() {
     };
     // Ajouter un useEffect pour l'auto‑rafraîchissement
     useEffect(() => {
-    // Rafraîchir toutes les 30 secondes
-    const intervalId = setInterval(() => {
-        fetchDemandes();
-    }, 30000); // 30 secondes
+        // Rafraîchir toutes les 30 secondes
+        const intervalId = setInterval(() => {
+            fetchDemandes();
+        }, 30000); // 30 secondes
 
-    // Nettoyer l'intervalle au démontage du composant
-    return () => clearInterval(intervalId);
-}, []);
+        // Nettoyer l'intervalle au démontage du composant
+        return () => clearInterval(intervalId);
+    }, []);
     // Charger les notifications
     const loadNotifications = () => {
         setNotifications([]);
@@ -179,15 +183,18 @@ export default function OrganizerDashboard() {
         setSelectedDayEvents(dayEvents);
     }, [selectedDate, events]);
 
-    // Filtrer l'historique des événements terminés
-    useEffect(() => {
-        const now = new Date();
-        const history = events.filter(event => {
-            if (!event.dateFin) return false;
-            return isBefore(parseISO(event.dateFin), now) || event.status === 'terminé';
-        });
-        setEventHistory(history);
-    }, [events]);
+    const fetchFavorites = async () => {
+        try {
+            setFavoritesLoading(true);
+            const response = await api.get('/favorites'); // À adapter selon votre endpoint
+            // On suppose que le endpoint renvoie directement la liste des ressources favorites
+            setFavorites(response.data);
+        } catch (err) {
+            console.error('Erreur chargement favoris:', err);
+        } finally {
+            setFavoritesLoading(false);
+        }
+    };
 
     // Fonction pour charger toutes les données
     const fetchOrganizerData = async () => {

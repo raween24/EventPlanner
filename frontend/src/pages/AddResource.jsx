@@ -294,7 +294,8 @@ const AddResourceForm = () => {
     provider_name: "",
     provider_email: "",
     date_deb: "",
-    date_fin: ""
+    date_fin: "",
+    terms: ""
   });
 
   // Media upload state
@@ -995,6 +996,43 @@ const AddResourceForm = () => {
                     </div>
                   </div>
                 </div>
+{/* Conditions (Contrat) */}
+<motion.div
+  onHoverStart={() => setHoveredField('terms')}
+  onHoverEnd={() => setHoveredField(null)}
+  animate={{
+    scale: hoveredField === 'terms' ? 1.02 : 1
+  }}
+>
+  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+    <FiInfo className="text-purple-500" />
+    Conditions de location (Contrat)
+  </label>
+
+  <textarea
+    name="terms"
+    value={formData.terms}
+    onChange={handleChange}
+    rows="6"
+    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-200 transition-all duration-200 resize-none"
+    placeholder={`Article 1 : Objet
+La location concerne ...
+
+Article 2 : Paiement
+Le client doit payer ...
+
+Article 3 : Annulation
+...
+
+Article 4 : Responsabilité
+...`}
+    required
+  />
+
+  <p className="text-xs text-gray-400 mt-1">
+    💡 Rédigez vos conditions comme un contrat (elles seront utilisées dans le PDF final)
+  </p>
+</motion.div>
 
                 {/* Media Upload */}
                 <div>

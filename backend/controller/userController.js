@@ -180,7 +180,8 @@ const updateUser = async (req, res) => {
 
 const addToAdore = async (req, res) => {
   try {
-    const { userId, resourceId } = req.body;
+    const userId = req.user.id; // ✅ depuis token
+    const { resourceId } = req.body;
 
     const user = await User.findById(userId);
 
@@ -189,14 +190,18 @@ const addToAdore = async (req, res) => {
     }
 
     // éviter doublon
-    if (user.adore.includes(resourceId)) {
+    if (user.adore.some(id => id.toString() === resourceId)) {
       return res.status(400).json({ message: "Déjà dans les favoris" });
     }
 
     user.adore.push(resourceId);
     await user.save();
 
-    res.status(200).json({ message: "Ajouté aux favoris", adore: user.adore });
+    res.status(200).json({
+      message: "Ajouté aux favoris",
+      adore: user.adore
+    });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -222,10 +227,10 @@ const getAdore = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};
-const removeFromAdore = async (req, res) => {
+};const removeFromAdore = async (req, res) => {
   try {
-    const { userId, resourceId } = req.body;
+    const userId = req.user.id; // ✅ FIX
+    const { resourceId } = req.body;
 
     const user = await User.findById(userId);
 
@@ -239,7 +244,11 @@ const removeFromAdore = async (req, res) => {
 
     await user.save();
 
-    res.status(200).json({ message: "Supprimé des favoris", adore: user.adore });
+    res.status(200).json({
+      message: "Supprimé des favoris",
+      adore: user.adore
+    });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

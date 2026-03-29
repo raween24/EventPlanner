@@ -52,9 +52,13 @@ const resourceSchema = new mongoose.Schema(
       ref: "Dispo"
     }],
     prestataire: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "user"
-      },
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
+    terms: {
+      type: String,
+      required: true
+    }
 
   },
   {

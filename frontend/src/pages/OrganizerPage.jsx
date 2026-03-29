@@ -84,6 +84,7 @@ export default function OrganizerPage() {
   const handleBook = (resource) => {
     setSelectedResource(resource);
   };
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-10 px-4">
