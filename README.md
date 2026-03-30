@@ -35,4 +35,8 @@ galt na7uha modifier compte adhika gotlha ana madame rw kif yscani prestataire  
 remaarque :
 galt zidu des pâtisseries par exemple et des adresses de decorations et hajet akaak 
 
-des patisseries == traiteur bissifa 3ama non ?
+des patisseries == traiteur bissifa 3ama non ? 
+la binome 
+Traiteur
+
+Spécialité : préparation de plats salés et sucrés, mais surtout plats cuisinés complets (entrées, plats principaux, accompagnements, desserts).
