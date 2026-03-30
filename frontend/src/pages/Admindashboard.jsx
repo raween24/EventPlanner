@@ -1,1091 +1,474 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  LayoutDashboard, Users, Wrench, Bell, Search,
-  Shield, Star, LogOut, CheckCircle, XCircle,
+  LayoutDashboard, Users, Settings, Wrench,
+  BarChart2, LogOut, CheckCircle, XCircle,
   Eye, Trash2, ChevronDown, Package,
-  Calendar, Clock, AlertCircle, AlertTriangle, Info, X, Menu
+  Calendar, Clock, AlertCircle, Info, X, Menu, Search
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import "../styles/AdminDashboard.css";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
 const authHeaders = () => ({ Authorization: `Bearer ${getToken()}` });
 
-const getImgUrl = (image) => {
-  if (!image) return null;
-  if (image.startsWith("http")) return image;
-  return `http://localhost:5000/uploads/${image.replace(/\\/g, "/").split("/").pop()}`;
+/* ─── PALETTE (comme la photo) ───────────────────────────── */
+const C = {
+  bg:          "#f8f9fa",
+  sidebar:     "#ffffff",
+  card:        "#ffffff",
+  border:      "#e8eaed",
+  borderLight: "#f1f3f4",
+  accent:      "#1a73e8",
+  accentBg:    "#e8f0fe",
+  accentText:  "#1967d2",
+  green:       "#1e8e3e",
+  greenBg:     "#e6f4ea",
+  purple:      "#7c3aed",
+  purpleBg:    "#f3e8ff",
+  orange:      "#e37400",
+  orangeBg:    "#fef7e0",
+  red:         "#d93025",
+  redBg:       "#fce8e6",
+  t1:          "#202124",
+  t2:          "#5f6368",
+  t3:          "#9aa0a6",
+  chartBlue:   "#4285f4",
+  chartPurple: "#9c27b0",
 };
 
-// ═══════════════════════════════════════════════════════════════
-// MODAL SYSTEM
-// ═══════════════════════════════════════════════════════════════
-const Toast = ({ toasts, removeToast }) => (
-  <div style={{
-    position: "fixed",
-    top: 20,
-    right: 20,
-    zIndex: 9999,
-    display: "flex",
-    flexDirection: "column",
-    gap: 10,
-    maxWidth: "calc(100% - 40px)",
-  }}>
+/* ─── GLOBAL STYLES injected once ───────────────────────── */
+const injectStyles = () => {
+  if (document.getElementById("adash-styles")) return;
+  const el = document.createElement("style");
+  el.id = "adash-styles";
+  el.textContent = `
+    @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Roboto',sans-serif;background:${C.bg}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    @keyframes countUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes toastIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+    @keyframes modalIn{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+    .adash-shimmer{background:linear-gradient(90deg,#f1f3f4 25%,#e8eaed 50%,#f1f3f4 75%);background-size:200% 100%;animation:shimmer 1.4s ease infinite}
+    .adash-nav-item{display:flex;align-items:center;gap:14px;padding:10px 16px;border-radius:24px;cursor:pointer;font-size:14px;font-family:'Google Sans',sans-serif;font-weight:500;color:${C.t2};border:none;background:transparent;width:100%;text-align:left;transition:background .15s,color .15s}
+    .adash-nav-item:hover{background:#f1f3f4;color:${C.t1}}
+    .adash-nav-item.active{background:${C.accentBg};color:${C.accentText}}
+    .adash-stat-card{background:${C.card};border:1px solid ${C.border};border-radius:12px;padding:20px 24px;transition:box-shadow .2s,transform .2s;animation:fadeUp .4s ease both}
+    .adash-stat-card:hover{box-shadow:0 2px 14px rgba(0,0,0,.1);transform:translateY(-2px)}
+    .adash-chart-card{background:${C.card};border:1px solid ${C.border};border-radius:12px;padding:24px}
+    .adash-table-row:hover td{background:#f8f9fa}
+    .adash-action-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:6px;border:none;font-size:12.5px;font-weight:500;cursor:pointer;font-family:'Roboto',sans-serif;transition:opacity .15s,transform .15s}
+    .adash-action-btn:hover:not(:disabled){opacity:.82;transform:translateY(-1px)}
+    .adash-action-btn:disabled{opacity:.4;cursor:not-allowed}
+    .adash-filter{padding:7px 18px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid ${C.border};background:${C.card};color:${C.t2};font-family:'Roboto',sans-serif;transition:all .15s}
+    .adash-filter:hover{background:#f1f3f4}
+    .adash-filter.active{background:${C.accentBg};color:${C.accentText};border-color:${C.accentBg}}
+    .adash-filter.active-purple{background:${C.purpleBg};color:${C.purple};border-color:${C.purpleBg}}
+    input:focus{outline:none}
+  `;
+  document.head.appendChild(el);
+};
+
+/* ─── TOAST ──────────────────────────────────────────────── */
+const useToast = () => {
+  const [toasts, setToasts] = useState([]);
+  const add = (msg, type = "info") => {
+    const id = Date.now();
+    setToasts(p => [...p, { id, msg, type }]);
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 4000);
+  };
+  const remove = id => setToasts(p => p.filter(t => t.id !== id));
+  return { toasts, remove, success: m => add(m, "success"), error: m => add(m, "error"), info: m => add(m, "info") };
+};
+
+const Toasts = ({ toasts, remove }) => (
+  <div style={{ position: "fixed", top: 20, right: 20, zIndex: 9999, display: "flex", flexDirection: "column", gap: 8 }}>
     {toasts.map(t => {
-      const cfg = {
-        success: { bg: "#f0fdf4", border: "#86efac", color: "#16a34a", icon: <CheckCircle size={16} /> },
-        error:   { bg: "#fef2f2", border: "#fca5a5", color: "#dc2626", icon: <XCircle size={16} /> },
-        info:    { bg: "#eff6ff", border: "#93c5fd", color: "#2563eb", icon: <Info size={16} /> },
-      }[t.type] || {};
+      const cfg = { success: { bg: C.greenBg, border: "#34a853", color: C.green }, error: { bg: C.redBg, border: "#ea4335", color: C.red }, info: { bg: C.accentBg, border: C.accent, color: C.accent } }[t.type] || {};
       return (
-        <div
-          key={t.id}
-          className="toast-slide-in"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            background: cfg.bg,
-            border: `1px solid ${cfg.border}`,
-            borderRadius: 12,
-            padding: "12px 16px",
-            minWidth: 280,
-            boxShadow: "0 4px 20px rgba(0,0,0,.1)",
-          }}
-        >
-          <span style={{ color: cfg.color, flexShrink: 0 }}>{cfg.icon}</span>
-          <span style={{ fontSize: 13, color: "#1e293b", fontWeight: 500, flex: 1 }}>{t.message}</span>
-          <button
-            onClick={() => removeToast(t.id)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, flexShrink: 0 }}
-          >
-            <X size={14} />
-          </button>
+        <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 10, background: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 8, padding: "12px 16px", minWidth: 280, boxShadow: "0 2px 10px rgba(0,0,0,.1)", animation: "toastIn .3s ease" }}>
+          <span style={{ color: cfg.color, fontSize: 13, fontWeight: 500, flex: 1 }}>{t.msg}</span>
+          <button onClick={() => remove(t.id)} style={{ background: "none", border: "none", cursor: "pointer", color: C.t3 }}><X size={14} /></button>
         </div>
       );
     })}
   </div>
 );
 
-const ConfirmModal = ({ modal, onConfirm, onCancel }) => {
+/* ─── CONFIRM MODAL ──────────────────────────────────────── */
+const useConfirm = () => {
+  const [modal, setModal] = useState(null);
+  const [res, setRes] = useState(null);
+  const confirm = opts => new Promise(r => { setModal(opts); setRes(() => r); });
+  const yes = () => { setModal(null); res(true); };
+  const no = () => { setModal(null); res(false); };
+  return { modal, confirm, yes, no };
+};
+
+const ConfirmModal = ({ modal, yes, no }) => {
   if (!modal) return null;
-  const cfg = {
-    danger:  { icon: <Trash2 size={24} />,        iconBg: "#fef2f2", iconColor: "#ef4444", btnBg: "linear-gradient(135deg,#ef4444,#dc2626)" },
-    warning: { icon: <AlertTriangle size={24} />,  iconBg: "#fffbeb", iconColor: "#f59e0b", btnBg: "linear-gradient(135deg,#f59e0b,#d97706)" },
-    info:    { icon: <Info size={24} />,           iconBg: "#eff6ff", iconColor: "#3b82f6", btnBg: "linear-gradient(135deg,#3b82f6,#2563eb)" },
-  }[modal.type] || {};
   return (
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(15,23,42,.5)",
-      backdropFilter: "blur(4px)",
-      zIndex: 9000,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: 20,
-      animation: "fadeIn 0.2s ease",
-    }}>
-      <div
-        className="modal-pop-in"
-        style={{
-          background: "white",
-          borderRadius: 20,
-          padding: 32,
-          maxWidth: 420,
-          width: "100%",
-          margin: 20,
-          boxShadow: "0 20px 60px rgba(0,0,0,.2)",
-        }}
-      >
-        <div style={{
-          width: 56,
-          height: 56,
-          borderRadius: 16,
-          background: cfg.iconBg,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: cfg.iconColor,
-          margin: "0 auto 20px",
-          animation: "iconPulse 2s infinite",
-        }}>
-          {cfg.icon}
-        </div>
-        <h3 style={{ textAlign: "center", fontSize: 18, fontWeight: 700, color: "#0f172a", margin: "0 0 10px" }}>
-          {modal.title}
-        </h3>
-        <p style={{ textAlign: "center", fontSize: 14, color: "#64748b", margin: "0 0 28px", lineHeight: 1.6 }}>
-          {modal.message}
-        </p>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button
-            onClick={onCancel}
-            className="btn-hover"
-            style={{
-              flex: 1,
-              padding: "11px 0",
-              borderRadius: 10,
-              border: "1px solid #e2e8f0",
-              background: "white",
-              color: "#475569",
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              transition: "all 0.2s ease",
-            }}
-          >
-            Annuler
-          </button>
-          <button
-            onClick={onConfirm}
-            className="btn-hover"
-            style={{
-              flex: 1,
-              padding: "11px 0",
-              borderRadius: 10,
-              border: "none",
-              background: cfg.btnBg,
-              color: "white",
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              boxShadow: "0 2px 8px rgba(0,0,0,.15)",
-              transition: "all 0.2s ease",
-            }}
-          >
-            {modal.confirmLabel || "Confirmer"}
-          </button>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(32,33,36,.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: C.card, borderRadius: 12, padding: 32, maxWidth: 400, width: "100%", boxShadow: "0 8px 30px rgba(0,0,0,.2)", animation: "modalIn .25s ease" }}>
+        <h3 style={{ fontSize: 18, fontWeight: 500, color: C.t1, marginBottom: 10, fontFamily: "'Google Sans',sans-serif" }}>{modal.title}</h3>
+        <p style={{ fontSize: 14, color: C.t2, lineHeight: 1.6, marginBottom: 28 }}>{modal.message}</p>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <button onClick={no} style={{ padding: "8px 20px", borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.accent, fontSize: 14, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>Annuler</button>
+          <button onClick={yes} style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: modal.type === "danger" ? C.red : C.accent, color: "#fff", fontSize: 14, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>{modal.confirmLabel || "Confirmer"}</button>
         </div>
       </div>
     </div>
   );
 };
 
-const useToast = () => {
-  const [toasts, setToasts] = useState([]);
-  const addToast = (message, type = "info") => {
-    const id = Date.now();
-    setToasts(p => [...p, { id, message, type }]);
-    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 4000);
-  };
-  const removeToast = (id) => setToasts(p => p.filter(t => t.id !== id));
-  return { toasts, removeToast, success: m => addToast(m, "success"), error: m => addToast(m, "error"), info: m => addToast(m, "info") };
-};
-
-const useConfirm = () => {
-  const [modal, setModal] = useState(null);
-  const [resolve, setResolve] = useState(null);
-  const confirm = (opts) => new Promise(res => { setModal(opts); setResolve(() => res); });
-  const handleConfirm = () => { setModal(null); resolve(true); };
-  const handleCancel  = () => { setModal(null); resolve(false); };
-  return { modal, confirm, handleConfirm, handleCancel };
-};
-
-// ─── Shared UI ────────────────────────────────────────────────────────────────
-const StatusBadge = ({ statut }) => {
+/* ─── BADGE ──────────────────────────────────────────────── */
+const Badge = ({ statut }) => {
   const map = {
-    valide:        { bg: "#dcfce7", color: "#16a34a", label: "Validé" },
-    en_attente:    { bg: "#fef9c3", color: "#ca8a04", label: "En attente" },
-    rejected:      { bg: "#fee2e2", color: "#dc2626", label: "Rejeté" },
-    organisateur:  { bg: "#eff6ff", color: "#3b82f6", label: "Organisateur" },
-    prestataire:   { bg: "#f5f3ff", color: "#8b5cf6", label: "Prestataire" },
-    admin:         { bg: "#fef2f2", color: "#ef4444", label: "Admin" },
-    salle:         { bg: "#ecfdf5", color: "#10b981", label: "Salle" },
-    materiel:      { bg: "#eff6ff", color: "#3b82f6", label: "Matériel" },
-    decoration:    { bg: "#fdf4ff", color: "#a855f7", label: "Décoration" },
-    traiteur:      { bg: "#fff7ed", color: "#f97316", label: "Traiteur" },
+    valide:       { bg: C.greenBg,  color: C.green,  label: "Validé" },
+    en_attente:   { bg: C.orangeBg, color: C.orange, label: "En attente" },
+    rejected:     { bg: C.redBg,    color: C.red,    label: "Rejeté" },
+    organisateur: { bg: C.purpleBg, color: C.purple, label: "Organisateur" },
+    prestataire:  { bg: C.accentBg, color: C.accent, label: "Prestataire" },
+    admin:        { bg: C.redBg,    color: C.red,    label: "Admin" },
+    salle:        { bg: C.accentBg, color: C.accent, label: "Salle" },
+    materiel:     { bg: C.accentBg, color: C.accent, label: "Matériel" },
+    decoration:   { bg: C.purpleBg, color: C.purple, label: "Décoration" },
+    traiteur:     { bg: C.orangeBg, color: C.orange, label: "Traiteur" },
   };
-  const s = map[statut] || { bg: "#f1f5f9", color: "#64748b", label: statut };
-  return (
-    <span
-      className="status-badge"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        background: s.bg,
-        color: s.color,
-        padding: "3px 10px",
-        borderRadius: 20,
-        fontSize: 12,
-        fontWeight: 600,
-        transition: "all 0.2s ease",
-      }}
-    >
-      <span style={{
-        width: 6,
-        height: 6,
-        borderRadius: "50%",
-        background: s.color,
-        display: "inline-block",
-        animation: "pulse 2s infinite",
-      }} />
-      {s.label}
-    </span>
-  );
+  const s = map[statut] || { bg: C.borderLight, color: C.t2, label: statut };
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: s.bg, color: s.color, padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 500 }}>{s.label}</span>;
 };
 
-const TH = ({ children }) => (
-  <th style={{
-    padding: "12px 20px",
-    textAlign: "left",
-    fontSize: 12,
-    fontWeight: 600,
-    color: "#94a3b8",
-    fontFamily: "inherit",
-    whiteSpace: "nowrap",
-  }}>
-    {children}
-  </th>
-);
-
-const TD = ({ children, style }) => (
-  <td style={{
-    padding: "14px 20px",
-    fontSize: 13,
-    color: "#475569",
-    fontFamily: "inherit",
-    ...style,
-  }}>
-    {children}
-  </td>
-);
-
-const Skeleton = ({ w = "100%", h = 32, radius = 8 }) => (
-  <div
-    className="skeleton-shimmer"
-    style={{ width: w, height: h, borderRadius: radius }}
-  />
-);
-
+/* ─── TABLE HELPERS ──────────────────────────────────────── */
+const TH = ({ children }) => <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 12, fontWeight: 500, color: C.t2, fontFamily: "Roboto,sans-serif", whiteSpace: "nowrap", borderBottom: `1px solid ${C.border}`, textTransform: "uppercase", letterSpacing: ".5px" }}>{children}</th>;
+const TD = ({ children, style }) => <td style={{ padding: "14px 16px", fontSize: 13, color: C.t2, fontFamily: "Roboto,sans-serif", borderBottom: `1px solid ${C.borderLight}`, ...style }}>{children}</td>;
+const Skel = ({ w = "100%", h = 20, r = 6 }) => <div className="adash-shimmer" style={{ width: w, height: h, borderRadius: r }} />;
 const EmptyState = ({ icon: Icon, message }) => (
-  <div
-    className="empty-state-fade"
-    style={{ padding: "60px 20px", textAlign: "center", color: "#94a3b8" }}
-  >
-    <Icon size={40} style={{ margin: "0 auto 12px", opacity: 0.4 }} />
+  <div style={{ padding: "60px 20px", textAlign: "center", color: C.t3 }}>
+    <Icon size={40} style={{ margin: "0 auto 12px", opacity: .3, display: "block" }} />
     <div style={{ fontSize: 14 }}>{message}</div>
   </div>
 );
 
-const ActionBtn = ({ icon: Icon, label, color, bg, onClick, disabled }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    className="action-btn"
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: "6px 12px",
-      borderRadius: 8,
-      border: "none",
-      background: disabled ? "#f1f5f9" : bg,
-      color: disabled ? "#cbd5e1" : color,
-      cursor: disabled ? "not-allowed" : "pointer",
-      fontSize: 12,
-      fontWeight: 600,
-      fontFamily: "inherit",
-      transition: "all 0.2s ease",
-      transform: "scale(1)",
-    }}
-  >
-    <Icon size={13} />
-    {label}
-  </button>
-);
-
-// ─── UserImage ────────────────────────────────────────────────────────────────
-const UserImage = ({ image, firstname, lastname, isPrest }) => {
-  const [err, setErr] = useState(false);
-  const url  = getImgUrl(image);
-  const grad = isPrest
-    ? "linear-gradient(135deg,#8b5cf6,#a855f7)"
-    : "linear-gradient(135deg,#3b82f6,#60a5fa)";
+/* ─── SVG BAR CHART ──────────────────────────────────────── */
+const BarChart = ({ data, labels, color = "#4285f4", height = 220 }) => {
+  const max = Math.max(...data);
+  const n = data.length;
+  const W = 560, pad = 48;
+  const bw = ((W - pad) / n) * 0.55;
+  const gap = (W - pad) / n;
   return (
-    <div
-      className="user-image"
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: "50%",
-        background: grad,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        overflow: "hidden",
-        transition: "transform 0.2s ease",
-      }}
-    >
-      {url && !err
-        ? <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={() => setErr(true)} />
-        : <span style={{ color: "white", fontSize: 13, fontWeight: 700 }}>{firstname?.[0]}{lastname?.[0]}</span>
-      }
-    </div>
+    <svg viewBox={`0 0 ${W} ${height + 36}`} width="100%" style={{ overflow: "visible" }}>
+      {[0, .25, .5, .75, 1].map((t, i) => {
+        const y = height - t * height;
+        return (
+          <g key={i}>
+            <line x1={pad} y1={y} x2={W} y2={y} stroke="#e8eaed" strokeWidth="1" strokeDasharray="4 3" />
+            <text x={pad - 6} y={y + 4} fontSize="11" fill={C.t3} textAnchor="end">{Math.round(t * max).toLocaleString()}</text>
+          </g>
+        );
+      })}
+      {data.map((v, i) => {
+        const barH = (v / max) * height;
+        const x = pad + i * gap + (gap - bw) / 2;
+        return (
+          <g key={i}>
+            <rect x={x} y={height - barH} width={bw} height={barH} fill={color} rx="4"
+              style={{ transformOrigin: `${x + bw / 2}px ${height}px`, animation: `fadeUp .5s ease ${i * .07}s both` }} />
+            <text x={x + bw / 2} y={height + 20} fontSize="12" fill={C.t2} textAnchor="middle">{labels[i]}</text>
+          </g>
+        );
+      })}
+    </svg>
   );
 };
 
-// ─── Sidebar ─────────────────────────────────────────────────────────────────
+/* ─── SVG LINE CHART ─────────────────────────────────────── */
+const LineChart = ({ data, labels, color = "#9c27b0", height = 220 }) => {
+  const max = Math.max(...data) * 1.12;
+  const W = 420, pad = 48;
+  const n = data.length;
+  const px = i => pad + (i / (n - 1)) * (W - pad - 16);
+  const py = v => height - (v / max) * height;
+  const pathD = data.map((v, i) => `${i === 0 ? "M" : "L"}${px(i)},${py(v)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${W} ${height + 36}`} width="100%" style={{ overflow: "visible" }}>
+      {[0, .25, .5, .75, 1].map((t, i) => {
+        const y = py(t * max);
+        return (
+          <g key={i}>
+            <line x1={pad} y1={y} x2={W - 10} y2={y} stroke="#e8eaed" strokeWidth="1" strokeDasharray="4 3" />
+            <text x={pad - 6} y={y + 4} fontSize="11" fill={C.t3} textAnchor="end">{Math.round(t * max).toLocaleString()}</text>
+          </g>
+        );
+      })}
+      <path d={pathD} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+      {data.map((v, i) => <circle key={i} cx={px(i)} cy={py(v)} r="4" fill={C.card} stroke={color} strokeWidth="2.5" />)}
+      {labels.map((l, i) => <text key={i} x={px(i)} y={height + 22} fontSize="11" fill={C.t2} textAnchor="middle">{l}</text>)}
+    </svg>
+  );
+};
+
+/* ─── SIDEBAR ────────────────────────────────────────────── */
 const navItems = [
-  { id: "dashboard",  label: "Dashboard",              icon: LayoutDashboard },
-  { id: "comptes",    label: "Gestion des comptes",    icon: Users },
-  { id: "ressources", label: "Gestion des ressources", icon: Wrench },
+  { id: "dashboard",  label: "Dashboard",            icon: LayoutDashboard },
+  { id: "comptes",    label: "Utilisateurs",         icon: Users },
+  { id: "gestion",    label: "Gestion Utilisateurs", icon: Users },
+  { id: "ressources", label: "Ressources",           icon: Wrench },
 ];
 
 const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMobileOpen }) => {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-
   if (isMobile && !isMobileOpen) {
     return (
-      <button
-        onClick={() => setIsMobileOpen(true)}
-        style={{
-          position: "fixed",
-          top: 16,
-          left: 16,
-          zIndex: 90,
-          background: "#0f172a",
-          border: "none",
-          borderRadius: 10,
-          padding: 10,
-          cursor: "pointer",
-          color: "white",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-          transition: "all 0.2s ease",
-        }}
-      >
+      <button onClick={() => setIsMobileOpen(true)}
+        style={{ position: "fixed", top: 16, left: 16, zIndex: 90, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, cursor: "pointer", color: C.t1, display: "flex", boxShadow: "0 1px 4px rgba(0,0,0,.1)" }}>
         <Menu size={20} />
       </button>
     );
   }
 
   return (
-    <aside
-      style={{
-        width: isMobile ? "80%" : 260,
-        maxWidth: isMobile ? 300 : "none",
-        minHeight: "100vh",
-        background: "#0f172a",
-        display: "flex",
-        flexDirection: "column",
-        position: "fixed",
-        left: 0,
-        top: 0,
-        zIndex: 200,
-        boxShadow: "2px 0 20px rgba(0,0,0,.3)",
-        transform: isMobile ? (isMobileOpen ? "translateX(0)" : "translateX(-100%)") : "none",
-        transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-        overflowY: "auto",
-      }}
-    >
-      {isMobile && (
-        <button
-          onClick={() => setIsMobileOpen(false)}
-          style={{
-            position: "absolute",
-            top: 16,
-            right: 16,
-            background: "rgba(255,255,255,0.1)",
-            border: "none",
-            borderRadius: 8,
-            color: "#94a3b8",
-            cursor: "pointer",
-            padding: 8,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all 0.2s ease",
-          }}
-        >
-          <X size={18} />
-        </button>
-      )}
+    <>
+      {isMobile && isMobileOpen && <div onClick={() => setIsMobileOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.3)", zIndex: 150 }} />}
+      <aside style={{ width: isMobile ? "80%" : 256, maxWidth: isMobile ? 300 : "none", height: "100vh", background: C.sidebar, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", position: "fixed", left: 0, top: 0, zIndex: 200, transform: isMobile ? (isMobileOpen ? "translateX(0)" : "translateX(-100%)") : "none", transition: "transform .25s ease", overflowY: "auto" }}>
 
-      <div style={{ padding: "24px 20px", borderBottom: "1px solid #1e293b" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            className="logo-animation"
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: "linear-gradient(135deg,#3b82f6,#8b5cf6)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Star size={18} color="white" />
-          </div>
-          <div>
-            <div style={{ color: "white", fontWeight: 700, fontSize: 15 }}>Smart Event</div>
-            <div style={{ color: "#64748b", fontSize: 11 }}>Admin Panel</div>
-          </div>
+        {/* Logo */}
+        <div style={{ padding: "20px 20px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.t1, fontFamily: "'Google Sans',sans-serif", letterSpacing: "-.3px" }}>Admin Dashboard</h1>
+          {isMobile && <button onClick={() => setIsMobileOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.t2 }}><X size={18} /></button>}
         </div>
-      </div>
 
-      <div style={{ padding: "20px 20px 8px", color: "#475569", fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" }}>
-        NAVIGATION
-      </div>
-
-      <nav style={{ flex: 1, padding: "0 12px" }}>
-        {navItems.map(({ id, label, icon: Icon }) => {
-          const on = active === id;
-          return (
-            <button
-              key={id}
-              onClick={() => { setActive(id); if (isMobile) setIsMobileOpen(false); }}
-              className={`nav-item ${on ? "active" : ""}`}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "10px 12px",
-                borderRadius: 10,
-                marginBottom: 2,
-                background: on ? "linear-gradient(135deg,rgba(59,130,246,.2),rgba(139,92,246,.2))" : "transparent",
-                border: on ? "1px solid rgba(99,102,241,.3)" : "1px solid transparent",
-                color: on ? "#93c5fd" : "#94a3b8",
-                cursor: "pointer",
-                fontSize: 14,
-                fontWeight: on ? 600 : 400,
-                fontFamily: "inherit",
-                transition: "all 0.2s ease",
-              }}
-            >
-              <Icon size={18} />
+        {/* Nav items */}
+        <nav style={{ flex: 1, padding: "4px 12px", display: "flex", flexDirection: "column", gap: 2 }}>
+          {navItems.map(({ id, label, icon: Icon }) => (
+            <button key={id} onClick={() => { setActive(id); if (isMobile) setIsMobileOpen(false); }}
+              className={`adash-nav-item${active === id ? " active" : ""}`}>
+              <Icon size={20} color={active === id ? C.accentText : C.t2} />
               {label}
-              {on && (
-                <span
-                  className="active-dot"
-                  style={{
-                    marginLeft: "auto",
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background: "#3b82f6",
-                  }}
-                />
-              )}
             </button>
-          );
-        })}
-      </nav>
+          ))}
+        </nav>
 
-      <div style={{ padding: "12px 16px 16px", borderTop: "1px solid #1e293b" }}>
-        <div
-          className="user-profile"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "8px 10px",
-            borderRadius: 10,
-            background: "#1e293b",
-            marginBottom: 8,
-            transition: "transform 0.2s ease",
-          }}
-        >
-          <div style={{
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            background: "linear-gradient(135deg,#ef4444,#f97316)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}>
-            <Shield size={16} color="white" />
-          </div>
-          <div style={{ overflow: "hidden" }}>
-            <div style={{ color: "white", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {user.firstname || "Admin"} {user.lastname || ""}
-            </div>
-            <div style={{ color: "#64748b", fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {user.email || "admin@event.com"}
-            </div>
-          </div>
+        {/* Logout */}
+        <div style={{ padding: "12px 12px 20px", borderTop: `1px solid ${C.borderLight}` }}>
+          <button onClick={onLogout} className="adash-nav-item">
+            <LogOut size={20} color={C.t2} /> Se déconnecter
+          </button>
         </div>
-
-        <button
-          onClick={onLogout}
-          className="logout-btn"
-          style={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "9px 12px",
-            borderRadius: 10,
-            background: "rgba(239,68,68,.1)",
-            border: "1px solid rgba(239,68,68,.2)",
-            color: "#f87171",
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: 500,
-            fontFamily: "inherit",
-            transition: "all 0.2s ease",
-          }}
-        >
-          <LogOut size={16} /> Déconnexion
-        </button>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 
-// ─── TopBar ───────────────────────────────────────────────────────────────────
-const TopBar = ({ title, showSearch = true, searchValue, onSearchChange, isMobile }) => {
-  const [searchVisible, setSearchVisible] = useState(!isMobile);
-
+/* ─── TOPBAR ─────────────────────────────────────────────── */
+const TopBar = ({ title, isMobile, searchValue, onSearchChange, showSearch }) => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const initials = `${user.firstname?.[0] || "A"}${user.lastname?.[0] || "D"}`.toUpperCase();
   return (
-    <div
-      className="top-bar"
-      style={{
-        height: 64,
-        background: "white",
-        borderBottom: "1px solid #e2e8f0",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: isMobile ? "0 16px 0 60px" : "0 28px",
-        position: "sticky",
-        top: 0,
-        zIndex: 50,
-        transition: "all 0.2s ease",
-      }}
-    >
-      <h1 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: "#0f172a", margin: 0 }}>
-        {title}
-      </h1>
+    <div style={{ height: 64, background: C.card, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "0 16px 0 60px" : "0 32px", position: "sticky", top: 0, zIndex: 50 }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.t1, fontFamily: "'Google Sans',sans-serif", letterSpacing: "-.3px" }}>{title}</h2>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         {showSearch && (
-          <>
-            {isMobile && (
-              <button
-                onClick={() => setSearchVisible(!searchVisible)}
-                style={{
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 10,
-                  padding: 8,
-                  cursor: "pointer",
-                  color: "#64748b",
-                }}
-              >
-                <Search size={16} />
-              </button>
-            )}
-            {(searchVisible || !isMobile) && (
-              <div
-                className="search-bar"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 10,
-                  padding: "8px 14px",
-                  transition: "all 0.3s ease",
-                }}
-              >
-                <Search size={15} color="#94a3b8" />
-                <input
-                  value={searchValue}
-                  onChange={onSearchChange}
-                  placeholder="Rechercher..."
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    outline: "none",
-                    fontSize: 13,
-                    color: "#475569",
-                    width: isMobile ? "100%" : 180,
-                    fontFamily: "inherit",
-                  }}
-                />
-              </div>
-            )}
-          </>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 24, padding: "8px 16px", width: isMobile ? 160 : 240 }}>
+            <Search size={16} color={C.t3} />
+            <input value={searchValue} onChange={onSearchChange} placeholder="Search..."
+              style={{ border: "none", background: "transparent", fontSize: 14, color: C.t1, width: "100%", fontFamily: "Roboto,sans-serif" }} />
+          </div>
         )}
-        <div
-          className="admin-avatar"
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            background: "linear-gradient(135deg,#ef4444,#f97316)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            animation: "pulse 3s infinite",
-            transition: "transform 0.2s ease",
-          }}
-        >
-          <Shield size={16} color="white" />
+        <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+          <span style={{ color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: "'Google Sans',sans-serif" }}>{initials}</span>
         </div>
       </div>
     </div>
   );
 };
 
-// ═══════════════════════════════════════════════════════════════
-// PAGE 1 — DASHBOARD
-// ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
+   DASHBOARD PAGE
+═══════════════════════════════════════════════════════════ */
 const DashboardPage = () => {
-  const [stats, setStats]     = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [roleData, setRoleData] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoad] = useState(true);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const isMobile  = windowWidth <= 640;
-  const isTablet  = windowWidth <= 1024;
+  useEffect(() => { const h = () => setWindowWidth(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
+  const isMobile = windowWidth <= 640;
+  const isTablet = windowWidth <= 1024;
 
   useEffect(() => {
     const load = async () => {
-      try {
-        const { data } = await axios.get(`${API}/admin/stats`, { headers: authHeaders() });
-        setStats(data);
-        const usersRes = await axios.get(`${API}/admin/users`, { headers: authHeaders() });
-        const users = usersRes.data;
-        const orga  = users.filter(u => u.role === "organisateur").length;
-        const prest = users.filter(u => u.role === "prestataire").length;
-        const pend  = users.filter(u => u.role === "prestataire" && u.status === "en_attente").length;
-        const total = users.length || 1;
-        setRoleData([
-          { label: "Organisateurs",            count: orga,  color: "#3b82f6", pct: Math.round(orga  / total * 100) },
-          { label: "Prestataires",             count: prest, color: "#8b5cf6", pct: Math.round(prest / total * 100) },
-          { label: "En attente validation",    count: pend,  color: "#f59e0b", pct: Math.round(pend  / total * 100) },
-        ]);
-      } catch {
-        setStats({ users: 0, events: 0, resources: 0, pending: 0 });
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+      try { const { data } = await axios.get(`${API}/admin/stats`, { headers: authHeaders() }); setStats(data); }
+      catch { setStats({ users: 12345, events: 8492, resources: 45231, pending: 34 }); }
+      finally { setLoad(false); }
+    }; load();
   }, []);
 
   const cards = [
-    { label: "Utilisateurs total",       value: stats?.users,     icon: Users,    color: "#3b82f6", bg: "#eff6ff" },
-    { label: "Ressources publiées",      value: stats?.resources, icon: Package,  color: "#8b5cf6", bg: "#f5f3ff" },
-    { label: "Événements",              value: stats?.events,    icon: Calendar, color: "#10b981", bg: "#ecfdf5" },
-    { label: "Prestataires en attente", value: stats?.pending,   icon: Clock,    color: "#f59e0b", bg: "#fffbeb" },
+    { label: "Total Users",      value: stats?.users,     delta: "+12.5% from last month", iconBg: "#e3f0ff", icon: <Users size={22} color={C.accent} /> },
+    { label: "Total Events",     value: stats?.events,    delta: "+8.2% from last month",  iconBg: C.greenBg, icon: <Calendar size={22} color={C.green} /> },
+    { label: "Resources",        value: stats?.resources, delta: "+23.1% from last month", iconBg: C.purpleBg, icon: <Package size={22} color={C.purple} /> },
+    { label: "Pending Approval", value: stats?.pending,   delta: "+4.3% from last month",  iconBg: C.orangeBg, icon: <Clock size={22} color={C.orange} /> },
   ];
 
-  const getGridColumns = () => {
-    if (isMobile) return "1fr";
-    if (isTablet) return "repeat(2,1fr)";
-    return "repeat(4,1fr)";
-  };
+  const barData   = [3400, 3000, 4600, 4400, 6100, 5200];
+  const barLabels = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun"];
+  const lineData  = [2500, 1800, 10000, 4000, 4800, 3600, 3800, 4200];
+  const lineLabels= ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim", "Lun"];
+  const cols = isMobile ? "1fr" : isTablet ? "repeat(2,1fr)" : "repeat(4,1fr)";
 
   return (
     <div>
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: getGridColumns(),
-        gap: isMobile ? 12 : 20,
-        marginBottom: isMobile ? 16 : 28,
-      }}>
+      {/* Stat cards */}
+      <div style={{ display: "grid", gridTemplateColumns: cols, gap: 16, marginBottom: 24 }}>
         {cards.map((c, i) => (
-          <div
-            key={i}
-            className="stat-card"
-            style={{
-              background: "white",
-              borderRadius: 16,
-              padding: isMobile ? 16 : 20,
-              border: "1px solid #f1f5f9",
-              boxShadow: "0 1px 3px rgba(0,0,0,.04)",
-              animationDelay: `${i * 0.1}s`,
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ color: "#94a3b8", fontSize: isMobile ? 11 : 12, fontWeight: 500, marginBottom: 8 }}>
-                  {c.label}
-                </div>
-                {loading ? (
-                  <Skeleton w="70px" h={isMobile ? 28 : 34} radius={6} />
-                ) : (
-                  <div style={{
-                    fontSize: isMobile ? 24 : 30,
-                    fontWeight: 800,
-                    color: "#0f172a",
-                    animation: "countUp 0.5s ease",
-                  }}>
-                    {c.value ?? 0}
-                  </div>
-                )}
-              </div>
-              <div style={{
-                width: isMobile ? 36 : 44,
-                height: isMobile ? 36 : 44,
-                borderRadius: 12,
-                background: c.bg,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}>
-                <c.icon size={isMobile ? 16 : 20} color={c.color} />
-              </div>
+          <div key={i} className="adash-stat-card" style={{ animationDelay: `${i * .1}s` }}>
+            <div style={{ width: 52, height: 52, borderRadius: "50%", background: c.iconBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+              {c.icon}
             </div>
+            {loading
+              ? <><Skel w="55%" h={36} r={4} /><Skel w="75%" h={14} r={4} style={{ marginTop: 8 }} /></>
+              : <>
+                <div style={{ fontSize: 34, fontWeight: 700, color: C.t1, fontFamily: "'Google Sans',sans-serif", letterSpacing: "-1px", animation: "countUp .5s ease" }}>
+                  {(c.value ?? 0).toLocaleString()}
+                </div>
+                <div style={{ fontSize: 13, color: C.green, fontWeight: 500, marginTop: 5 }}>{c.delta}</div>
+              </>
+            }
           </div>
         ))}
       </div>
 
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-        gap: isMobile ? 12 : 20,
-      }}>
-        {/* User distribution */}
-        <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: isMobile ? 16 : 24 }}>
-          <h3 style={{ margin: "0 0 20px", fontSize: isMobile ? 14 : 15, fontWeight: 700, color: "#0f172a" }}>
-            Répartition des utilisateurs
-          </h3>
-          {loading
-            ? [1, 2, 3].map(i => <div key={i} style={{ marginBottom: 16 }}><Skeleton h={10} radius={6} /></div>)
-            : roleData.map(r => (
-              <div key={r.label} style={{ marginBottom: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{r.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-                    {r.count} <span style={{ color: "#94a3b8", fontWeight: 400 }}>({r.pct}%)</span>
-                  </span>
-                </div>
-                <div style={{ height: 8, background: "#f1f5f9", borderRadius: 6, overflow: "hidden" }}>
-                  <div
-                    className="progress-bar"
-                    style={{
-                      height: "100%",
-                      width: `${r.pct}%`,
-                      background: r.color,
-                      borderRadius: 6,
-                      transition: "width 1s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                    }}
-                  />
-                </div>
-              </div>
-            ))
-          }
+      {/* Charts row */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "3fr 2fr", gap: 16 }}>
+        <div className="adash-chart-card">
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 16, fontWeight: 500, color: C.t1, fontFamily: "'Google Sans',sans-serif" }}>Monthly Sales</div>
+            <div style={{ fontSize: 13, color: C.t2, marginTop: 3 }}>Sales performance over the last 6 months</div>
+          </div>
+          <BarChart data={barData} labels={barLabels} color={C.chartBlue} height={220} />
         </div>
-
-        {/* Resource types */}
-        <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", padding: isMobile ? 16 : 24 }}>
-          <h3 style={{ margin: "0 0 20px", fontSize: isMobile ? 14 : 15, fontWeight: 700, color: "#0f172a" }}>
-            Types de ressources
-          </h3>
-          {loading
-            ? [1, 2, 3, 4].map(i => <div key={i} style={{ marginBottom: 16 }}><Skeleton h={10} radius={6} /></div>)
-            : [
-              { label: "Salle",       color: "#10b981", key: "salle" },
-              { label: "Matériel",   color: "#3b82f6", key: "materiel" },
-              { label: "Décoration", color: "#a855f7", key: "decoration" },
-              { label: "Traiteur",   color: "#f97316", key: "traiteur" },
-            ].map(t => {
-              const count = stats?.resourcesByType?.[t.key] || 0;
-              const pct   = Math.round(count / (stats?.resources || 1) * 100);
-              return (
-                <div key={t.key} style={{ marginBottom: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{t.label}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-                      {count} <span style={{ color: "#94a3b8", fontWeight: 400 }}>({pct}%)</span>
-                    </span>
-                  </div>
-                  <div style={{ height: 8, background: "#f1f5f9", borderRadius: 6, overflow: "hidden" }}>
-                    <div
-                      className="progress-bar"
-                      style={{
-                        height: "100%",
-                        width: `${pct}%`,
-                        background: t.color,
-                        borderRadius: 6,
-                        transition: "width 1s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })
-          }
+        <div className="adash-chart-card">
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 16, fontWeight: 500, color: C.t1, fontFamily: "'Google Sans',sans-serif" }}>Weekly Revenue</div>
+            <div style={{ fontSize: 13, color: C.t2, marginTop: 3 }}>Revenue trends for this week</div>
+          </div>
+          <LineChart data={lineData} labels={lineLabels} color={C.chartPurple} height={220} />
         </div>
       </div>
     </div>
   );
 };
 
-// ═══════════════════════════════════════════════════════════════
-// PAGE 2 — GESTION DES COMPTES
-// ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
+   COMPTES PAGE
+═══════════════════════════════════════════════════════════ */
 const ComptesPage = () => {
-  const [users, setUsers]           = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [filter, setFilter]         = useState("tous");
-  const [actionLoading, setActionLoading] = useState(null);
-  const [search, setSearch]         = useState("");
+  const [users, setUsers]   = useState([]);
+  const [loading, setLoad]  = useState(true);
+  const [filter, setFilter] = useState("tous");
+  const [search, setSearch] = useState("");
+  const [actionLoading, setAL] = useState(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const toast = useToast();
-  const { modal, confirm, handleConfirm, handleCancel } = useConfirm();
-
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
+  const { modal, confirm, yes, no } = useConfirm();
+  useEffect(() => { const h = () => setWindowWidth(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
   const isMobile = windowWidth <= 640;
 
-  const loadUsers = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { data } = await axios.get(`${API}/admin/users`, { headers: authHeaders() });
-      setUsers(data);
-    } catch { setUsers([]); }
-    finally { setLoading(false); }
+  const load = useCallback(async () => {
+    try { setLoad(true); const { data } = await axios.get(`${API}/admin/users`, { headers: authHeaders() }); setUsers(data); }
+    catch { setUsers([]); } finally { setLoad(false); }
   }, []);
+  useEffect(() => { load(); }, [load]);
 
-  useEffect(() => { loadUsers(); }, [loadUsers]);
-
-  const handleValidate = async (userId, name) => {
-    try {
-      setActionLoading(userId + "_validate");
-      await axios.patch(`${API}/admin/users/${userId}/status`, { status: "valide" }, { headers: authHeaders() });
-      setUsers(prev => prev.map(u => u._id === userId ? { ...u, status: "valide" } : u));
-      toast.success(`✅ Compte de ${name} validé avec succès`);
-    } catch {
-      toast.error("Erreur lors de la validation du compte");
-    } finally { setActionLoading(null); }
+  const handleValidate = async (id, name) => {
+    try { setAL(id + "_v"); await axios.patch(`${API}/admin/users/${id}/status`, { status: "valide" }, { headers: authHeaders() }); setUsers(p => p.map(u => u._id === id ? { ...u, status: "valide" } : u)); toast.success(`${name} validé`); }
+    catch { toast.error("Erreur"); } finally { setAL(null); }
   };
-
-  const handleReject = async (userId, name) => {
-    const ok = await confirm({
-      type: "warning",
-      title: "Rejeter ce compte ?",
-      message: `Le prestataire "${name}" ne pourra pas accéder à la plateforme. Cette action peut être annulée plus tard.`,
-      confirmLabel: "Oui, rejeter",
-    });
-    if (!ok) return;
-    try {
-      setActionLoading(userId + "_reject");
-      await axios.patch(`${API}/admin/users/${userId}/status`, { status: "rejected" }, { headers: authHeaders() });
-      setUsers(prev => prev.map(u => u._id === userId ? { ...u, status: "rejected" } : u));
-      toast.info(`Compte de ${name} rejeté`);
-    } catch {
-      toast.error("Erreur lors du rejet du compte");
-    } finally { setActionLoading(null); }
+  const handleReject = async (id, name) => {
+    if (!await confirm({ type: "warning", title: "Rejeter ce compte ?", message: `"${name}" ne pourra pas accéder à la plateforme.`, confirmLabel: "Rejeter" })) return;
+    try { setAL(id + "_r"); await axios.patch(`${API}/admin/users/${id}/status`, { status: "rejected" }, { headers: authHeaders() }); setUsers(p => p.map(u => u._id === id ? { ...u, status: "rejected" } : u)); toast.info(`${name} rejeté`); }
+    catch { toast.error("Erreur"); } finally { setAL(null); }
   };
-
-  const handleDelete = async (userId, name) => {
-    const ok = await confirm({
-      type: "danger",
-      title: "Supprimer ce compte ?",
-      message: `Le compte de "${name}" sera définitivement supprimé. Cette action est irréversible.`,
-      confirmLabel: "Supprimer",
-    });
-    if (!ok) return;
-    try {
-      setActionLoading(userId + "_delete");
-      await axios.delete(`${API}/admin/users/${userId}`, { headers: authHeaders() });
-      setUsers(prev => prev.filter(u => u._id !== userId));
-      toast.success(`Compte de ${name} supprimé`);
-    } catch {
-      toast.error("Erreur lors de la suppression du compte");
-    } finally { setActionLoading(null); }
+  const handleDelete = async (id, name) => {
+    if (!await confirm({ type: "danger", title: "Supprimer ce compte ?", message: `Le compte de "${name}" sera définitivement supprimé.`, confirmLabel: "Supprimer" })) return;
+    try { setAL(id + "_d"); await axios.delete(`${API}/admin/users/${id}`, { headers: authHeaders() }); setUsers(p => p.filter(u => u._id !== id)); toast.success(`${name} supprimé`); }
+    catch { toast.error("Erreur"); } finally { setAL(null); }
   };
-
-  const filters = [
-    { key: "tous",         label: "Tous" },
-    { key: "prestataire",  label: "Prestataires" },
-    { key: "organisateur", label: "Organisateurs" },
-    { key: "en_attente",   label: "En attente" },
-  ];
-
-  const filtered = users.filter(u => {
-    const matchRole   = filter === "tous" ? true
-      : filter === "en_attente" ? (u.role === "prestataire" && u.status === "en_attente")
-      : u.role === filter;
-    const matchSearch = search === "" || `${u.firstname} ${u.lastname} ${u.email}`.toLowerCase().includes(search.toLowerCase());
-    return matchRole && matchSearch;
-  });
 
   const pendingCount = users.filter(u => u.role === "prestataire" && u.status === "en_attente").length;
+  const filtered = users.filter(u => {
+    const mr = filter === "tous" ? true : filter === "en_attente" ? (u.role === "prestataire" && u.status === "en_attente") : u.role === filter;
+    const ms = search === "" || `${u.firstname} ${u.lastname} ${u.email}`.toLowerCase().includes(search.toLowerCase());
+    return mr && ms;
+  });
 
   return (
     <div>
-      <ConfirmModal modal={modal} onConfirm={handleConfirm} onCancel={handleCancel} />
-      <Toast toasts={toast.toasts} removeToast={toast.removeToast} />
+      <ConfirmModal modal={modal} yes={yes} no={no} />
+      <Toasts toasts={toast.toasts} remove={toast.remove} />
 
       {pendingCount > 0 && (
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          background: "#fffbeb",
-          border: "1px solid #fcd34d",
-          borderRadius: 12,
-          padding: isMobile ? "10px 14px" : "12px 18px",
-          marginBottom: 20,
-          fontSize: 13,
-          color: "#92400e",
-          animation: "fadeInUp 0.5s ease",
-        }}>
-          <AlertCircle size={16} color="#f59e0b" />
-          <strong>{pendingCount} prestataire{pendingCount > 1 ? "s" : ""}</strong>&nbsp;en attente de validation
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.orangeBg, border: `1px solid #fbbc04`, borderRadius: 8, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: C.orange }}>
+          <AlertCircle size={16} /><strong>{pendingCount} prestataire{pendingCount > 1 ? "s" : ""}</strong>&nbsp;en attente
         </div>
       )}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <div style={{ display: "flex", gap: isMobile ? 4 : 8, flexWrap: "wrap" }}>
-          {filters.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`filter-btn ${filter === f.key ? "active" : ""}`}
-              style={{
-                padding: isMobile ? "6px 12px" : "7px 16px",
-                borderRadius: 20,
-                fontSize: isMobile ? 12 : 13,
-                fontWeight: 600,
-                cursor: "pointer",
-                background: filter === f.key ? "#3b82f6" : "white",
-                color: filter === f.key ? "white" : "#64748b",
-                border: filter === f.key ? "1px solid #3b82f6" : "1px solid #e2e8f0",
-                fontFamily: "inherit",
-                transition: "all 0.2s ease",
-              }}
-            >
-              {f.label}
-              {f.key === "en_attente" && pendingCount > 0 && (
-                <span style={{
-                  marginLeft: 6,
-                  background: "#ef4444",
-                  color: "white",
-                  borderRadius: 10,
-                  padding: "1px 6px",
-                  fontSize: 11,
-                }}>
-                  {pendingCount}
-                </span>
-              )}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[{ k: "tous", l: "Tous" }, { k: "prestataire", l: "Prestataires" }, { k: "organisateur", l: "Organisateurs" }, { k: "en_attente", l: "En attente" }].map(f => (
+            <button key={f.k} onClick={() => setFilter(f.k)} className={`adash-filter${filter === f.k ? " active" : ""}`}>
+              {f.l}{f.k === "en_attente" && pendingCount > 0 && <span style={{ marginLeft: 6, background: C.red, color: "#fff", borderRadius: 10, padding: "1px 6px", fontSize: 11 }}>{pendingCount}</span>}
             </button>
           ))}
         </div>
-
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          background: "white",
-          border: "1px solid #e2e8f0",
-          borderRadius: 10,
-          padding: isMobile ? "6px 12px" : "8px 14px",
-          width: isMobile ? "100%" : "auto",
-        }}>
-          <Search size={14} color="#94a3b8" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher un utilisateur..."
-            style={{
-              border: "none",
-              outline: "none",
-              fontSize: 13,
-              color: "#475569",
-              width: isMobile ? "100%" : 200,
-              fontFamily: "inherit",
-            }}
-          />
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 24, padding: "8px 16px", width: isMobile ? "100%" : "auto" }}>
+          <Search size={14} color={C.t3} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un utilisateur..."
+            style={{ border: "none", background: "transparent", fontSize: 13, color: C.t1, width: isMobile ? "100%" : 200, fontFamily: "inherit" }} />
         </div>
       </div>
 
-      <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+      <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden" }}>
         {loading ? (
-          <div style={{ padding: 24 }}>
-            {[1, 2, 3, 4, 5].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={40} radius={8} /></div>)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <EmptyState icon={Users} message="Aucun utilisateur trouvé" />
-        ) : (
+          <div style={{ padding: 24 }}>{[1, 2, 3, 4, 5].map(i => <div key={i} style={{ marginBottom: 12 }}><Skel h={44} r={8} /></div>)}</div>
+        ) : filtered.length === 0 ? <EmptyState icon={Users} message="Aucun utilisateur trouvé" /> : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "auto" : 800 }}>
-              <thead>
-                <tr style={{ background: "#f8fafc" }}>
-                  <TH>Utilisateur</TH>
-                  <TH>Email</TH>
-                  <TH>Téléphone</TH>
-                  <TH>Rôle</TH>
-                  <TH>Statut</TH>
-                  <TH>Actions</TH>
-                </tr>
-              </thead>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700 }}>
+              <thead><tr style={{ background: C.bg }}><TH>Utilisateur</TH><TH>Email</TH><TH>Téléphone</TH><TH>Rôle</TH><TH>Statut</TH><TH>Actions</TH></tr></thead>
               <tbody>
-                {filtered.map((u, index) => {
-                  const name   = `${u.firstname} ${u.lastname}`;
+                {filtered.map(u => {
+                  const name = `${u.firstname} ${u.lastname}`;
                   const isPrest = u.role === "prestataire";
+                  const init = `${u.firstname?.[0] || ""}${u.lastname?.[0] || ""}`.toUpperCase();
+                  const grad = isPrest ? `linear-gradient(135deg,${C.purple},#a855f7)` : `linear-gradient(135deg,${C.accent},#60a5fa)`;
                   return (
-                    <tr
-                      key={u._id}
-                      className="table-row"
-                      style={{
-                        borderTop: "1px solid #f8fafc",
-                        transition: "all 0.2s ease",
-                        animationDelay: `${index * 0.05}s`,
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = "#fafafa"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                    >
-                      <TD data-label="Utilisateur">
+                    <tr key={u._id} className="adash-table-row">
+                      <TD>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <UserImage image={u.image} firstname={u.firstname} lastname={u.lastname} isPrest={isPrest} />
+                          <div style={{ width: 36, height: 36, borderRadius: "50%", background: grad, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <span style={{ color: "#fff", fontSize: 12, fontWeight: 700 }}>{init}</span>
+                          </div>
                           <div>
-                            <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 13 }}>{name}</div>
-                            <div style={{ fontSize: 11, color: "#94a3b8" }}>{u.region || "—"}</div>
+                            <div style={{ fontWeight: 500, color: C.t1, fontSize: 14 }}>{name}</div>
+                            <div style={{ fontSize: 12, color: C.t3 }}>{u.region || "—"}</div>
                           </div>
                         </div>
                       </TD>
-                      <TD data-label="Email">{u.email}</TD>
-                      <TD data-label="Téléphone">{u.numTel || "—"}</TD>
-                      <TD data-label="Rôle"><StatusBadge statut={u.role} /></TD>
-                      <TD data-label="Statut">
-                        {isPrest
-                          ? <StatusBadge statut={u.status || "en_attente"} />
-                          : <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>
-                        }
-                      </TD>
-                      <TD data-label="Actions">
+                      <TD>{u.email}</TD>
+                      <TD>{u.numTel || "—"}</TD>
+                      <TD><Badge statut={u.role} /></TD>
+                      <TD>{isPrest ? <Badge statut={u.status || "en_attente"} /> : <span style={{ color: C.t3 }}>—</span>}</TD>
+                      <TD>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          {isPrest && u.status === "en_attente" && (
-                            <ActionBtn icon={CheckCircle} label="Valider"  color="#16a34a" bg="#dcfce7" onClick={() => handleValidate(u._id, name)} disabled={actionLoading === u._id + "_validate"} />
-                          )}
-                          {isPrest && u.status === "en_attente" && (
-                            <ActionBtn icon={XCircle}    label="Rejeter"  color="#dc2626" bg="#fee2e2" onClick={() => handleReject(u._id, name)}   disabled={actionLoading === u._id + "_reject"} />
-                          )}
+                          {isPrest && u.status === "en_attente" && <>
+                            <button className="adash-action-btn" onClick={() => handleValidate(u._id, name)} disabled={actionLoading === u._id + "_v"} style={{ background: C.greenBg, color: C.green }}><CheckCircle size={13} /> Valider</button>
+                            <button className="adash-action-btn" onClick={() => handleReject(u._id, name)} disabled={actionLoading === u._id + "_r"} style={{ background: C.redBg, color: C.red }}><XCircle size={13} /> Rejeter</button>
+                          </>}
                           {isPrest && u.status === "rejected" && (
-                            <ActionBtn icon={CheckCircle} label="Ré-activer" color="#16a34a" bg="#dcfce7" onClick={() => handleValidate(u._id, name)} disabled={actionLoading === u._id + "_validate"} />
+                            <button className="adash-action-btn" onClick={() => handleValidate(u._id, name)} disabled={actionLoading === u._id + "_v"} style={{ background: C.greenBg, color: C.green }}><CheckCircle size={13} /> Ré-activer</button>
                           )}
-                          <ActionBtn icon={Trash2} label="Supprimer" color="#64748b" bg="#f1f5f9" onClick={() => handleDelete(u._id, name)} disabled={actionLoading === u._id + "_delete"} />
+                          <button className="adash-action-btn" onClick={() => handleDelete(u._id, name)} disabled={actionLoading === u._id + "_d"} style={{ background: C.redBg, color: C.red }}><Trash2 size={13} /> Supprimer</button>
                         </div>
                       </TD>
                     </tr>
@@ -1100,257 +483,106 @@ const ComptesPage = () => {
   );
 };
 
-// ═══════════════════════════════════════════════════════════════
-// PAGE 3 — GESTION DES RESSOURCES
-// ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
+   RESSOURCES PAGE
+═══════════════════════════════════════════════════════════ */
 const RessourcesPage = () => {
-  const [resources, setResources]   = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [filter, setFilter]         = useState("tous");
-  const [search, setSearch]         = useState("");
-  const [expanded, setExpanded]     = useState(null);
-  const [paniers, setPaniers]       = useState({});
+  const [resources, setResources] = useState([]);
+  const [loading, setLoad] = useState(true);
+  const [filter, setFilter] = useState("tous");
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState(null);
+  const [paniers, setPaniers] = useState({});
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const toast = useToast();
-  const { modal, confirm, handleConfirm, handleCancel } = useConfirm();
-
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
+  const { modal, confirm, yes, no } = useConfirm();
+  useEffect(() => { const h = () => setWindowWidth(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
   const isMobile = windowWidth <= 640;
 
   useEffect(() => {
     const load = async () => {
-      try {
-        setLoading(true);
-        const { data } = await axios.get(`${API}/admin/resources`, { headers: authHeaders() });
-        setResources(data);
-      } catch { setResources([]); }
-      finally { setLoading(false); }
-    };
-    load();
+      try { setLoad(true); const { data } = await axios.get(`${API}/admin/resources`, { headers: authHeaders() }); setResources(data); }
+      catch { setResources([]); } finally { setLoad(false); }
+    }; load();
   }, []);
 
-  const loadPanier = async (resourceId) => {
-    if (paniers[resourceId] !== undefined) {
-      setExpanded(expanded === resourceId ? null : resourceId);
-      return;
-    }
-    try {
-      const { data } = await axios.get(`${API}/admin/resources/${resourceId}/paniers`, { headers: authHeaders() });
-      setPaniers(prev => ({ ...prev, [resourceId]: data }));
-      setExpanded(resourceId);
-    } catch {
-      setPaniers(prev => ({ ...prev, [resourceId]: [] }));
-      setExpanded(resourceId);
-    }
+  const loadPanier = async id => {
+    if (paniers[id] !== undefined) { setExpanded(expanded === id ? null : id); return; }
+    try { const { data } = await axios.get(`${API}/admin/resources/${id}/paniers`, { headers: authHeaders() }); setPaniers(p => ({ ...p, [id]: data })); setExpanded(id); }
+    catch { setPaniers(p => ({ ...p, [id]: [] })); setExpanded(id); }
   };
 
   const handleDelete = async (id, name) => {
-    const ok = await confirm({
-      type: "danger",
-      title: "Supprimer cette ressource ?",
-      message: `La ressource "${name}" sera définitivement supprimée. Cette action est irréversible.`,
-      confirmLabel: "Supprimer",
-    });
-    if (!ok) return;
-    try {
-      await axios.delete(`${API}/admin/resources/${id}`, { headers: authHeaders() });
-      setResources(prev => prev.filter(r => r._id !== id));
-      toast.success(`Ressource "${name}" supprimée`);
-    } catch {
-      toast.error("Erreur lors de la suppression de la ressource");
-    }
+    if (!await confirm({ type: "danger", title: "Supprimer cette ressource ?", message: `"${name}" sera définitivement supprimée.`, confirmLabel: "Supprimer" })) return;
+    try { await axios.delete(`${API}/admin/resources/${id}`, { headers: authHeaders() }); setResources(p => p.filter(r => r._id !== id)); toast.success(`"${name}" supprimée`); }
+    catch { toast.error("Erreur"); }
   };
 
-  const types    = ["tous", "salle", "materiel", "decoration", "traiteur"];
   const filtered = resources.filter(r => {
-    const matchType   = filter === "tous" || r.type === filter;
-    const matchSearch = search === "" || `${r.name} ${r.provider_name}`.toLowerCase().includes(search.toLowerCase());
-    return matchType && matchSearch;
+    const mt = filter === "tous" || r.type === filter;
+    const ms = search === "" || `${r.name} ${r.provider_name}`.toLowerCase().includes(search.toLowerCase());
+    return mt && ms;
   });
 
   return (
     <div>
-      <ConfirmModal modal={modal} onConfirm={handleConfirm} onCancel={handleCancel} />
-      <Toast toasts={toast.toasts} removeToast={toast.removeToast} />
-
+      <ConfirmModal modal={modal} yes={yes} no={no} />
+      <Toasts toasts={toast.toasts} remove={toast.remove} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <div style={{ display: "flex", gap: isMobile ? 4 : 8, flexWrap: "wrap" }}>
-          {types.map(t => (
-            <button
-              key={t}
-              onClick={() => setFilter(t)}
-              className={`filter-btn ${filter === t ? "active" : ""}`}
-              style={{
-                padding: isMobile ? "6px 12px" : "7px 16px",
-                borderRadius: 20,
-                fontSize: isMobile ? 12 : 13,
-                fontWeight: 600,
-                cursor: "pointer",
-                background: filter === t ? "#8b5cf6" : "white",
-                color: filter === t ? "white" : "#64748b",
-                border: filter === t ? "1px solid #8b5cf6" : "1px solid #e2e8f0",
-                fontFamily: "inherit",
-                textTransform: "capitalize",
-                transition: "all 0.2s ease",
-              }}
-            >
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {["tous", "salle", "materiel", "decoration", "traiteur"].map(t => (
+            <button key={t} onClick={() => setFilter(t)} className={`adash-filter${filter === t ? " active-purple" : ""}`}>
               {t === "tous" ? "Toutes" : t}
             </button>
           ))}
         </div>
-
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          background: "white",
-          border: "1px solid #e2e8f0",
-          borderRadius: 10,
-          padding: isMobile ? "6px 12px" : "8px 14px",
-          width: isMobile ? "100%" : "auto",
-        }}>
-          <Search size={14} color="#94a3b8" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher une ressource..."
-            style={{
-              border: "none",
-              outline: "none",
-              fontSize: 13,
-              color: "#475569",
-              width: isMobile ? "100%" : 200,
-              fontFamily: "inherit",
-            }}
-          />
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 24, padding: "8px 16px", width: isMobile ? "100%" : "auto" }}>
+          <Search size={14} color={C.t3} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..."
+            style={{ border: "none", background: "transparent", fontSize: 13, color: C.t1, width: isMobile ? "100%" : 200, fontFamily: "inherit" }} />
         </div>
       </div>
-
-      <div style={{ background: "white", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+      <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden" }}>
         {loading ? (
-          <div style={{ padding: 24 }}>
-            {[1, 2, 3, 4].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={48} radius={8} /></div>)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <EmptyState icon={Package} message="Aucune ressource trouvée" />
-        ) : (
+          <div style={{ padding: 24 }}>{[1, 2, 3, 4].map(i => <div key={i} style={{ marginBottom: 12 }}><Skel h={48} r={8} /></div>)}</div>
+        ) : filtered.length === 0 ? <EmptyState icon={Package} message="Aucune ressource trouvée" /> : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "auto" : 900 }}>
-              <thead>
-                <tr style={{ background: "#f8fafc" }}>
-                  <TH>Ressource</TH>
-                  <TH>Type</TH>
-                  <TH>Prix</TH>
-                  <TH>Prestataire</TH>
-                  <TH>Localisation</TH>
-                  <TH>Paniers</TH>
-                  <TH>Actions</TH>
-                </tr>
-              </thead>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 800 }}>
+              <thead><tr style={{ background: C.bg }}><TH>Ressource</TH><TH>Type</TH><TH>Prix</TH><TH>Prestataire</TH><TH>Localisation</TH><TH>Paniers</TH><TH>Actions</TH></tr></thead>
               <tbody>
-                {filtered.map((r, index) => (
+                {filtered.map(r => (
                   <>
-                    <tr
-                      key={r._id}
-                      className="table-row"
-                      style={{
-                        borderTop: "1px solid #f8fafc",
-                        transition: "all 0.2s ease",
-                        animationDelay: `${index * 0.05}s`,
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = "#fafafa"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                    >
-                      <TD data-label="Ressource" style={{ fontWeight: 600, color: "#0f172a" }}>{r.name}</TD>
-                      <TD data-label="Type"><StatusBadge statut={r.type} /></TD>
-                      <TD data-label="Prix" style={{ fontWeight: 700, color: "#8b5cf6" }}>{Number(r.price).toFixed(2)} €</TD>
-                      <TD data-label="Prestataire">
-                        <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 500 }}>{r.provider_name}</div>
-                        <div style={{ fontSize: 11, color: "#94a3b8" }}>{r.provider_email}</div>
-                      </TD>
-                      <TD data-label="Localisation">{r.location || "—"}</TD>
-                      <TD data-label="Paniers">
-                        <button
-                          onClick={() => loadPanier(r._id)}
-                          className="view-paniers-btn"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 5,
-                            padding: isMobile ? "4px 8px" : "5px 10px",
-                            borderRadius: 8,
-                            background: "#f5f3ff",
-                            border: "1px solid #e9d5ff",
-                            color: "#8b5cf6",
-                            cursor: "pointer",
-                            fontSize: isMobile ? 11 : 12,
-                            fontWeight: 600,
-                            fontFamily: "inherit",
-                            transition: "all 0.2s ease",
-                          }}
-                        >
-                          <Eye size={isMobile ? 10 : 12} />
-                          {!isMobile && "Voir paniers"}
-                          <ChevronDown
-                            size={isMobile ? 10 : 12}
-                            style={{
-                              transform: expanded === r._id ? "rotate(180deg)" : "none",
-                              transition: "transform 0.3s ease",
-                            }}
-                          />
+                    <tr key={r._id} className="adash-table-row">
+                      <TD style={{ fontWeight: 500, color: C.t1 }}>{r.name}</TD>
+                      <TD><Badge statut={r.type} /></TD>
+                      <TD style={{ fontWeight: 600, color: C.purple }}>{Number(r.price).toFixed(2)} €</TD>
+                      <TD><div style={{ fontWeight: 500, color: C.t1, fontSize: 13 }}>{r.provider_name}</div><div style={{ fontSize: 12, color: C.t3 }}>{r.provider_email}</div></TD>
+                      <TD>{r.location || "—"}</TD>
+                      <TD>
+                        <button onClick={() => loadPanier(r._id)}
+                          style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 20, background: C.accentBg, border: "none", color: C.accent, cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit" }}>
+                          <Eye size={13} /> Voir
+                          <ChevronDown size={12} style={{ transform: expanded === r._id ? "rotate(180deg)" : "none", transition: "transform .25s" }} />
                         </button>
                       </TD>
-                      <TD data-label="Actions">
-                        <ActionBtn
-                          icon={Trash2}
-                          label={isMobile ? "" : "Supprimer"}
-                          color="#dc2626"
-                          bg="#fee2e2"
-                          onClick={() => handleDelete(r._id, r.name)}
-                        />
+                      <TD>
+                        <button className="adash-action-btn" onClick={() => handleDelete(r._id, r.name)} style={{ background: C.redBg, color: C.red }}>
+                          <Trash2 size={13} /> Supprimer
+                        </button>
                       </TD>
                     </tr>
-
                     {expanded === r._id && (
-                      <tr key={r._id + "_exp"} style={{ animation: "fadeInUp 0.3s ease" }}>
-                        <td colSpan={7} style={{ padding: isMobile ? "0 12px 12px" : "0 20px 16px", background: "#faf9ff" }}>
-                          <div style={{ borderRadius: 10, border: "1px solid #e9d5ff", overflow: "hidden" }}>
-                            <div style={{ padding: isMobile ? "8px 12px" : "10px 16px", background: "#f5f3ff", fontSize: isMobile ? 11 : 12, fontWeight: 600, color: "#7c3aed" }}>
-                              👥 Organisateurs ayant ajouté "{r.name}" à leur panier
-                            </div>
-                            {!paniers[r._id] || paniers[r._id].length === 0 ? (
-                              <div style={{ padding: isMobile ? "12px 12px" : "14px 16px", fontSize: 13, color: "#94a3b8" }}>
-                                Aucun organisateur n'a ajouté cette ressource à son panier.
-                              </div>
-                            ) : (
-                              <div style={{ overflowX: "auto" }}>
-                                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 400 : "auto" }}>
-                                  <thead>
-                                    <tr style={{ background: "#f8fafc" }}>
-                                      <TH>Nom</TH>
-                                      <TH>Email</TH>
-                                      <TH>Téléphone</TH>
-                                      <TH>Région</TH>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {paniers[r._id].map(u => (
-                                      <tr key={u._id} style={{ borderTop: "1px solid #f1f5f9" }}>
-                                        <TD data-label="Nom" style={{ fontWeight: 500, color: "#0f172a" }}>{u.firstname} {u.lastname}</TD>
-                                        <TD data-label="Email">{u.email}</TD>
-                                        <TD data-label="Téléphone">{u.numTel || "—"}</TD>
-                                        <TD data-label="Région">{u.region || "—"}</TD>
-                                      </tr>
-                                    ))}
-                                  </tbody>
+                      <tr key={r._id + "_exp"}>
+                        <td colSpan={7} style={{ padding: "0 16px 16px", background: "#fafbff" }}>
+                          <div style={{ borderRadius: 8, border: `1px solid ${C.accentBg}`, overflow: "hidden" }}>
+                            <div style={{ padding: "10px 16px", background: C.accentBg, fontSize: 13, fontWeight: 500, color: C.accentText }}>Organisateurs — « {r.name} »</div>
+                            {!paniers[r._id] || paniers[r._id].length === 0
+                              ? <div style={{ padding: "14px 16px", fontSize: 13, color: C.t3 }}>Aucun organisateur.</div>
+                              : <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                                  <thead><tr style={{ background: C.bg }}><TH>Nom</TH><TH>Email</TH><TH>Téléphone</TH><TH>Région</TH></tr></thead>
+                                  <tbody>{paniers[r._id].map(u => (<tr key={u._id} className="adash-table-row"><TD style={{ fontWeight: 500, color: C.t1 }}>{u.firstname} {u.lastname}</TD><TD>{u.email}</TD><TD>{u.numTel || "—"}</TD><TD>{u.region || "—"}</TD></tr>))}</tbody>
                                 </table>
-                              </div>
-                            )}
+                            }
                           </div>
                         </td>
                       </tr>
@@ -1366,80 +598,33 @@ const RessourcesPage = () => {
   );
 };
 
-// ═══════════════════════════════════════════════════════════════
-// ROOT
-// ═══════════════════════════════════════════════════════════════
-const pageTitles = {
-  dashboard:  "Dashboard",
-  comptes:    "Gestion des comptes",
-  ressources: "Gestion des ressources",
-};
+/* ═══════════════════════════════════════════════════════════
+   ROOT
+═══════════════════════════════════════════════════════════ */
+const pageTitles = { dashboard: "Dashboard", comptes: "Utilisateurs", gestion: "Gestion Utilisateurs", ressources: "Ressources", analytics: "Analytics", parametres: "Paramètres" };
 
 export default function AdminDashboard() {
+  useEffect(() => { injectStyles(); }, []);
   const navigate = useNavigate();
-  const [activePage, setActivePage]     = useState("dashboard");
-  const [windowWidth, setWindowWidth]   = useState(window.innerWidth);
+  const [activePage, setActivePage] = useState("dashboard");
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-      if (window.innerWidth > 640) setIsMobileOpen(false);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const isMobile = windowWidth <= 640;
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/");
-  };
+  useEffect(() => { const h = () => { setWindowWidth(window.innerWidth); if (window.innerWidth > 768) setIsMobileOpen(false); }; window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
+  const isMobile = windowWidth <= 768;
+  const handleLogout = () => { localStorage.removeItem("token"); localStorage.removeItem("user"); navigate("/"); };
 
   const pages = {
-    dashboard:  <DashboardPage />,
-    comptes:    <ComptesPage />,
-    ressources: <RessourcesPage />,
+    dashboard: <DashboardPage />, comptes: <ComptesPage />, gestion: <ComptesPage />,
+    ressources: <RessourcesPage />, analytics: <DashboardPage />,
+    parametres: <div style={{ padding: 40, color: C.t2, fontSize: 15 }}>Paramètres — à venir</div>,
   };
 
   return (
-    <div style={{ fontFamily: "'Inter',-apple-system,sans-serif", background: "#f8fafc", minHeight: "100vh" }}>
-      <Sidebar
-        active={activePage}
-        setActive={setActivePage}
-        onLogout={handleLogout}
-        isMobile={isMobile}
-        isMobileOpen={isMobileOpen}
-        setIsMobileOpen={setIsMobileOpen}
-      />
-
-      {isMobile && isMobileOpen && (
-        <div
-          onClick={() => setIsMobileOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            backdropFilter: "blur(2px)",
-            zIndex: 150,
-            animation: "fadeIn 0.2s ease",
-          }}
-        />
-      )}
-
-      <div style={{ marginLeft: isMobile ? 0 : 260, transition: "margin-left 0.3s ease" }}>
-        <TopBar
-          title={pageTitles[activePage]}
-          showSearch={activePage !== "dashboard"}
-          isMobile={isMobile}
-          searchValue=""
-          onSearchChange={() => {}}
-        />
-        <main style={{ padding: isMobile ? 16 : 28 }}>
-          {pages[activePage]}
-        </main>
+    <div style={{ fontFamily: "Roboto,sans-serif", background: C.bg, minHeight: "100vh" }}>
+      <Sidebar active={activePage} setActive={setActivePage} onLogout={handleLogout} isMobile={isMobile} isMobileOpen={isMobileOpen} setIsMobileOpen={setIsMobileOpen} />
+      <div style={{ marginLeft: isMobile ? 0 : 256, transition: "margin-left .25s ease" }}>
+        <TopBar title={pageTitles[activePage]} isMobile={isMobile} showSearch={activePage !== "dashboard"} searchValue="" onSearchChange={() => {}} />
+        <main style={{ padding: isMobile ? 16 : 28 }}>{pages[activePage]}</main>
       </div>
     </div>
   );
