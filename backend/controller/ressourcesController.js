@@ -11,7 +11,8 @@ const addResource = async (req, res) => {
             type,
             price,
             location,
-            capacity
+            capacity,
+            terms
         } = req.body;
         const provider_name = req.user.firstname + " " + req.user.lastname;
         const provider_email = req.user.email;
@@ -64,7 +65,8 @@ const addResource = async (req, res) => {
 
             media: mediaId ? [mediaId] : [],
             availability: availabilityIds,
-            prestataire: req.user.id
+            prestataire: req.user.id,
+            terms
 
         });
 
@@ -92,7 +94,8 @@ const getResourceById = async (req, res) => {
     try {
         const resource = await Resource.findById(req.params.id)
             .populate("media")
-            .populate("availability");
+            .populate("availability")
+            .populate("prestataire");
 
         if (!resource) return res.status(404).json({ message: "Ressource non trouvée" });
 
@@ -139,7 +142,7 @@ const updateResource = async (req, res) => {
         resource.price = req.body.price || resource.price;
         resource.location = req.body.location || resource.location;
         resource.capacity = req.body.capacity || resource.capacity;
-
+        resource.terms = req.body.terms || resource.terms;
         // ========================
         // ✅ MEDIA (IMAGES)
         // ========================

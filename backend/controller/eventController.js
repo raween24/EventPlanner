@@ -1,4 +1,5 @@
 import Event from "../model/event.js";
+import mongoose from "mongoose";
 
 
 // ============================
@@ -10,6 +11,7 @@ const addEvent = async (req, res) => {
       title,
       description,
       category,
+      lieu,
       type,
       dateDebut,
       dateFin,
@@ -21,6 +23,7 @@ const addEvent = async (req, res) => {
       title,
       description,
       category,
+      lieu,
       type,
       dateDebut,
       dateFin,
@@ -90,37 +93,46 @@ const get_event_by_id = async (req, res) => {
 };
 // ============================
 // ✅ UPDATE EVENT
-// ============================
+// ============================// BACKEND - CORRECTION
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
 
     const event = await Event.findOne({
       _id: id,
-      organisateur_id: req.user._id
+      organisateur_id: new mongoose.Types.ObjectId(req.user.id) // ✅ FIX
     });
 
     if (!event) {
-      return res.status(404).json({ message: "Événement non trouvé" });
+      return res.status(404).json({
+        message: "Événement non trouvé ou non autorisé"
+      });
     }
 
-    Object.assign(event, req.body);
+    const allowedUpdates = [
+      'title', 'description', 'category','lieu', 'type',
+      'dateDebut', 'dateFin', 'nombreParticipants', 'status'
+    ];
+
+    for (const key of allowedUpdates) {
+      if (req.body[key] !== undefined) {
+        if (key === "dateDebut" || key === "dateFin") {
+          event[key] = new Date(req.body[key]);
+        } else if (key === "nombreParticipants") {
+          event[key] = Number(req.body[key]);
+        } else {
+          event[key] = req.body[key];
+        }
+      }
+    }
 
     await event.save();
 
-    const updatedEvent = await Event.findById(id)
-      .populate({
-        path: "ressources_utiliser",
-        populate: ["media", "availability"]
-      });
-
-    res.status(200).json(updatedEvent);
+    res.status(200).json(event);
 
   } catch (error) {
-    res.status(500).json({
-      message: "Erreur serveur",
-      error: error.message
-    });
+    console.error("ERREUR:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 

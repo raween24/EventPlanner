@@ -3,14 +3,13 @@ des noms pour le site
 ****Eventix****
 ****NextEvent****
 ****Eventora****
-****Yalla Events****
+****Yalla Events****POURRRRRRR YALLAAAAA
 ****GoEvent****
 .......................Donc pour le moment on a fait la partie du haut alors la porchen foix on va discuter et distrubee les tache entre nous
 
 notifications pour la verification des commande ou des alert ou des nv ressources --.......
 créer  un systeme de vérification des documents --......
 les messages entres le prestataire  et organisateurs
-les messages entre les ladmin et prestataire 
 
 
 w ha9a mail mt3a application mt3na:
@@ -34,4 +33,12 @@ cest pas gerer les events cest gerer les ressources dun compte (kima amlyn ahna 
 galt na7uha modifier compte adhika gotlha ana madame rw kif yscani prestataire  par expl l document w ghlot par exemple wla taswira floue ywali ykalem ladmin yfsakhhelu wla ymodifiha w kol gatly la hawka andu f bd kif tgolu y7el bd w ybadlha cest pas la paine galt tamou menha 7kye 
 <===> cest bon sala7t ly galt alyh madame kol f use case mzelt faze heritege kamlha + les systeme adhukom ly fi les carreaux a adem w tbadel chy ken kif ntfhmou fyha saa chtodkhlch denya baadhha 
 remaarque :
-galt zidu des pâtisseries par exemple et des adresses de decorations et hajet akaak
+galt zidu des pâtisseries par exemple et des adresses de decorations et hajet akaak 
+
+des patisseries == traiteur bissifa 3ama non ? 
+la binome 
+Traiteur:
+Spécialité : préparation de plats salés et sucrés, mais surtout plats cuisinés complets (entrées, plats principaux, accompagnements, desserts).
+Pâtisserie:
+Spécialité : produits sucrés uniquement.
+Objectif : proposer des desserts, gâteaux et viennoiseries pour consommation immédiate ou événements.

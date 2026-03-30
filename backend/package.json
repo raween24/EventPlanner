@@ -23,6 +23,7 @@
     "mongoose": "^9.2.4",
     "multer": "^2.1.1",
     "n8n": "^2.12.3",
+    "nodemailer": "^8.0.4",
     "react-big-calendar": "^1.19.4"
   },
   "devDependencies": {

@@ -4,16 +4,17 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { 
-  FiCalendar, FiClock, FiUsers, FiTag, FiType, 
+import {
+  FiCalendar, FiClock, FiUsers, FiTag, FiType,
   FiEdit3, FiArrowLeft, FiCheckCircle, FiAlertCircle,
   FiSun, FiMoon, FiStar, FiHeart, FiChevronLeft, FiChevronRight,
-  FiCalendar as FiCalendarIcon, FiClock as FiClockIcon
+  FiCalendar as FiCalendarIcon, FiClock as FiClockIcon, FiMapPin
 } from 'react-icons/fi';
 
 const api = axios.create({
   baseURL: "http://localhost:5000/api/",
 });
+
 // Composant de calendrier personnalisé - Version responsive
 const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
   const [view, setView] = useState('days');
@@ -42,7 +43,7 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
 
   const handleDateSelect = (day) => {
     const selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    
+
     if (!startDate || (startDate && endDate)) {
       onChange([selectedDate, null]);
     } else if (startDate && !endDate) {
@@ -76,17 +77,17 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
     const days = [];
     const totalDays = daysInMonth(currentMonth);
     const firstDay = firstDayOfMonth(currentMonth);
-    
+
     for (let i = 0; i < firstDay; i++) {
       days.push(<div key={`empty-${i}`} className="h-8 sm:h-10" />);
     }
-    
+
     for (let day = 1; day <= totalDays; day++) {
       const isSelected = isStartDate(day) || isEndDate(day);
       const inRange = isInRange(day);
-      const isToday = new Date().toDateString() === 
+      const isToday = new Date().toDateString() ===
         new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toDateString();
-      
+
       days.push(
         <motion.button
           key={day}
@@ -96,9 +97,9 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
           className={`
             h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium
             transition-all duration-200 relative mx-auto
-            ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 z-10' : 
-              inRange ? 'bg-indigo-100 text-indigo-700' : 
-              'hover:bg-gray-100 text-gray-700'}
+            ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 z-10' :
+              inRange ? 'bg-indigo-100 text-indigo-700' :
+                'hover:bg-gray-100 text-gray-700'}
             ${isToday && !isSelected ? 'ring-2 ring-indigo-300' : ''}
           `}
         >
@@ -112,10 +113,10 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
         </motion.button>
       );
     }
-    
+
     return days;
   };
-  
+
 
   return (
     <motion.div
@@ -134,8 +135,8 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
           >
             <FiChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
           </motion.button>
-          
-          <motion.h3 
+
+          <motion.h3
             key={currentMonth.getMonth()}
             initial={{ y: -10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -143,7 +144,7 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
           >
             {months[currentMonth.getMonth()]} {currentMonth.getFullYear()}
           </motion.h3>
-          
+
           <motion.button
             whileHover={{ scale: 1.1, x: 3 }}
             whileTap={{ scale: 0.9 }}
@@ -153,21 +154,19 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
             <FiChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
           </motion.button>
         </div>
-        
+
         <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 w-full sm:w-auto justify-center">
           <button
             onClick={() => setView('days')}
-            className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm transition flex-1 sm:flex-none ${
-              view === 'days' ? 'bg-white shadow text-indigo-600' : 'text-gray-600'
-            }`}
+            className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm transition flex-1 sm:flex-none ${view === 'days' ? 'bg-white shadow text-indigo-600' : 'text-gray-600'
+              }`}
           >
             Jours
           </button>
           <button
             onClick={() => setView('months')}
-            className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm transition flex-1 sm:flex-none ${
-              view === 'months' ? 'bg-white shadow text-indigo-600' : 'text-gray-600'
-            }`}
+            className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm transition flex-1 sm:flex-none ${view === 'months' ? 'bg-white shadow text-indigo-600' : 'text-gray-600'
+              }`}
           >
             Mois
           </button>
@@ -203,7 +202,7 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
               </label>
               <input
                 type="time"
-                value={startDate ? startDate.toTimeString().slice(0,5) : ''}
+                value={startDate ? startDate.toTimeString().slice(0, 5) : ''}
                 onChange={(e) => {
                   const [hours, minutes] = e.target.value.split(':');
                   const newDate = new Date(startDate);
@@ -213,7 +212,7 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
                 className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               />
             </div>
-            
+
             <div>
               <label className="block text-[10px] sm:text-xs font-medium text-gray-500 mb-1 sm:mb-2 flex items-center gap-1">
                 <FiClockIcon className="w-3 h-3" />
@@ -221,7 +220,7 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
               </label>
               <input
                 type="time"
-                value={endDate ? endDate.toTimeString().slice(0,5) : ''}
+                value={endDate ? endDate.toTimeString().slice(0, 5) : ''}
                 onChange={(e) => {
                   const [hours, minutes] = e.target.value.split(':');
                   const newDate = new Date(endDate || startDate);
@@ -240,7 +239,7 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
 };
 
 export default function CreerEvenement() {
-  
+
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formProgress, setFormProgress] = useState(0);
@@ -255,6 +254,7 @@ export default function CreerEvenement() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    lieu: "", // AJOUT DU CHAMP LIEU
     category: "",
     type: "",
     dateDebut: "",
@@ -264,7 +264,7 @@ export default function CreerEvenement() {
 
   // Calculer la progression du formulaire
   const calculateProgress = () => {
-    const requiredFields = ['title', 'description', 'category', 'type', 'dateDebut', 'dateFin', 'nombreParticipants'];
+    const requiredFields = ['title', 'description', 'lieu', 'category', 'type', 'dateDebut', 'dateFin', 'nombreParticipants'];
     const filledFields = requiredFields.filter(field => formData[field] && formData[field].toString().trim() !== '').length;
     return (filledFields / requiredFields.length) * 100;
   };
@@ -281,7 +281,7 @@ export default function CreerEvenement() {
   const handleDateChange = (dates) => {
     const [start, end] = dates;
     setDateRange({ start, end });
-    
+
     if (start) {
       setFormData({
         ...formData,
@@ -291,40 +291,65 @@ export default function CreerEvenement() {
     }
     setFormProgress(calculateProgress());
   };
-const handleSubmit = async (e) => {
-  e.preventDefault();
 
-  if (new Date(formData.dateFin) < new Date(formData.dateDebut)) {
-    alert("La date de fin doit être après la date de début ❌");
-    return;
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  try {
-    const token = localStorage.getItem("token"); // 🔥
+    if (new Date(formData.dateFin) < new Date(formData.dateDebut)) {
+      alert("La date de fin doit être après la date de début ❌");
+      return;
+    }
 
-    const dataToSend = {
-      ...formData,
-      nombreParticipants: Number(formData.nombreParticipants),
-    };
+    if (!formData.lieu || formData.lieu.trim() === "") {
+      alert("Veuillez renseigner le lieu de l'événement 📍");
+      return;
+    }
 
-    await api.post("/event/addEvent", dataToSend, {
-      headers: {
-        Authorization: `Bearer ${token}` // 🔥 IMPORTANT
-      }
-    });
+    try {
+      const token = localStorage.getItem("token");
 
-    setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-      navigate("/les_ressources");
-    }, 2000);
 
-  } catch (error) {
-    console.error(error);
-    alert("Erreur lors de la création ❌");
-  }
-};
+      const dataToSend = {
+        ...formData,
+        nombreParticipants: Number(formData.nombreParticipants),
+      };
+
+      const response = await api.post("/event/addEvent", dataToSend, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log(response.data);
+
+      const eventId = response.data._id;
+
+
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigate("/les_ressources", {
+          state: { eventId }
+        });
+      }, 2000);
+
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de la création ❌");
+    }
+  };
+
   const nextStep = () => {
+    // Validation avant de passer à l'étape suivante
+    if (currentStep === 1) {
+      if (!formData.title || !formData.description) {
+        alert("Veuillez remplir le titre et la description");
+        return;
+      }
+    }
+    if (currentStep === 2) {
+      if (!formData.lieu || !formData.dateDebut || !formData.nombreParticipants) {
+        alert("Veuillez remplir le lieu, les dates et le nombre de participants");
+        return;
+      }
+    }
     if (currentStep < 3) setCurrentStep(currentStep + 1);
   };
 
@@ -336,32 +361,29 @@ const handleSubmit = async (e) => {
   const formatDateRange = () => {
     if (!dateRange.start) return "Sélectionnez une période";
     if (!dateRange.end) {
-      return `À partir du ${dateRange.start.toLocaleDateString('fr-FR', { 
-        day: 'numeric', 
+      return `À partir du ${dateRange.start.toLocaleDateString('fr-FR', {
+        day: 'numeric',
         month: 'short',
         hour: '2-digit',
         minute: '2-digit'
       })}`;
     }
-    return `${dateRange.start.toLocaleDateString('fr-FR', { 
-      day: 'numeric', 
+    return `${dateRange.start.toLocaleDateString('fr-FR', {
+      day: 'numeric',
       month: 'short',
       hour: '2-digit',
       minute: '2-digit'
-    })} - ${dateRange.end.toLocaleDateString('fr-FR', { 
-      day: 'numeric', 
+    })} - ${dateRange.end.toLocaleDateString('fr-FR', {
+      day: 'numeric',
       month: 'short',
       hour: '2-digit',
       minute: '2-digit'
     })}`;
   };
-   console.log(localStorage);
-
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center p-2 sm:p-4 relative overflow-hidden">
-      
+
       {/* Éléments d'arrière-plan animés */}
       <motion.div
         animate={{
@@ -383,7 +405,7 @@ const handleSubmit = async (e) => {
       />
 
       {/* Barre de progression */}
-      <motion.div 
+      <motion.div
         className="fixed top-0 left-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 z-50"
         initial={{ width: 0 }}
         animate={{ width: `${formProgress}%` }}
@@ -425,7 +447,7 @@ const handleSubmit = async (e) => {
               <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Retour</span>
             </button>
-            
+
             <div className="flex items-center space-x-2 self-end sm:self-auto">
               <FiStar className="text-yellow-300 w-4 h-4 sm:w-5 sm:h-5" />
               <FiHeart className="text-pink-300 w-4 h-4 sm:w-5 sm:h-5" />
@@ -445,9 +467,8 @@ const handleSubmit = async (e) => {
                     scale: currentStep >= step ? 1 : 0.9,
                     backgroundColor: currentStep >= step ? '#ffffff' : 'rgba(255,255,255,0.3)'
                   }}
-                  className={`w-7 h-7 sm:w-8 sm:h-10 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm ${
-                    currentStep >= step ? 'text-indigo-600' : 'text-white'
-                  }`}
+                  className={`w-7 h-7 sm:w-8 sm:h-10 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm ${currentStep >= step ? 'text-indigo-600' : 'text-white'
+                    }`}
                 >
                   {step}
                 </motion.div>
@@ -465,7 +486,7 @@ const handleSubmit = async (e) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 md:p-8">
-          
+
           {/* Étape 1 : Informations de base */}
           {currentStep === 1 && (
             <motion.div
@@ -486,7 +507,7 @@ const handleSubmit = async (e) => {
               >
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <FiEdit3 className="text-indigo-500" />
-                  Titre de l'événement
+                  Titre de l'événement *
                 </label>
                 <input
                   type="text"
@@ -509,7 +530,7 @@ const handleSubmit = async (e) => {
               >
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <FiEdit3 className="text-indigo-500" />
-                  Description
+                  Description *
                 </label>
                 <textarea
                   name="description"
@@ -524,7 +545,7 @@ const handleSubmit = async (e) => {
             </motion.div>
           )}
 
-          {/* Étape 2 : Dates et participants - Version responsive */}
+          {/* Étape 2 : Lieu, Dates et participants - Version responsive */}
           {currentStep === 2 && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -532,7 +553,34 @@ const handleSubmit = async (e) => {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-4 sm:space-y-6"
             >
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 sm:mb-6">Dates et participants</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 sm:mb-6">Lieu, dates et participants</h2>
+
+              {/* Lieu de l'événement - NOUVEAU CHAMP */}
+              <motion.div
+                onHoverStart={() => setHoveredField('lieu')}
+                onHoverEnd={() => setHoveredField(null)}
+                animate={{
+                  scale: hoveredField === 'lieu' ? 1.01 : 1
+                }}
+              >
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <FiMapPin className="text-indigo-500" />
+                  Lieu de l'événement *
+                </label>
+                <div className="relative">
+                  <FiMapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    name="lieu"
+                    value={formData.lieu}
+                    onChange={handleChange}
+                    required
+                    placeholder="Ex: Paris, France | Salle des fêtes de Marseille | Centre de conférences..."
+                    className="w-full border border-gray-200 pl-10 pr-3 sm:pr-4 py-2 sm:py-3 text-sm sm:text-base rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">📍 Indiquez l'adresse complète ou le nom du lieu</p>
+              </motion.div>
 
               {/* Sélecteur de période moderne - Version responsive */}
               <motion.div
@@ -543,9 +591,9 @@ const handleSubmit = async (e) => {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                   <h3 className="text-base sm:text-lg font-semibold text-gray-800 flex items-center gap-2">
                     <FiCalendarIcon className="text-indigo-600 w-4 h-4 sm:w-5 sm:h-5" />
-                    Période de l'événement
+                    Période de l'événement *
                   </h3>
-                  
+
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -605,8 +653,8 @@ const handleSubmit = async (e) => {
                         const today = new Date();
                         let start = new Date(today);
                         let end = new Date(today);
-                        
-                        switch(option) {
+
+                        switch (option) {
                           case 'Aujourd\'hui':
                             end.setHours(23, 59);
                             break;
@@ -626,7 +674,7 @@ const handleSubmit = async (e) => {
                             end.setHours(23, 59);
                             break;
                         }
-                        
+
                         handleDateChange([start, end]);
                       }}
                       className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white border border-gray-200 rounded-lg text-[10px] sm:text-xs text-gray-600 hover:border-indigo-500 hover:text-indigo-600 transition-all whitespace-nowrap"
@@ -647,7 +695,7 @@ const handleSubmit = async (e) => {
               >
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <FiUsers className="text-indigo-500" />
-                  Nombre de participants
+                  Nombre de participants *
                 </label>
                 <input
                   type="number"
@@ -683,7 +731,7 @@ const handleSubmit = async (e) => {
               >
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <FiTag className="text-indigo-500" />
-                  Catégorie
+                  Catégorie *
                 </label>
                 <select
                   name="category"
@@ -711,7 +759,7 @@ const handleSubmit = async (e) => {
               >
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <FiType className="text-indigo-500" />
-                  Type d'événement
+                  Type d'événement *
                 </label>
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 p-3 sm:p-4 bg-gray-50 rounded-xl">
                   <label className="flex items-center space-x-2 cursor-pointer">
@@ -747,11 +795,10 @@ const handleSubmit = async (e) => {
               onClick={prevStep}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-medium text-sm sm:text-base transition-all ${
-                currentStep === 1 
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-medium text-sm sm:text-base transition-all ${currentStep === 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               disabled={currentStep === 1}
             >
               ← Précédent
@@ -790,6 +837,7 @@ const handleSubmit = async (e) => {
               <h3 className="text-xs sm:text-sm font-medium text-indigo-800 mb-2">Récapitulatif</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] sm:text-xs text-indigo-600">
                 {formData.title && <div className="truncate">📌 {formData.title}</div>}
+                {formData.lieu && <div className="truncate">📍 {formData.lieu}</div>}
                 {formData.dateDebut && <div>📅 {new Date(formData.dateDebut).toLocaleDateString()}</div>}
                 {formData.nombreParticipants && <div>👥 {formData.nombreParticipants} pers.</div>}
                 {formData.category && <div>🏷️ {formData.category}</div>}

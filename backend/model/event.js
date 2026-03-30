@@ -9,6 +9,7 @@ const EventSchema = new mongoose.Schema(
         dateDebut: { type: Date },
         dateFin: { type: Date },
         nombreParticipants: { type: Number },
+        lieu:{type:String},
         status: { type: String, enum: ["en attente", "en cours", "terminé"], required: true, default: "en attente" },
         createdAt: { type: Date, default: Date.now },
         ressources_utiliser: [{
