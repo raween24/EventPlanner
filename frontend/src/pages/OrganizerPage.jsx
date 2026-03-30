@@ -24,6 +24,13 @@ export default function OrganizerPage() {
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const eventId = location.state?.eventId;
+  const [likedResources, setLikedResources] = useState([]);
+
+  useEffect(() => {
+    const adore = JSON.parse(localStorage.getItem("adore")) || [];
+    setLikedResources(adore);
+  }, []);
+
   useEffect(() => {
     loadResources();
   }, []);
@@ -31,8 +38,9 @@ export default function OrganizerPage() {
   useEffect(() => {
     filterResources();
   }, [resources, searchTerm, selectedType, maxPrice]);
-  console.log(localStorage);
-
+  const user = JSON.parse(localStorage.getItem("user"));
+  const adore = user?.adore || [];
+  console.log(adore);
   const loadResources = async () => {
     try {
       setLoading(true);
@@ -84,7 +92,7 @@ export default function OrganizerPage() {
   const handleBook = (resource) => {
     setSelectedResource(resource);
   };
-  
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-10 px-4">
@@ -198,6 +206,7 @@ export default function OrganizerPage() {
                 eventId={eventId}
                 resource={resource}
                 onBook={handleBook}
+                isLiked={likedResources.includes(resource._id)} // 🔥 ici
               />
             ))}
           </div>

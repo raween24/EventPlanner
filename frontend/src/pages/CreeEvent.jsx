@@ -308,23 +308,27 @@ export default function CreerEvenement() {
     try {
       const token = localStorage.getItem("token");
 
+
       const dataToSend = {
         ...formData,
         nombreParticipants: Number(formData.nombreParticipants),
       };
 
-    const response = await api.post("/event/addEvent", dataToSend, {
-  headers: { Authorization: `Bearer ${token}` }
-});
+      const response = await api.post("/event/addEvent", dataToSend, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log(response.data);
 
-const eventId = response.data.event._id;
+      const eventId = response.data._id;
+
 
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
-navigate("/les_ressources", {
-  state: { eventId }
-});      }, 2000);
+        navigate("/les_ressources", {
+          state: { eventId }
+        });
+      }, 2000);
 
     } catch (error) {
       console.error(error);

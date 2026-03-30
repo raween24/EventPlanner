@@ -180,7 +180,7 @@ const updateUser = async (req, res) => {
 
 const addToAdore = async (req, res) => {
   try {
-    const userId = req.user.id; // ✅ depuis token
+    const userId = req.user.id;
     const { resourceId } = req.body;
 
     const user = await User.findById(userId);
@@ -189,21 +189,28 @@ const addToAdore = async (req, res) => {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
-    // éviter doublon
+    // 🔥 si déjà dans les favoris → retourner 200
     if (user.adore.some(id => id.toString() === resourceId)) {
-      return res.status(400).json({ message: "Déjà dans les favoris" });
+      return res.status(200).json({ 
+        message: "Déjà dans les favoris",
+        adore: user.adore
+      });
     }
 
     user.adore.push(resourceId);
     await user.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Ajouté aux favoris",
       adore: user.adore
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.log(error);
+
+    return res.status(500).json({ 
+      message: "Erreur serveur" 
+    });
   }
 };
 const getAdore = async (req, res) => {

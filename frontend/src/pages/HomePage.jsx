@@ -134,22 +134,22 @@ export default function HomePage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setFormStatus("sending");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setFormStatus("sending");
 
-  try {
-    await axios.post("http://localhost:5000/api/send-mail", formData);
+    try {
+      await axios.post("http://localhost:5000/api/send-mail", formData);
 
-    setFormStatus("success");
-    setFormData({ name: '', email: '', subject: '', message: '' });
+      setFormStatus("success");
+      setFormData({ name: '', email: '', subject: '', message: '' });
 
-  } catch (error) {
-    setFormStatus("error");
-  }
+    } catch (error) {
+      setFormStatus("error");
+    }
 
-  setTimeout(() => setFormStatus(''), 3000);
-};
+    setTimeout(() => setFormStatus(''), 3000);
+  };
 
   const features = [
     { icon: Calendar, title: "Réservation intelligente", description: "Réservez vos salles, traiteurs et décorateurs en un clic grâce à notre système intuitif.", color: "from-blue-500 to-cyan-500" },
@@ -215,11 +215,6 @@ export default function HomePage() {
               {!isAdmin && (
                 <motion.button whileHover={{ x: 5 }} onClick={() => { navigate("/messenger"); setIsProfileMenuOpen(false); setIsOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors">
                   <MessageCircle className="w-5 h-5 text-blue-600" /><span>Messenger</span>
-                </motion.button>
-              )}
-              {(role === "organisateur" || role === "prestataire") && (
-                <motion.button whileHover={{ x: 5 }} onClick={() => { navigate(role === "organisateur" ? "/dashboard-organisateur" : "/dashboard-prestataire"); setIsProfileMenuOpen(false); setIsOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors">
-                  <LayoutDashboard className="w-5 h-5 text-green-600" /><span>Tableau de bord</span>
                 </motion.button>
               )}
               {role === "prestataire" && (
@@ -315,11 +310,6 @@ export default function HomePage() {
                     {role === "organisateur" && (
                       <motion.button whileHover={{ x: 10 }} onClick={() => { navigate("/panier"); setIsOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg">
                         <ShoppingCart className="w-5 h-5 text-purple-600" /><span>Mon Panier</span>
-                      </motion.button>
-                    )}
-                    {(role === "organisateur" || role === "prestataire") && (
-                      <motion.button whileHover={{ x: 10 }} onClick={() => { navigate(role === "organisateur" ? "/dashboard-organisateur" : "/dashboard-prestataire"); setIsOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg">
-                        <LayoutDashboard className="w-5 h-5 text-green-600" /><span>Tableau de bord</span>
                       </motion.button>
                     )}
                     {role === "prestataire" && (
@@ -595,7 +585,7 @@ export default function HomePage() {
                   onChange={handleInputChange}
                   placeholder="Nom complet"
                   required
-                  className="w-full px-4 py-3 border border-gray-500 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                 />
 
                 <input
@@ -605,7 +595,7 @@ export default function HomePage() {
                   onChange={handleInputChange}
                   placeholder="Email"
                   required
-                  className="w-full px-4 py-3 border border-gray-500 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
 
@@ -616,7 +606,7 @@ export default function HomePage() {
                 onChange={handleInputChange}
                 placeholder="Sujet"
                 required
-                className="w-full px-4 py-3 border border-gray-500 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
               />
 
               <textarea
@@ -626,7 +616,7 @@ export default function HomePage() {
                 rows="5"
                 placeholder="Votre message..."
                 required
-                className="w-full px-4 py-3 border border-gray-500 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
               />
 
               {/* Button */}
@@ -646,9 +636,7 @@ export default function HomePage() {
 
               {/* ── Coordonnées (MAINTENANT EN DESSOUS) ── */}
               <div className="pt-6 border-t border-gray-100">
-                <h3 className="text-xl font-bold text-gray-900 mb-6 text-center">
-                  Nos coordonnées
-                </h3>
+
 
                 <div className="flex flex-col md:flex-row justify-center items-center gap-6">
 

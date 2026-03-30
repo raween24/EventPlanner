@@ -167,34 +167,38 @@ export default function ProfilPres() {
 
     // Fonction pour récupérer les demandes de réservation (pour le prestataire)
     const fetchRequests = async () => {
-    try {
-        setRequestsLoading(true);
-        const response = await api.get('/location/get_pres');
-        const locations = response.data;
+        try {
+            setRequestsLoading(true);
+            const response = await api.get('/location/get_pres');
+            const locations = response.data;
 
-        const formattedRequests = locations.map(loc => ({
-            id: loc._id,
-            resourceName: loc.resource?.name || 'Ressource inconnue',
-            resourceId: loc.resource?._id,
-            clientName: loc.organisateur ? `${loc.organisateur.firstname} ${loc.organisateur.lastname}` : 'Client inconnu',
-            eventName: loc.event?.title || 'Événement inconnu',
-            dateDebut: loc.dateDebut,
-            dateFin: loc.dateFin,
-            status: loc.status === 'acceptée' ? 'confirmé' : loc.status === 'refusée' ? 'refusé' : 'en_attente',
-            price: loc.resource?.price || 0,
-            message: loc.message || '',
-        }));
+            const formattedRequests = locations.map(loc => ({
+                id: loc._id,
+                resourceName: loc.resource?.name || 'Ressource inconnue',
+                resourceId: loc.resource?._id,
+                clientName: loc.organisateur ? `${loc.organisateur.firstname} ${loc.organisateur.lastname}` : 'Client inconnu',
+                cin: loc.organisateur.passportOrCid,
+                tel: loc.organisateur.numTel,
+                region: loc.organisateur.region,
 
-        // Tri : plus récent en premier (dateDebut décroissante)
-        formattedRequests.sort((a, b) => new Date(b.dateDebut) - new Date(a.dateDebut));
+                eventName: loc.event?.title || 'Événement inconnu',
+                dateDebut: loc.dateDebut,
+                dateFin: loc.dateFin,
+                status: loc.status === 'acceptée' ? 'confirmé' : loc.status === 'refusée' ? 'refusé' : 'en_attente',
+                price: loc.resource?.price || 0,
+                message: loc.message || '',
+            }));
 
-        setRequests(formattedRequests);
-    } catch (err) {
-        console.error('Erreur lors du chargement des demandes:', err);
-    } finally {
-        setRequestsLoading(false);
-    }
-};
+            // Tri : plus récent en premier (dateDebut décroissante)
+            formattedRequests.sort((a, b) => new Date(b.dateDebut) - new Date(a.dateDebut));
+
+            setRequests(formattedRequests);
+        } catch (err) {
+            console.error('Erreur lors du chargement des demandes:', err);
+        } finally {
+            setRequestsLoading(false);
+        }
+    };
 
     // Charger les données au montage
     useEffect(() => {
@@ -730,10 +734,10 @@ export default function ProfilPres() {
                 {/* Section Profil + Calendrier */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                     {/* Carte Profil */}
-                    <motion.div whileHover={{ y: -5 }} className="lg:col-span-1">
-                        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-6 border border-gray-100 h-full hover:shadow-2xl transition-all duration-300">
+                    <motion.div className="lg:col-span-1">
+                        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-6  border-gray-100 h-full ">
                             <div className="flex flex-col items-center">
-                                <motion.div whileHover={{ scale: 1.05 }} className="relative mb-3 sm:mb-4 cursor-pointer">
+                                <motion.div className="relative mb-3 sm:mb-4 cursor-pointer">
                                     <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden ring-4 ring-blue-100 shadow-lg">
                                         {provider?.image ? (
                                             <img src={`http://localhost:5000${provider.image}`} alt={`${provider.firstname} ${provider.lastname}`} className="w-full h-full object-cover" />
@@ -1019,7 +1023,42 @@ export default function ProfilPres() {
                                             </div>
                                         </div>
                                     </div>
-
+                                    {/*cin */}
+                                    <div className="border-t border-gray-100 pt-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-green-100 rounded-lg">
+                                                <User size={16} className="text-green-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">Cin/Passport</p>
+                                                <p className="font-semibold text-gray-900">{selectedRequest.cin}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/* region */}
+                                    <div className="border-t border-gray-100 pt-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-green-100 rounded-lg">
+                                                <User size={16} className="text-green-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">Region</p>
+                                                <p className="font-semibold text-gray-900">{selectedRequest.region}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/*tel */}
+                                    <div className="border-t border-gray-100 pt-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-green-100 rounded-lg">
+                                                <User size={16} className="text-green-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">telephone</p>
+                                                <p className="font-semibold text-gray-900">{selectedRequest.tel}</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                     {/* Période */}
                                     <div className="border-t border-gray-100 pt-3">
                                         <div className="flex items-start gap-3">

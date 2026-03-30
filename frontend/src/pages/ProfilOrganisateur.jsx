@@ -16,7 +16,7 @@ import {
     FileText, Upload, Download, CheckSquare,
     Clock as ClockIcon, CheckCircle as CheckCircleIcon,
     XCircle, AlertTriangle, File, Image as ImageIcon,
-    Layers, Save, Lock
+    Layers, Save, Lock, Heart
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -204,7 +204,7 @@ export default function OrganizerDashboard() {
             const [userRes, eventsRes, resourcesRes] = await Promise.all([
                 api.get(`/users/${userId}`),
                 api.get(`/event/user_event/${userId}`),
-                api.get('/ressources/get_all_ressources')
+                api.get(`/users/adore/${userId}`)
             ]);
 
             setOrganizer(userRes.data);
@@ -389,6 +389,7 @@ export default function OrganizerDashboard() {
                 image: response.data.image,
                 status: response.data.status
             };
+
             localStorage.setItem('user', JSON.stringify(updatedUser));
 
             setProfileSuccess('Profil modifié avec succès !');
@@ -580,16 +581,66 @@ export default function OrganizerDashboard() {
             setIsMobileMenuOpen(false);
         }
     };
+    //like
+    const [likedResources, setLikedResources] = useState([]);
+    useEffect(() => {
+        const user = JSON.parse(localStorage.getItem("user"));
+        setLikedResources(user?.adore || []);
+    }, []);
+    const toggleLike = async (e, resourceId) => {
+        e.stopPropagation();
 
-    const handleDeleteResource = async (resourceId) => {
-        if (window.confirm('Voulez-vous vraiment supprimer cette ressource ?')) {
-            try {
-                await api.delete(`/resources/${resourceId}`);
-                fetchOrganizerData();
-            } catch (err) {
-                console.error('Erreur:', err);
-                alert('Erreur lors de la suppression');
+        const token = localStorage.getItem("token");
+        const user = JSON.parse(localStorage.getItem("user"));
+
+        if (!token || !user) {
+            alert("Vous devez être connecté !");
+            return;
+        }
+
+        const isLiked = likedResources.includes(resourceId);
+
+        try {
+            const url = isLiked
+                ? "http://localhost:5000/api/users/remove"
+                : "http://localhost:5000/api/users/like";
+
+            const method = isLiked ? "DELETE" : "POST";
+
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ resourceId }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.message);
+                return;
             }
+
+            let updated;
+
+            if (isLiked) {
+                updated = likedResources.filter(id => id !== resourceId);
+                setLikedResources(updated);
+            } else {
+                updated = [...likedResources, resourceId];
+            }
+
+            // 🔥 update state + localStorage
+            setLikedResources(updated);
+            localStorage.setItem("user", JSON.stringify({
+                ...user,
+                adore: updated
+            }));
+
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -636,14 +687,10 @@ export default function OrganizerDashboard() {
                 </button>
                 <button onClick={() => setActiveTab('resources')} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'resources' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
                     <Package size={16} />
-                    <span>Mes Ressources</span>
+                    <span>Mes favories</span>
                     {resources.length > 0 && <span className="bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{resources.length}</span>}
                 </button>
-                <button onClick={() => setActiveTab('history')} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'history' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
-                    <History size={16} />
-                    <span>Historique</span>
-                    {eventHistory.length > 0 && <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{eventHistory.length}</span>}
-                </button>
+
                 <button onClick={() => { setActiveTab('demandes'); fetchDemandes(); }} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'demandes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
                     <FileText size={16} />
                     <span>Mes Demandes</span>
@@ -806,8 +853,8 @@ export default function OrganizerDashboard() {
                                 </div>
                                 <div className="w-full grid grid-cols-3 gap-1 sm:gap-2 mt-4 sm:mt-6">
                                     <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer"><p className="text-base sm:text-lg font-bold text-blue-600">{events.length}</p><p className="text-[10px] sm:text-xs text-gray-600">Événements</p></motion.div>
-                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer"><p className="text-base sm:text-lg font-bold text-purple-600">{resources.length}</p><p className="text-[10px] sm:text-xs text-gray-600">Ressources</p></motion.div>
-                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer"><p className="text-base sm:text-lg font-bold text-green-600">{eventHistory.length}</p><p className="text-[10px] sm:text-xs text-gray-600">Historique</p></motion.div>
+                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer"><p className="text-base sm:text-lg font-bold text-purple-600">{resources.length}</p><p className="text-[10px] sm:text-xs text-gray-600">Adores</p></motion.div>
+                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer"><p className="text-base sm:text-lg font-bold text-green-600">{demandes.length}</p><p className="text-[10px] sm:text-xs text-gray-600">Demmandes</p></motion.div>
                                 </div>
                             </div>
                         </div>
@@ -912,6 +959,7 @@ export default function OrganizerDashboard() {
                                                         <div><StatusBadge status={event.status} /></div>
                                                     </div>
                                                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={(e) => { e.stopPropagation(); handleEditEvent(event); }} className="w-full flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-medium hover:shadow-lg transition-all group"><Edit2 size={12} className="group-hover:rotate-12 transition-transform" /> Modifier</motion.button>
+
                                                 </motion.div>
                                             );
                                         })}
@@ -940,67 +988,141 @@ export default function OrganizerDashboard() {
                             </motion.div>
                         )}
                         {activeTab === 'resources' && (
-                            <motion.div key="resources" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+                            <motion.div
+                                key="resources"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                {/* HEADER */}
                                 <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-3 mb-4 sm:mb-6">
-                                    <h2 className="text-base sm:text-xl font-bold text-gray-900 flex items-center gap-2"><Package size={20} className="text-purple-600" /> Ressources disponibles</h2>
-                                    <div className="relative w-full xs:w-auto"><Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" /><input type="text" placeholder="Rechercher..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full xs:w-48 sm:w-64 pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></div>
+                                    <h2 className="text-base sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                                        <Package size={20} className="text-purple-600" />
+                                        Mes Favoris Ressources
+                                    </h2>
+
+                                    <div className="relative w-full xs:w-auto">
+                                        <Search
+                                            size={16}
+                                            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Rechercher..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full xs:w-48 sm:w-64 pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                        />
+                                    </div>
                                 </div>
+
+                                {/* GRID */}
                                 <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-                                    {resources.filter(resource => resource.name.toLowerCase().includes(searchTerm.toLowerCase()) || resource.type?.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 6).map((resource, index) => {
-                                        const associatedEvent = events.find(event => event.ressources_utiliser?.includes(resource._id));
-                                        return (
-                                            <motion.div key={resource._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} whileHover={{ y: -5 }} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-200 hover:shadow-xl transition-all group">
-                                                <div className="flex flex-col xs:flex-row items-start gap-2 sm:gap-4">
-                                                    <div className="w-full xs:w-12 sm:w-16 h-24 xs:h-12 sm:h-16 rounded-lg sm:rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 group-hover:shadow-md transition-all">
-                                                        {resource.media && resource.media.length > 0 && resource.media[0]?.img_vd ? (
-                                                            <img src={`http://localhost:5000/${resource.media[0].img_vd[0]}`} alt={resource.name} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center"><Camera size={20} className="sm:w-6 sm:h-6 text-gray-400" /></div>
-                                                        )}
+                                    {resources
+                                        .filter((resource) =>
+                                            likedResources.includes(resource._id)
+                                        )
+                                        .filter((resource) =>
+                                            resource.name
+                                                .toLowerCase()
+                                                .includes(searchTerm.toLowerCase())
+                                        ).length > 0 ? (
+                                        resources
+                                            .filter((resource) =>
+                                                likedResources.includes(resource._id)
+                                            )
+                                            .filter((resource) =>
+                                                resource.name
+                                                    .toLowerCase()
+                                                    .includes(searchTerm.toLowerCase())
+                                            )
+                                            .map((resource, index) => (
+                                                <motion.div
+                                                    key={resource._id}
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: index * 0.05 }}
+                                                    whileHover={{ y: -5 }}
+                                                    className="relative bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-200 hover:shadow-xl transition-all group"
+                                                >
+                                                    {/* ❤️ LIKE */}
+                                                    <div
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleLike(e, resource._id);
+                                                        }}
+                                                        className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow cursor-pointer hover:scale-110 transition"
+                                                    >
+                                                        <Heart
+                                                            size={16}
+                                                            className={`transition-all duration-200 ${likedResources.includes(resource._id)
+                                                                ? "text-red-500 fill-red-500 scale-110"
+                                                                : "text-gray-400"
+                                                                }`}
+                                                        />
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className="font-semibold text-gray-900 text-xs sm:text-sm truncate group-hover:text-blue-600 transition-colors">{resource.name}</h3>
-                                                        <p className="text-[10px] sm:text-xs text-gray-500 mt-1 line-clamp-2">{resource.description?.substring(0, 60)}...</p>
-                                                        <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-2">
-                                                            <span className="px-1.5 sm:px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[8px] sm:text-xs">{resource.type}</span>
-                                                            <span className="text-xs sm:text-sm font-bold text-green-600">{formatPrice(resource.price)}</span>
+
+                                                    {/* CONTENT */}
+                                                    <div className="flex flex-col xs:flex-row items-start gap-2 sm:gap-4">
+                                                        {/* IMAGE */}
+                                                        <div className="w-full xs:w-12 sm:w-16 h-24 xs:h-12 sm:h-16 rounded-lg sm:rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 group-hover:shadow-md transition-all">
+                                                            {resource.media &&
+                                                                resource.media.length > 0 &&
+                                                                resource.media[0]?.img_vd ? (
+                                                                <img
+                                                                    src={`http://localhost:5000/${resource.media[0].img_vd[0]}`}
+                                                                    alt={resource.name}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center">
+                                                                    <Camera
+                                                                        size={20}
+                                                                        className="sm:w-6 sm:h-6 text-gray-400"
+                                                                    />
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                        <p className="text-[8px] sm:text-xs text-gray-500 mt-2 truncate">{associatedEvent?.title || 'Non assigné'}</p>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        );
-                                    })}
-                                </div>
-                            </motion.div>
-                        )}
-                        {activeTab === 'history' && (
-                            <motion.div key="history" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-                                <div className="flex items-center gap-2 mb-4 sm:mb-6"><div className="p-1.5 sm:p-2 bg-gray-100 rounded-lg"><History size={16} className="sm:w-5 sm:h-5 text-gray-600" /></div><h2 className="text-base sm:text-xl font-bold text-gray-900">Historique</h2></div>
-                                {eventHistory.length > 0 ? (
-                                    <div className="space-y-2 sm:space-y-4">
-                                        {eventHistory.slice(0, 5).map((event, index) => (
-                                            <motion.div key={event._id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }} className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-200 hover:shadow-md transition-all group">
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
-                                                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-lg sm:rounded-xl flex items-center justify-center text-gray-500 flex-shrink-0 group-hover:bg-gray-200 transition-colors"><Archive size={14} className="sm:w-5 sm:h-5" /></div>
-                                                        <div className="min-w-0 flex-1">
-                                                            <h3 className="font-semibold text-gray-900 text-xs sm:text-sm truncate group-hover:text-blue-600 transition-colors">{event.title}</h3>
-                                                            <p className="text-[10px] sm:text-xs text-gray-600 mt-1 line-clamp-2">{event.description}</p>
-                                                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-[8px] sm:text-xs text-gray-500">
-                                                                <span className="flex items-center gap-0.5 sm:gap-1"><Calendar size={8} />{formatDate(event.dateDebut)}</span>
-                                                                <StatusBadge status={event.status} />
+
+                                                        {/* INFO */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <h3 className="font-semibold text-gray-900 text-xs sm:text-sm truncate group-hover:text-blue-600 transition-colors">
+                                                                {resource.name}
+                                                            </h3>
+
+                                                            <p className="text-[10px] sm:text-xs text-gray-500 mt-1 line-clamp-2">
+                                                                {resource.description?.substring(0, 60)}...
+                                                            </p>
+
+                                                            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-2">
+                                                                <span className="px-1.5 sm:px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[8px] sm:text-xs">
+                                                                    {resource.type}
+                                                                </span>
+
+                                                                <span className="text-xs sm:text-sm font-bold text-green-600">
+                                                                    {formatPrice(resource.price)}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <ChevronRightIcon size={14} className="sm:w-4 sm:h-4 text-gray-400 flex-shrink-0 group-hover:text-blue-600 transition-colors" />
-                                                </div>
-                                            </motion.div>
-                                        ))}
-                                    </div>
-                                ) : (<div className="text-center py-8 sm:py-16 bg-white rounded-xl sm:rounded-2xl"><History size={32} className="sm:w-12 sm:h-12 text-gray-300 mx-auto mb-3 sm:mb-4" /><p className="text-gray-500 text-xs sm:text-sm">Aucun historique</p></div>)}
+                                                </motion.div>
+                                            ))
+                                    ) : (
+                                        <div className="col-span-full text-center py-8 sm:py-16 bg-white rounded-xl sm:rounded-2xl">
+                                            <Heart
+                                                size={32}
+                                                className="sm:w-12 sm:h-12 text-gray-300 mx-auto mb-3 sm:mb-4"
+                                            />
+                                            <p className="text-gray-500 text-xs sm:text-sm">
+                                                Aucun favori trouvé
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
                             </motion.div>
                         )}
+
                         {activeTab === 'demandes' && (
                             <motion.div key="demandes" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
                                 <div className="flex items-center justify-between mb-6">

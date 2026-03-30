@@ -9,9 +9,8 @@ export default function ResourceCard({ resource = {} }) {
   const [isHovering, setIsHovering] = useState(false);
   const [liked, setLiked] = useState(false);
   const [loadingLike, setLoadingLike] = useState(false);
-  const [adoreIds, setAdoreIds] = useState([]); // stocke les IDs des ressources aimées
 
-  // Images
+  // 🔹 Images
   const images =
     resource.media?.flatMap((m) =>
       m.img_vd.map((img) =>
@@ -23,46 +22,21 @@ export default function ResourceCard({ resource = {} }) {
 
   const isAvailable = resource.availability?.length > 0;
 
-  // Récupérer l'utilisateur depuis localStorage
-  const getUser = () => {
-    const userStr = localStorage.getItem("user");
-    return userStr ? JSON.parse(userStr) : null;
-  };
-
-  // Récupérer la liste des favoris depuis le backend
-  const fetchAdoreList = async (userId, token) => {
-    try {
-      const res = await fetch(`http://localhost:5000/api/users/adore/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        // data est un tableau d'objets ressource, on extrait les ids
-        const ids = data.map((item) => item._id);
-        setAdoreIds(ids);
-        setLiked(ids.includes(resource._id));
-      }
-    } catch (err) {
-      console.error("Erreur récupération favoris:", err);
-    }
-  };
-
-  // Chargement initial : si utilisateur connecté, on récupère ses favoris
+  // 🔥 Initialiser le like depuis localStorage
   useEffect(() => {
-    const user = getUser();
-    const token = localStorage.getItem("token");
-    if (user && token) {
-      fetchAdoreList(user.id, token);
-    }
-  }, [resource._id]); // si la ressource change, on revérifie
+    const user = JSON.parse(localStorage.getItem("user"));
+    const adore = user?.adore || [];
 
-  // Like / Unlike
+    setLiked(adore.includes(resource._id));
+  }, [resource._id]);
+
+  // 🔥 Toggle Like
   const toggleLike = async (e) => {
     e.stopPropagation();
     if (loadingLike) return;
 
     const token = localStorage.getItem("token");
-    const user = getUser();
+    const user = JSON.parse(localStorage.getItem("user"));
 
     if (!token || !user) {
       alert("Vous devez être connecté !");
@@ -70,59 +44,68 @@ export default function ResourceCard({ resource = {} }) {
     }
 
     setLoadingLike(true);
+
     try {
       const url = liked
         ? "http://localhost:5000/api/users/remove"
         : "http://localhost:5000/api/users/like";
 
-      const response = await fetch(url, {
-        method: "POST",
+      const method = liked ? "DELETE" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ resourceId: resource._id }),
+        body: JSON.stringify({
+          resourceId: resource._id,
+        }),
       });
+      console.log("resourceId:", resource._id)
+      const data = await res.json();
 
-      const data = await response.json();
-      if (!response.ok) {
+      if (!res.ok) {
         if (data.message === "Déjà dans les favoris") {
           setLiked(true);
-          if (!adoreIds.includes(resource._id)) {
-            setAdoreIds([...adoreIds, resource._id]);
-          }
-        } else {
-          console.error("Erreur:", data.message);
+          return;
         }
-        return;
+        throw new Error(data.message);
       }
 
-      // Mise à jour locale
+      // 🔥 Mise à jour locale
+      let updatedAdore;
+
       if (liked) {
-        setAdoreIds(adoreIds.filter((id) => id !== resource._id));
+        updatedAdore = user.adore.filter(id => id !== resource._id);
         setLiked(false);
       } else {
-        setAdoreIds([...adoreIds, resource._id]);
+        updatedAdore = [...(user.adore || []), resource._id];
         setLiked(true);
       }
 
-      // Mise à jour de l'utilisateur dans localStorage
-      const updatedUser = { ...user, adore: liked ? adoreIds.filter(id => id !== resource._id) : [...adoreIds, resource._id] };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ ...user, adore: updatedAdore })
+      );
 
-    } catch (error) {
-      console.error("Erreur like:", error);
+    } catch (err) {
+      alert(err.message); // 🔥 meilleur affichage
     } finally {
       setLoadingLike(false);
     }
   };
 
-  // Animation du carrousel au survol
+  // 🔹 Animation carrousel
   useEffect(() => {
     if (!isHovering || images.length === 0) return;
+
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+      setCurrentIndex((prev) =>
+        prev === images.length - 1 ? 0 : prev + 1
+      );
     }, 1500);
+
     return () => clearInterval(interval);
   }, [isHovering, images]);
 
@@ -135,7 +118,7 @@ export default function ResourceCard({ resource = {} }) {
       }}
       className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border cursor-pointer"
     >
-      {/* Image */}
+      {/* 🔹 Image */}
       <div className="relative h-52 overflow-hidden">
         {images.length > 0 ? (
           <img
@@ -149,20 +132,21 @@ export default function ResourceCard({ resource = {} }) {
           </div>
         )}
 
-        {/* Cœur des favoris */}
+        {/* ❤️ Like */}
         <div
           onClick={toggleLike}
           className="absolute top-3 right-3 bg-white/80 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:scale-110 transition"
         >
           <Heart
             size={18}
-            className={`transition-all ${
-              liked ? "fill-red-500 text-red-500" : "text-gray-600"
-            }`}
+            className={`transition-all ${liked
+              ? "fill-red-500 text-red-500"
+              : "text-gray-600"
+              }`}
           />
         </div>
 
-        {/* Badge indisponibilité */}
+        {/* ❌ Indisponible */}
         {!isAvailable && (
           <span className="absolute top-3 left-3 px-3 py-1 text-xs text-white bg-red-600 rounded-full">
             Indisponible
@@ -170,10 +154,15 @@ export default function ResourceCard({ resource = {} }) {
         )}
       </div>
 
-      {/* Contenu */}
+      {/* 🔹 Contenu */}
       <div className="p-5">
-        <h3 className="text-lg font-semibold">{resource.name}</h3>
-        <p className="text-sm text-gray-500">{resource.description}</p>
+        <h3 className="text-lg font-semibold">
+          {resource.name}
+        </h3>
+
+        <p className="text-sm text-gray-500">
+          {resource.description}
+        </p>
 
         <div className="mt-4 space-y-2 text-sm text-gray-600">
           {resource.location && (
@@ -182,6 +171,7 @@ export default function ResourceCard({ resource = {} }) {
               {resource.location}
             </div>
           )}
+
           {resource.capacity && (
             <div className="flex items-center gap-2">
               <Users size={16} />
@@ -191,15 +181,19 @@ export default function ResourceCard({ resource = {} }) {
         </div>
 
         <div className="flex items-center justify-between mt-6">
-          <p className="text-xl font-bold">{resource.price?.toFixed(2)}€</p>
+          <p className="text-xl font-bold">
+            {resource.price?.toFixed(2)}€
+          </p>
+
           <button
             disabled={!isAvailable}
-            onClick={() => navigate(`/RessourceDetail/${resource._id}`)}
-            className={`px-5 py-2 rounded-xl ${
-              isAvailable
-                ? "bg-black text-white"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            }`}
+            onClick={() =>
+              navigate(`/RessourceDetail/${resource._id}`)
+            }
+            className={`px-5 py-2 rounded-xl ${isAvailable
+              ? "bg-black text-white"
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
           >
             voir plus
           </button>
