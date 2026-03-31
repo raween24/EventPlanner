@@ -3,6 +3,7 @@ import User from "../model/user.js";
 import Event from "../model/event.js";
 import Ressource from "../model/ressources.js";
 import axios from "axios";
+import mongoose from "mongoose";
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
 export const getStats = async (req, res) => {
@@ -55,7 +56,7 @@ export const updateUserStatus = async (req, res) => {
       return res.status(400).json({ message: "Statut invalide" });
     }
 
-    // 🔥 récupérer ancien user
+    //  récupérer ancien user
     const oldUser = await User.findById(req.params.id);
 
     const user = await User.findByIdAndUpdate(
@@ -64,7 +65,7 @@ export const updateUserStatus = async (req, res) => {
       { returnDocument: "after" }
     ).select("-password");
 
-    // 🔥 envoyer email seulement si changement
+    //  envoyer email seulement si changement
     if (oldUser.status !== user.status) {
       try {
         if (user.status === "valide") {
@@ -145,6 +146,51 @@ export const getResourcePaniers = async (req, res) => {
       .select("firstname lastname email numTel region")
       .sort({ _id: -1 });
     res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const getMonthlyStats = async (req, res) => {
+  try {
+    const now = new Date();
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+    // Users : utilise _id (ObjectId contient la date)
+    const users = await User.aggregate([
+      {
+        $match: {
+          _id: { $gte: mongoose.Types.ObjectId.createFromTime(sixMonthsAgo.getTime() / 1000) }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year:  { $year:  { $toDate: "$_id" } },
+            month: { $month: { $toDate: "$_id" } },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
+    ]);
+
+    // Resources : a createdAt donc on l'utilise directement
+    const resources = await Ressource.aggregate([
+      { $match: { createdAt: { $gte: sixMonthsAgo } } },
+      {
+        $group: {
+          _id: {
+            year:  { $year:  "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
+    ]);
+
+    res.json({ users, resources });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

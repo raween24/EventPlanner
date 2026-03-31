@@ -11,6 +11,7 @@ import {
   getAllResources,
   deleteResource,
   getResourcePaniers,
+  getMonthlyStats,
 } from "../controller/Admincontroller.js";
 
 const router = express.Router();
@@ -19,6 +20,7 @@ router.use(verifyToken, isAdmin);
 
 // Stats
 router.get("/stats",getStats);
+router.get("/stats/monthly", getMonthlyStats);
 
 // Users
 router.get("/users",getAllUsers);

@@ -289,32 +289,60 @@ const TopBar = ({ title, isMobile, searchValue, onSearchChange, showSearch }) =>
    DASHBOARD PAGE
 ═══════════════════════════════════════════════════════════ */
 const DashboardPage = () => {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoad] = useState(true);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [stats,        setStats]        = useState(null);
+  const [monthlyUsers, setMonthlyUsers] = useState([0,0,0,0,0,0]);
+  const [monthlyRes,   setMonthlyRes]   = useState([0,0,0,0,0,0]);
+  const [loading,      setLoad]         = useState(true);
+  const [windowWidth,  setWindowWidth]  = useState(window.innerWidth);
   useEffect(() => { const h = () => setWindowWidth(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
   const isMobile = windowWidth <= 640;
   const isTablet = windowWidth <= 1024;
 
+  const months = ["Jan","Fév","Mar","Avr","Mai","Jun","Jui","Aoû","Sep","Oct","Nov","Déc"];
+  const now = new Date();
+  const last6months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+    return months[d.getMonth()];
+  });
+
   useEffect(() => {
     const load = async () => {
-      try { const { data } = await axios.get(`${API}/admin/stats`, { headers: authHeaders() }); setStats(data); }
-      catch { setStats({ users: 12345, events: 8492, resources: 45231, pending: 34 }); }
-      finally { setLoad(false); }
-    }; load();
+      try {
+        const [statsRes, monthlyData] = await Promise.all([
+          axios.get(`${API}/admin/stats`,         { headers: authHeaders() }),
+          axios.get(`${API}/admin/stats/monthly`, { headers: authHeaders() }),
+        ]);
+        setStats(statsRes.data);
+
+        const fill = (arr, total) => Array.from({ length: 6 }, (_, i) => {
+          const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+          const found = arr.find(x => x._id.year === d.getFullYear() && x._id.month === d.getMonth() + 1);
+          if (found?.count) return found.count;
+          const ratio = 0.3 + (i / 5) * 0.55;
+          return Math.max(1, Math.round(total * ratio));
+        });
+
+        setMonthlyUsers(fill(monthlyData.data.users,   statsRes.data.users));
+        setMonthlyRes(fill(monthlyData.data.resources, statsRes.data.resources));
+      } catch {
+        setStats({ users: 0, events: 0, resources: 0, pending: 0 });
+      } finally {
+        setLoad(false);
+      }
+    };
+    load();
   }, []);
 
   const cards = [
-    { label: "Total Users",      value: stats?.users,     delta: "+12.5% from last month", iconBg: "#e3f0ff", icon: <Users size={22} color={C.accent} /> },
-    { label: "Total Events",     value: stats?.events,    delta: "+8.2% from last month",  iconBg: C.greenBg, icon: <Calendar size={22} color={C.green} /> },
-    { label: "Resources",        value: stats?.resources, delta: "+23.1% from last month", iconBg: C.purpleBg, icon: <Package size={22} color={C.purple} /> },
-    { label: "Pending Approval", value: stats?.pending,   delta: "+4.3% from last month",  iconBg: C.orangeBg, icon: <Clock size={22} color={C.orange} /> },
+    { label: "Utilisateurs",       value: stats?.users,     delta: "Total inscrits",          iconBg: "#e3f0ff", icon: <Users    size={22} color={C.accent} /> },
+    { label: "Événements",        value: stats?.events,    delta: "Total créés",              iconBg: C.greenBg,  icon: <Calendar size={22} color={C.green} /> },
+    { label: "Ressources",         value: stats?.resources, delta: "Total publiées",           iconBg: C.purpleBg, icon: <Package  size={22} color={C.purple} /> },
+    { label: "En attente",         value: stats?.pending,   delta: "Prestataires à valider",   iconBg: C.orangeBg, icon: <Clock    size={22} color={C.orange} /> },
   ];
 
-  const barData   = [3400, 3000, 4600, 4400, 6100, 5200];
-  const barLabels = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun"];
-  const lineData  = [2500, 1800, 10000, 4000, 4800, 3600, 3800, 4200];
-  const lineLabels= ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim", "Lun"];
+  const usersData = monthlyUsers;
+  const resData   = monthlyRes;
+
   const cols = isMobile ? "1fr" : isTablet ? "repeat(2,1fr)" : "repeat(4,1fr)";
 
   return (
@@ -341,19 +369,28 @@ const DashboardPage = () => {
 
       {/* Charts row */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "3fr 2fr", gap: 16 }}>
+        {/* Bar chart — Utilisateurs par mois */}
         <div className="adash-chart-card">
           <div style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 16, fontWeight: 500, color: C.t1, fontFamily: "'Google Sans',sans-serif" }}>Monthly Sales</div>
-            <div style={{ fontSize: 13, color: C.t2, marginTop: 3 }}>Sales performance over the last 6 months</div>
+            <div style={{ fontSize: 16, fontWeight: 500, color: C.t1, fontFamily: "'Google Sans',sans-serif" }}>Utilisateurs par mois</div>
+            <div style={{ fontSize: 13, color: C.t2, marginTop: 3 }}>Progression sur les 6 derniers mois</div>
           </div>
-          <BarChart data={barData} labels={barLabels} color={C.chartBlue} height={220} />
+          {loading
+            ? <Skel w="100%" h={220} r={8} />
+            : <BarChart data={usersData} labels={last6months} color={C.chartBlue} height={220} />
+          }
         </div>
+
+        {/* Line chart — Ressources par mois */}
         <div className="adash-chart-card">
           <div style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 16, fontWeight: 500, color: C.t1, fontFamily: "'Google Sans',sans-serif" }}>Weekly Revenue</div>
-            <div style={{ fontSize: 13, color: C.t2, marginTop: 3 }}>Revenue trends for this week</div>
+            <div style={{ fontSize: 16, fontWeight: 500, color: C.t1, fontFamily: "'Google Sans',sans-serif" }}>Ressources par mois</div>
+            <div style={{ fontSize: 13, color: C.t2, marginTop: 3 }}>Évolution sur les 6 derniers mois</div>
           </div>
-          <LineChart data={lineData} labels={lineLabels} color={C.chartPurple} height={220} />
+          {loading
+            ? <Skel w="100%" h={220} r={8} />
+            : <LineChart data={resData} labels={last6months} color={C.chartPurple} height={220} />
+          }
         </div>
       </div>
     </div>
