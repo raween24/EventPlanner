@@ -214,8 +214,7 @@ const LineChart = ({ data, labels, color = "#9c27b0", height = 220 }) => {
 /* ─── SIDEBAR ────────────────────────────────────────────── */
 const navItems = [
   { id: "dashboard",  label: "Dashboard",            icon: LayoutDashboard },
-  { id: "comptes",    label: "Utilisateurs",         icon: Users },
-  { id: "gestion",    label: "Gestion Utilisateurs", icon: Users },
+  { id: "gestion",    label: "Utilisateurs",         icon: Users },
   { id: "ressources", label: "Ressources",           icon: Wrench },
 ];
 
@@ -400,17 +399,36 @@ const DashboardPage = () => {
 /* ═══════════════════════════════════════════════════════════
    COMPTES PAGE
 ═══════════════════════════════════════════════════════════ */
+const UserAvatar = ({ user }) => {
+  const [imgErr, setImgErr] = useState(false);
+  const init = `${user.firstname?.[0]||""}${user.lastname?.[0]||""}`.toUpperCase();
+  const isPrest = user.role === "prestataire";
+  const bgColor = isPrest ? C.purpleBg : C.accentBg;
+  const color   = isPrest ? C.purple   : C.accent;
+
+  // Try to load image from uploads
+  const imgUrl = user.image
+    ? (user.image.startsWith("http") ? user.image : `http://localhost:5000/uploads/${user.image.replace(/\\/g,"/").split("/").pop()}`)
+    : null;
+
+  return (
+    <div style={{ width:38, height:38, borderRadius:"50%", background:bgColor, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, overflow:"hidden" }}>
+      {imgUrl && !imgErr
+        ? <img src={imgUrl} alt={init} onError={()=>setImgErr(true)} style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
+        : <span style={{ color, fontSize:13, fontWeight:700 }}>{init}</span>
+      }
+    </div>
+  );
+};
+
 const ComptesPage = () => {
-  const [users, setUsers]   = useState([]);
-  const [loading, setLoad]  = useState(true);
-  const [filter, setFilter] = useState("tous");
-  const [search, setSearch] = useState("");
+  const [users, setUsers]      = useState([]);
+  const [loading, setLoad]     = useState(true);
+  const [tab, setTab]          = useState("tous");
+  const [search, setSearch]    = useState("");
   const [actionLoading, setAL] = useState(null);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const toast = useToast();
+  const toast  = useToast();
   const { modal, confirm, yes, no } = useConfirm();
-  useEffect(() => { const h = () => setWindowWidth(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
-  const isMobile = windowWidth <= 640;
 
   const load = useCallback(async () => {
     try { setLoad(true); const { data } = await axios.get(`${API}/admin/users`, { headers: authHeaders() }); setUsers(data); }
@@ -419,102 +437,135 @@ const ComptesPage = () => {
   useEffect(() => { load(); }, [load]);
 
   const handleValidate = async (id, name) => {
-    try { setAL(id + "_v"); await axios.patch(`${API}/admin/users/${id}/status`, { status: "valide" }, { headers: authHeaders() }); setUsers(p => p.map(u => u._id === id ? { ...u, status: "valide" } : u)); toast.success(`${name} validé`); }
+    try { setAL(id+"_v"); await axios.patch(`${API}/admin/users/${id}/status`,{status:"valide"},{headers:authHeaders()}); setUsers(p=>p.map(u=>u._id===id?{...u,status:"valide"}:u)); toast.success(`${name} valid\xe9`); }
     catch { toast.error("Erreur"); } finally { setAL(null); }
   };
   const handleReject = async (id, name) => {
-    if (!await confirm({ type: "warning", title: "Rejeter ce compte ?", message: `"${name}" ne pourra pas accéder à la plateforme.`, confirmLabel: "Rejeter" })) return;
-    try { setAL(id + "_r"); await axios.patch(`${API}/admin/users/${id}/status`, { status: "rejected" }, { headers: authHeaders() }); setUsers(p => p.map(u => u._id === id ? { ...u, status: "rejected" } : u)); toast.info(`${name} rejeté`); }
+    if (!await confirm({type:"warning",title:"Rejeter ce compte ?",message:`"${name}" ne pourra pas acc\xe9der \xe0 la plateforme.`,confirmLabel:"Rejeter"})) return;
+    try { setAL(id+"_r"); await axios.patch(`${API}/admin/users/${id}/status`,{status:"rejected"},{headers:authHeaders()}); setUsers(p=>p.map(u=>u._id===id?{...u,status:"rejected"}:u)); toast.info(`${name} rejet\xe9`); }
     catch { toast.error("Erreur"); } finally { setAL(null); }
   };
   const handleDelete = async (id, name) => {
-    if (!await confirm({ type: "danger", title: "Supprimer ce compte ?", message: `Le compte de "${name}" sera définitivement supprimé.`, confirmLabel: "Supprimer" })) return;
-    try { setAL(id + "_d"); await axios.delete(`${API}/admin/users/${id}`, { headers: authHeaders() }); setUsers(p => p.filter(u => u._id !== id)); toast.success(`${name} supprimé`); }
+    if (!await confirm({type:"danger",title:"Supprimer ce compte ?",message:`Le compte de "${name}" sera d\xe9finitivement supprim\xe9.`,confirmLabel:"Supprimer"})) return;
+    try { setAL(id+"_d"); await axios.delete(`${API}/admin/users/${id}`,{headers:authHeaders()}); setUsers(p=>p.filter(u=>u._id!==id)); toast.success(`${name} supprim\xe9`); }
     catch { toast.error("Erreur"); } finally { setAL(null); }
   };
 
-  const pendingCount = users.filter(u => u.role === "prestataire" && u.status === "en_attente").length;
+  const tabs = [
+    { k:"tous",        l:"Tous",          count: users.length },
+    { k:"prestataire", l:"Prestataires",  count: users.filter(u=>u.role==="prestataire").length },
+    { k:"organisateur",l:"Organisateurs", count: users.filter(u=>u.role==="organisateur").length },
+    { k:"en_attente",  l:"En attente",    count: users.filter(u=>u.role==="prestataire"&&u.status==="en_attente").length },
+  ];
+
   const filtered = users.filter(u => {
-    const mr = filter === "tous" ? true : filter === "en_attente" ? (u.role === "prestataire" && u.status === "en_attente") : u.role === filter;
-    const ms = search === "" || `${u.firstname} ${u.lastname} ${u.email}`.toLowerCase().includes(search.toLowerCase());
-    return mr && ms;
+    const mt = tab==="tous" ? true : tab==="en_attente" ? (u.role==="prestataire"&&u.status==="en_attente") : u.role===tab;
+    const ms = search==="" || `${u.firstname} ${u.lastname} ${u.email}`.toLowerCase().includes(search.toLowerCase());
+    return mt && ms;
   });
+
+  const pendingCount = users.filter(u=>u.role==="prestataire"&&u.status==="en_attente").length;
 
   return (
     <div>
-      <ConfirmModal modal={modal} yes={yes} no={no} />
-      <Toasts toasts={toast.toasts} remove={toast.remove} />
+      <ConfirmModal modal={modal} yes={yes} no={no}/>
+      <Toasts toasts={toast.toasts} remove={toast.remove}/>
 
-      {pendingCount > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.orangeBg, border: `1px solid #fbbc04`, borderRadius: 8, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: C.orange }}>
-          <AlertCircle size={16} /><strong>{pendingCount} prestataire{pendingCount > 1 ? "s" : ""}</strong>&nbsp;en attente
+      {/* Page header */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+        <div>
+          <h2 style={{fontSize:22,fontWeight:700,color:C.t1,fontFamily:"'Google Sans',sans-serif",margin:0,letterSpacing:"-.3px"}}>Gestion des utilisateurs</h2>
+          <p style={{fontSize:13,color:C.t2,margin:"4px 0 0"}}>{users.length} utilisateurs au total</p>
         </div>
-      )}
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {[{ k: "tous", l: "Tous" }, { k: "prestataire", l: "Prestataires" }, { k: "organisateur", l: "Organisateurs" }, { k: "en_attente", l: "En attente" }].map(f => (
-            <button key={f.k} onClick={() => setFilter(f.k)} className={`adash-filter${filter === f.k ? " active" : ""}`}>
-              {f.l}{f.k === "en_attente" && pendingCount > 0 && <span style={{ marginLeft: 6, background: C.red, color: "#fff", borderRadius: 10, padding: "1px 6px", fontSize: 11 }}>{pendingCount}</span>}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 24, padding: "8px 16px", width: isMobile ? "100%" : "auto" }}>
-          <Search size={14} color={C.t3} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un utilisateur..."
-            style={{ border: "none", background: "transparent", fontSize: 13, color: C.t1, width: isMobile ? "100%" : 200, fontFamily: "inherit" }} />
+        <div style={{display:"flex",alignItems:"center",gap:8,background:C.card,border:`1px solid ${C.border}`,borderRadius:24,padding:"8px 16px",width:240}}>
+          <Search size={14} color={C.t3}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher..."
+            style={{border:"none",background:"transparent",fontSize:13,color:C.t1,width:"100%",fontFamily:"inherit"}}/>
         </div>
       </div>
 
-      <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-        {loading ? (
-          <div style={{ padding: 24 }}>{[1, 2, 3, 4, 5].map(i => <div key={i} style={{ marginBottom: 12 }}><Skel h={44} r={8} /></div>)}</div>
-        ) : filtered.length === 0 ? <EmptyState icon={Users} message="Aucun utilisateur trouvé" /> : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700 }}>
-              <thead><tr style={{ background: C.bg }}><TH>Utilisateur</TH><TH>Email</TH><TH>Téléphone</TH><TH>Rôle</TH><TH>Statut</TH><TH>Actions</TH></tr></thead>
-              <tbody>
-                {filtered.map(u => {
-                  const name = `${u.firstname} ${u.lastname}`;
-                  const isPrest = u.role === "prestataire";
-                  const init = `${u.firstname?.[0] || ""}${u.lastname?.[0] || ""}`.toUpperCase();
-                  const grad = isPrest ? `linear-gradient(135deg,${C.purple},#a855f7)` : `linear-gradient(135deg,${C.accent},#60a5fa)`;
-                  return (
-                    <tr key={u._id} className="adash-table-row">
-                      <TD>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ width: 36, height: 36, borderRadius: "50%", background: grad, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <span style={{ color: "#fff", fontSize: 12, fontWeight: 700 }}>{init}</span>
+      {/* Tabs */}
+      <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,marginBottom:20}}>
+        {tabs.map(t=>(
+          <button key={t.k} onClick={()=>setTab(t.k)}
+            style={{padding:"10px 20px",border:"none",background:"transparent",cursor:"pointer",fontSize:14,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:tab===t.k?C.accent:C.t2,borderBottom:tab===t.k?`2px solid ${C.accent}`:"2px solid transparent",marginBottom:"-1px",display:"flex",alignItems:"center",gap:7,transition:"color .15s"}}>
+            {t.l}
+            {t.count>0&&<span style={{background:tab===t.k?C.accentBg:C.borderLight,color:tab===t.k?C.accent:C.t3,borderRadius:10,padding:"1px 8px",fontSize:12,fontWeight:600}}>{t.count}</span>}
+          </button>
+        ))}
+      </div>
+
+      {/* Alert */}
+      {pendingCount>0&&(
+        <div style={{display:"flex",alignItems:"center",gap:10,background:C.orangeBg,border:`1px solid #fbbc04`,borderRadius:8,padding:"10px 16px",marginBottom:16,fontSize:13,color:C.orange}}>
+          <AlertCircle size={15}/><strong>{pendingCount} prestataire{pendingCount>1?"s":""}</strong>&nbsp;en attente de validation
+        </div>
+      )}
+
+      {/* Table */}
+      <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+        {loading
+          ? <div style={{padding:24}}>{[1,2,3,4,5].map(i=><div key={i} style={{marginBottom:12}}><Skel h={52} r={8}/></div>)}</div>
+          : filtered.length===0 ? <EmptyState icon={Users} message="Aucun utilisateur trouv\xe9"/>
+          : (
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",minWidth:700}}>
+                <thead>
+                  <tr style={{borderBottom:`1px solid ${C.border}`,background:C.bg}}>
+                    <TH>Nom</TH><TH>Email</TH><TH>Telephone</TH><TH>Role</TH><TH>Statut</TH><TH>Actions</TH>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(u=>{
+                    const name=`${u.firstname} ${u.lastname}`;
+                    const isPrest=u.role==="prestataire";
+                    return (
+                      <tr key={u._id} className="adash-table-row">
+                        <TD>
+                          <div style={{display:"flex",alignItems:"center",gap:12}}>
+                            <UserAvatar user={u}/>
+                            <div>
+                              <div style={{fontWeight:500,color:C.t1,fontSize:14}}>{name}</div>
+                              <div style={{fontSize:12,color:C.t3}}>{u.region||""}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div style={{ fontWeight: 500, color: C.t1, fontSize: 14 }}>{name}</div>
-                            <div style={{ fontSize: 12, color: C.t3 }}>{u.region || "—"}</div>
+                        </TD>
+                        <TD>{u.email}</TD>
+                        <TD>{u.numTel||""}</TD>
+                        <TD><Badge statut={u.role}/></TD>
+                        <TD>{isPrest?<Badge statut={u.status||"en_attente"}/>:<span style={{color:C.t3}}></span>}</TD>
+                        <TD>
+                          <div style={{display:"flex",alignItems:"center",gap:6}}>
+                            {isPrest&&u.status==="en_attente"&&<>
+                              <button onClick={()=>handleValidate(u._id,name)} disabled={actionLoading===u._id+"_v"} title="Valider"
+                                style={{width:32,height:32,borderRadius:8,border:"none",background:C.greenBg,color:C.green,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                                <CheckCircle size={16}/>
+                              </button>
+                              <button onClick={()=>handleReject(u._id,name)} disabled={actionLoading===u._id+"_r"} title="Rejeter"
+                                style={{width:32,height:32,borderRadius:8,border:"none",background:C.orangeBg,color:C.orange,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                                <XCircle size={16}/>
+                              </button>
+                            </>}
+                            {isPrest&&u.status==="rejected"&&(
+                              <button onClick={()=>handleValidate(u._id,name)} disabled={actionLoading===u._id+"_v"} title="R\xe9-activer"
+                                style={{width:32,height:32,borderRadius:8,border:"none",background:C.greenBg,color:C.green,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                                <CheckCircle size={16}/>
+                              </button>
+                            )}
+                            <button onClick={()=>handleDelete(u._id,name)} disabled={actionLoading===u._id+"_d"} title="Supprimer"
+                              style={{width:32,height:32,borderRadius:8,border:"none",background:C.redBg,color:C.red,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                              <Trash2 size={16}/>
+                            </button>
                           </div>
-                        </div>
-                      </TD>
-                      <TD>{u.email}</TD>
-                      <TD>{u.numTel || "—"}</TD>
-                      <TD><Badge statut={u.role} /></TD>
-                      <TD>{isPrest ? <Badge statut={u.status || "en_attente"} /> : <span style={{ color: C.t3 }}>—</span>}</TD>
-                      <TD>
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          {isPrest && u.status === "en_attente" && <>
-                            <button className="adash-action-btn" onClick={() => handleValidate(u._id, name)} disabled={actionLoading === u._id + "_v"} style={{ background: C.greenBg, color: C.green }}><CheckCircle size={13} /> Valider</button>
-                            <button className="adash-action-btn" onClick={() => handleReject(u._id, name)} disabled={actionLoading === u._id + "_r"} style={{ background: C.redBg, color: C.red }}><XCircle size={13} /> Rejeter</button>
-                          </>}
-                          {isPrest && u.status === "rejected" && (
-                            <button className="adash-action-btn" onClick={() => handleValidate(u._id, name)} disabled={actionLoading === u._id + "_v"} style={{ background: C.greenBg, color: C.green }}><CheckCircle size={13} /> Ré-activer</button>
-                          )}
-                          <button className="adash-action-btn" onClick={() => handleDelete(u._id, name)} disabled={actionLoading === u._id + "_d"} style={{ background: C.redBg, color: C.red }}><Trash2 size={13} /> Supprimer</button>
-                        </div>
-                      </TD>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                        </TD>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )
+        }
       </div>
     </div>
   );
@@ -650,17 +701,18 @@ export default function AdminDashboard() {
   const isMobile = windowWidth <= 768;
   const handleLogout = () => { localStorage.removeItem("token"); localStorage.removeItem("user"); navigate("/"); };
 
+
+
   const pages = {
-    dashboard: <DashboardPage />, comptes: <ComptesPage />, gestion: <ComptesPage />,
-    ressources: <RessourcesPage />, analytics: <DashboardPage />,
-    parametres: <div style={{ padding: 40, color: C.t2, fontSize: 15 }}>Paramètres — à venir</div>,
+    dashboard:  <DashboardPage />,
+    gestion:    <ComptesPage />,
+    ressources: <RessourcesPage />,
   };
 
   return (
     <div style={{ fontFamily: "Roboto,sans-serif", background: C.bg, minHeight: "100vh" }}>
       <Sidebar active={activePage} setActive={setActivePage} onLogout={handleLogout} isMobile={isMobile} isMobileOpen={isMobileOpen} setIsMobileOpen={setIsMobileOpen} />
       <div style={{ marginLeft: isMobile ? 0 : 256, transition: "margin-left .25s ease" }}>
-        <TopBar title={pageTitles[activePage]} isMobile={isMobile} showSearch={activePage !== "dashboard"} searchValue="" onSearchChange={() => {}} />
         <main style={{ padding: isMobile ? 16 : 28 }}>{pages[activePage]}</main>
       </div>
     </div>
