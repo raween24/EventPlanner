@@ -8,8 +8,7 @@ des noms pour le site
 .......................Donc pour le moment on a fait la partie du haut alors la porchen foix on va discuter et distrubee les tache entre nous
 
 notifications pour la verification des commande ou des alert ou des nv ressources --.......
-créer  un systeme de vérification des documents --......
-les messages entres le prestataire  et organisateurs
+créer  un systeme de vérification des documents --..
 
 
 w ha9a mail mt3a application mt3na:
