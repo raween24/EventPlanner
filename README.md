@@ -26,7 +26,7 @@ rq : rw ely f use case cest ce que je peux le faire losque je suis dans ton dash
 ====> donc ya adem shyh ahna ly amlynu adhka f profile manbadlou chy mrigl juste f profile naamlou modifier les donnees personnelles (photos  nom prenom  numero ..)
 tw f admin :
 gestion des ressources pas gestion des events ( deja hdhka chaamlyn f site ahna ya adem )
-valiser le compte de quii ??? il faut specifier !
+valider le compte de quii ??? il faut specifier !
 vous allez rien a modifier f compte prestataire !! na7uha ca pas de sens 
 cest pas gerer les events cest gerer les ressources dun compte (kima amlyn ahna f site taana deja akaka ana amltha )
 galt na7uha modifier compte adhika gotlha ana madame rw kif yscani prestataire  par expl l document w ghlot par exemple wla taswira floue ywali ykalem ladmin yfsakhhelu wla ymodifiha w kol gatly la hawka andu f bd kif tgolu y7el bd w ybadlha cest pas la paine galt tamou menha 7kye 
