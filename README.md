@@ -33,7 +33,6 @@ galt na7uha modifier compte adhika gotlha ana madame rw kif yscani prestataire  
 <===> cest bon sala7t ly galt alyh madame kol f use case mzelt faze heritege kamlha + les systeme adhukom ly fi les carreaux a adem w tbadel chy ken kif ntfhmou fyha saa chtodkhlch denya baadhha 
 remaarque :
 galt zidu des pâtisseries par exemple et des adresses de decorations et hajet akaak 
-admin : panier on le change avec commantaire
 
 des patisseries == traiteur bissifa 3ama non ? 
 la binome 
