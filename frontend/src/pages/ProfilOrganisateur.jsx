@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useMemo  } from 'react';
 import {
     Calendar, ChevronLeft, ChevronRight,
     User, Mail, Phone, Building2,
@@ -16,11 +16,12 @@ import {
     FileText, Upload, Download, CheckSquare,
     Clock as ClockIcon, CheckCircle as CheckCircleIcon,
     XCircle, AlertTriangle, File, Image as ImageIcon,
-    Layers, Save, Lock, Heart
+    Layers, Save, Lock, Heart,
+    Receipt, FileSignature
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, getDay, addMonths, subMonths, isBefore } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, getDay, addMonths, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -38,34 +39,21 @@ export default function OrganizerDashboard() {
     const [hoveredCard, setHoveredCard] = useState(null);
     const [activeTab, setActiveTab] = useState('events');
 
-    // États pour les notifications
+    // Notifications
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    // États pour les données
+    // Données principales
     const [organizer, setOrganizer] = useState(null);
     const [events, setEvents] = useState([]);
     const [resources, setResources] = useState([]);
     const [filteredResources, setFilteredResources] = useState([]);
-    const [eventHistory, setEventHistory] = useState([]);
-    const [demandes, setDemandes] = useState([]);
     const [selectedEventFilter, setSelectedEventFilter] = useState('all');
-    const [demandeLoading, setDemandeLoading] = useState(false);
 
-
-    // États pour la modification de demande
-    const [showEditDemandeModal, setShowEditDemandeModal] = useState(false);
-    const [editingDemande, setEditingDemande] = useState(null);
-    const [editDemandeFormData, setEditDemandeFormData] = useState({
-        dateDebut: '',
-        dateFin: '',
-        status: ''
-    });
-    const [editDemandeLoading, setEditDemandeLoading] = useState(false);
-    const [editDemandeError, setEditDemandeError] = useState('');
-
+    const [docSearchTerm, setDocSearchTerm] = useState('');
+    const [docSortOption, setDocSortOption] = useState('nameAsc'); // nameAsc, nameDesc, dateDesc, dateAsc
     // États pour la modification du profil
     const [showProfileEditModal, setShowProfileEditModal] = useState(false);
     const [profileFormData, setProfileFormData] = useState({
@@ -103,65 +91,57 @@ export default function OrganizerDashboard() {
     const [editEventLoading, setEditEventLoading] = useState(false);
     const [editEventError, setEditEventError] = useState('');
 
-    //mes favorit
+    // Favoris
     const [favorites, setFavorites] = useState([]);
     const [favoritesLoading, setFavoritesLoading] = useState(false);
-    // Récupérer le token et userId du localStorage
+
+    // DOCUMENTS : État pour le type et les données mockées
+    const [selectedDocType, setSelectedDocType] = useState('invoices'); // 'invoices' ou 'contracts'
+    const [documents, setDocuments] = useState([]);
+
+    // Mock des factures et contrats
+    const mockInvoices = [
+        { id: 'inv1', name: 'Facture janvier 2024', date: '2024-01-15', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' },
+        { id: 'inv2', name: 'Facture février 2024', date: '2024-02-20', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' },
+        { id: 'inv3', name: 'Facture mars 2024', date: '2024-03-10', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' },
+    ];
+    const mockContracts = [
+        { id: 'con1', name: 'Contrat mariage - Dupont', date: '2024-01-05', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' },
+        { id: 'con2', name: 'Contrat conférence tech', date: '2024-02-12', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' },
+        { id: 'con3', name: 'Contrat anniversaire - Martin', date: '2024-03-01', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' },
+    ];
+
+    // Token et userId
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
     const user = userStr ? JSON.parse(userStr) : null;
     const userId = user?._id || user?.id;
 
-    // Configuration axios avec token
     const api = axios.create({
         baseURL: 'http://localhost:5000/api',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    // Charger les données au montage
+    // Chargement initial
     useEffect(() => {
         if (!token || !userId) {
             navigate('/login');
             return;
         }
         fetchOrganizerData();
-        fetchDemandes();
         loadNotifications();
     }, []);
 
-    // Charger les demandes
-    const fetchDemandes = async () => {
-        try {
-            setDemandeLoading(true);
-            const response = await api.get('/location/get');
-            const sorted = response.data.sort((a, b) =>
-                new Date(b.dateDebut) - new Date(a.dateDebut)
-            );
-            setDemandes(response.data);
-        } catch (err) {
-            console.error('Erreur chargement demandes:', err);
-        } finally {
-            setDemandeLoading(false);
-        }
-    };
-    // Ajouter un useEffect pour l'auto‑rafraîchissement
+    // Charger les documents mockés selon le type sélectionné
     useEffect(() => {
-        // Rafraîchir toutes les 30 secondes
-        const intervalId = setInterval(() => {
-            fetchDemandes();
-        }, 30000); // 30 secondes
+        if (selectedDocType === 'invoices') {
+            setDocuments(mockInvoices);
+        } else {
+            setDocuments(mockContracts);
+        }
+    }, [selectedDocType]);
 
-        // Nettoyer l'intervalle au démontage du composant
-        return () => clearInterval(intervalId);
-    }, []);
-    // Charger les notifications
-    const loadNotifications = () => {
-        setNotifications([]);
-    };
-
-    // Filtrer les ressources quand l'événement sélectionné change
+    // Mettre à jour les ressources filtrées quand l'événement change
     useEffect(() => {
         if (selectedEvent) {
             const eventResources = resources.filter(resource =>
@@ -183,32 +163,19 @@ export default function OrganizerDashboard() {
         setSelectedDayEvents(dayEvents);
     }, [selectedDate, events]);
 
-    const fetchFavorites = async () => {
-        try {
-            setFavoritesLoading(true);
-            const response = await api.get('/favorites'); // À adapter selon votre endpoint
-            // On suppose que le endpoint renvoie directement la liste des ressources favorites
-            setFavorites(response.data);
-        } catch (err) {
-            console.error('Erreur chargement favoris:', err);
-        } finally {
-            setFavoritesLoading(false);
-        }
+    const loadNotifications = () => {
+        setNotifications([]);
     };
 
-    // Fonction pour charger toutes les données
     const fetchOrganizerData = async () => {
         try {
             setLoading(true);
-
             const [userRes, eventsRes, resourcesRes] = await Promise.all([
                 api.get(`/users/${userId}`),
                 api.get(`/event/user_event/${userId}`),
                 api.get(`/users/adore/${userId}`)
             ]);
-
             setOrganizer(userRes.data);
-
             setProfileFormData({
                 firstname: userRes.data.firstname || '',
                 lastname: userRes.data.lastname || '',
@@ -216,15 +183,12 @@ export default function OrganizerDashboard() {
                 numTel: userRes.data.numTel || '',
                 region: userRes.data.region || ''
             });
-
             setEvents(eventsRes.data);
             setResources(resourcesRes.data);
             setFilteredResources(resourcesRes.data);
-
         } catch (err) {
-            console.error('Erreur lors du chargement:', err);
+            console.error('Erreur chargement:', err);
             setError('Impossible de charger les données');
-
             if (err.response?.status === 401) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
@@ -234,86 +198,31 @@ export default function OrganizerDashboard() {
             setLoading(false);
         }
     };
+    const filteredAndSortedDocuments = useMemo(() => {
+        let filtered = documents.filter(doc =>
+            doc.name.toLowerCase().includes(docSearchTerm.toLowerCase())
+        );
 
-
-    // Supprimer une demande
-    const handleDeleteDemande = async (demandeId) => {
-        if (window.confirm('Voulez-vous vraiment supprimer cette demande ?')) {
-            console.log(demandeId);
-            try {
-                await api.delete(`/location/del/${demandeId}`);
-                fetchDemandes();
-                alert('Demande supprimée avec succès');
-            } catch (err) {
-                console.error('Erreur:', err);
-                alert('Erreur lors de la suppression');
-            }
+        switch (docSortOption) {
+            case 'nameAsc':
+                filtered.sort((a, b) => a.name.localeCompare(b.name));
+                break;
+            case 'nameDesc':
+                filtered.sort((a, b) => b.name.localeCompare(a.name));
+                break;
+            case 'dateDesc':
+                filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+                break;
+            case 'dateAsc':
+                filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+                break;
+            default:
+                break;
         }
-    };
+        return filtered;
+    }, [documents, docSearchTerm, docSortOption]);
 
-    // Ouvrir le modal de modification de demande
-    const handleEditDemande = (demande) => {
-        setEditingDemande(demande);
-        setEditDemandeFormData({
-            dateDebut: demande.dateDebut ? format(parseISO(demande.dateDebut), "yyyy-MM-dd'T'HH:mm") : '',
-            dateFin: demande.dateFin ? format(parseISO(demande.dateFin), "yyyy-MM-dd'T'HH:mm") : '',
-            status: demande.status || 'en attente'
-        });
-
-        setEditDemandeError('');
-        setShowEditDemandeModal(true);
-    };
-
-    // Soumettre la modification de demande
-    const handleEditDemandeSubmit = async (e) => {
-        e.preventDefault();
-
-        if (!editingDemande || !editingDemande._id) {
-            setEditDemandeError('Demande invalide');
-            return;
-        }
-
-        setEditDemandeLoading(true);
-        setEditDemandeError('');
-
-        try {
-            const submitData = {
-                dateDebut: new Date(editDemandeFormData.dateDebut),
-                dateFin: new Date(editDemandeFormData.dateFin),
-                status: editDemandeFormData.status
-            };
-
-            // Vérifier que les dates sont valides
-            if (submitData.dateFin <= submitData.dateDebut) {
-                setEditDemandeError('La date de fin doit être après la date de début');
-                setEditDemandeLoading(false);
-                return;
-            }
-
-            const response = await api.put(`/location/update/${editingDemande._id}`, submitData);
-
-            // Mettre à jour la liste des demandes
-            const updatedDemandes = demandes.map(d =>
-                d._id === editingDemande._id ? response.data.location : d
-            );
-            setDemandes(updatedDemandes);
-
-            setShowEditDemandeModal(false);
-            setEditingDemande(null);
-            alert('Demande modifiée avec succès !');
-
-        } catch (err) {
-            console.error("ERREUR:", err.response?.data);
-            setEditDemandeError(
-                err.response?.data?.message || 'Erreur lors de la modification'
-            );
-        } finally {
-            setEditDemandeLoading(false);
-        }
-    };
-
-
-    // Fonction pour modifier le profil
+    // Gestion du profil
     const handleProfileEdit = () => {
         setProfileFormData({
             firstname: organizer?.firstname || '',
@@ -330,7 +239,6 @@ export default function OrganizerDashboard() {
         setShowProfileEditModal(true);
     };
 
-    // Fonction pour modifier le profil
     const handleProfileSubmit = async (e) => {
         e.preventDefault();
         setProfileLoading(true);
@@ -342,7 +250,6 @@ export default function OrganizerDashboard() {
             setProfileLoading(false);
             return;
         }
-
         if (profilePasswordData.password && profilePasswordData.password.length < 6) {
             setProfileError('Le mot de passe doit contenir au moins 6 caractères');
             setProfileLoading(false);
@@ -356,11 +263,9 @@ export default function OrganizerDashboard() {
             formData.append('email', profileFormData.email);
             formData.append('numTel', profileFormData.numTel || '');
             formData.append('region', profileFormData.region || '');
-
             if (profilePasswordData.password) {
                 formData.append('password', profilePasswordData.password);
             }
-
             if (profileImage) {
                 formData.append('image', profileImage);
             }
@@ -368,9 +273,7 @@ export default function OrganizerDashboard() {
             const response = await api.put(`/users/update`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-
             setOrganizer(response.data);
-
             setProfileFormData({
                 firstname: response.data.firstname || '',
                 lastname: response.data.lastname || '',
@@ -378,25 +281,12 @@ export default function OrganizerDashboard() {
                 numTel: response.data.numTel || '',
                 region: response.data.region || ''
             });
-
-            const updatedUser = {
-                ...user,
-                id: response.data._id,
-                firstname: response.data.firstname,
-                lastname: response.data.lastname,
-                email: response.data.email,
-                role: response.data.role,
-                image: response.data.image,
-                status: response.data.status
-            };
-
+            const updatedUser = { ...user, ...response.data, id: response.data._id };
             localStorage.setItem('user', JSON.stringify(updatedUser));
-
             setProfileSuccess('Profil modifié avec succès !');
             setProfilePasswordData({ password: '', confirmPassword: '' });
             setProfileImage(null);
             setProfileImagePreview(null);
-
             setTimeout(() => {
                 setShowProfileEditModal(false);
                 setProfileSuccess('');
@@ -409,15 +299,12 @@ export default function OrganizerDashboard() {
         }
     };
 
-    // Gestion de la sélection d'image
     const handleProfileImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
             setProfileImage(file);
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setProfileImagePreview(reader.result);
-            };
+            reader.onloadend = () => setProfileImagePreview(reader.result);
             reader.readAsDataURL(file);
         }
     };
@@ -427,7 +314,7 @@ export default function OrganizerDashboard() {
         setProfileImagePreview(null);
     };
 
-    // Fonctions pour la modification d'événement
+    // Gestion des événements
     const handleEditEvent = (event) => {
         setEditingEvent(event);
         setEditEventFormData({
@@ -446,15 +333,12 @@ export default function OrganizerDashboard() {
 
     const handleEditEventSubmit = async (e) => {
         e.preventDefault();
-
         if (!editingEvent || !editingEvent._id) {
             setEditEventError('Événement invalide');
             return;
         }
-
         setEditEventLoading(true);
         setEditEventError('');
-
         try {
             const submitData = {
                 title: editEventFormData.title?.trim(),
@@ -467,50 +351,31 @@ export default function OrganizerDashboard() {
                 nombreParticipants: Number(editEventFormData.nombreParticipants) || 0,
                 status: editEventFormData.status
             };
-
-            const response = await api.put(
-                `/event/update_event/${editingEvent._id}`,
-                submitData
-            );
-
-            const updatedEvents = events.map(ev =>
-                ev._id === editingEvent._id ? response.data : ev
-            );
-
-            setEvents(updatedEvents);
+            const response = await api.put(`/event/update_event/${editingEvent._id}`, submitData);
+            setEvents(events.map(ev => ev._id === editingEvent._id ? response.data : ev));
             setShowEditEventModal(false);
             setEditingEvent(null);
-
             alert('Événement modifié avec succès !');
-
         } catch (err) {
-            console.error("ERREUR:", err.response?.data);
-            setEditEventError(
-                err.response?.data?.message || 'Erreur lors de la modification'
-            );
+            console.error(err);
+            setEditEventError(err.response?.data?.message || 'Erreur lors de la modification');
         } finally {
             setEditEventLoading(false);
         }
     };
 
-    // Marquer une notification comme lue
+    // Notifications
     const markAsRead = (notificationId) => {
-        setNotifications(prev =>
-            prev.map(notif =>
-                notif.id === notificationId ? { ...notif, read: true } : notif
-            )
-        );
+        setNotifications(prev => prev.map(notif => notif.id === notificationId ? { ...notif, read: true } : notif));
         setUnreadCount(prev => Math.max(0, prev - 1));
     };
 
     const markAllAsRead = () => {
-        setNotifications(prev =>
-            prev.map(notif => ({ ...notif, read: true }))
-        );
+        setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
         setUnreadCount(0);
     };
 
-    // Formater le prix
+    // Formatage
     const formatPrice = (price) => {
         if (!price) return '0 €';
         return new Intl.NumberFormat('fr-FR', {
@@ -535,21 +400,18 @@ export default function OrganizerDashboard() {
         return format(parseISO(date), 'HH:mm', { locale: fr });
     };
 
-    // Obtenir les jours du mois
+    // Calendrier
     const getDaysInMonth = () => {
         const start = startOfMonth(currentMonth);
         const end = endOfMonth(currentMonth);
         return eachDayOfInterval({ start, end });
     };
 
-    // Obtenir les événements pour un jour spécifique avec filtre
     const getEventsForDay = (day) => {
         let filteredEvents = events;
-
         if (selectedEventFilter !== 'all') {
             filteredEvents = filteredEvents.filter(event => event._id === selectedEventFilter);
         }
-
         return filteredEvents.filter(event => {
             if (!event.dateDebut) return false;
             const eventDate = parseISO(event.dateDebut);
@@ -577,68 +439,46 @@ export default function OrganizerDashboard() {
         setSelectedEvent(selectedEvent?._id === event._id ? null : event);
         setShowDayEventsModal(false);
         setActiveTab('events');
-        if (window.innerWidth < 1024) {
-            setIsMobileMenuOpen(false);
-        }
+        if (window.innerWidth < 1024) setIsMobileMenuOpen(false);
     };
-    //like
+
+    // Like resources
     const [likedResources, setLikedResources] = useState([]);
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem("user"));
         setLikedResources(user?.adore || []);
     }, []);
+
     const toggleLike = async (e, resourceId) => {
         e.stopPropagation();
-
         const token = localStorage.getItem("token");
         const user = JSON.parse(localStorage.getItem("user"));
-
         if (!token || !user) {
             alert("Vous devez être connecté !");
             return;
         }
-
         const isLiked = likedResources.includes(resourceId);
-
         try {
-            const url = isLiked
-                ? "http://localhost:5000/api/users/remove"
-                : "http://localhost:5000/api/users/like";
-
+            const url = isLiked ? "http://localhost:5000/api/users/remove" : "http://localhost:5000/api/users/like";
             const method = isLiked ? "DELETE" : "POST";
-
             const res = await fetch(url, {
                 method,
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ resourceId }),
             });
-
             const data = await res.json();
-
             if (!res.ok) {
                 alert(data.message);
                 return;
             }
-
             let updated;
-
             if (isLiked) {
                 updated = likedResources.filter(id => id !== resourceId);
-                setLikedResources(updated);
             } else {
                 updated = [...likedResources, resourceId];
             }
-
-            // 🔥 update state + localStorage
             setLikedResources(updated);
-            localStorage.setItem("user", JSON.stringify({
-                ...user,
-                adore: updated
-            }));
-
+            localStorage.setItem("user", JSON.stringify({ ...user, adore: updated }));
         } catch (err) {
             console.error(err);
         }
@@ -651,22 +491,36 @@ export default function OrganizerDashboard() {
         navigate('/');
     };
 
+    // Statistiques
     const getStats = () => {
         const totalBudget = resources.reduce((acc, r) => acc + (r.price || 0), 0);
         const upcomingEvents = events.filter(e => new Date(e.dateDebut) > new Date()).length;
         const completedEvents = events.filter(e => e.status === 'terminé').length;
-        return { totalBudget, upcomingEvents, completedEvents };
+        const totalDocuments = mockInvoices.length + mockContracts.length;
+        return { totalBudget, upcomingEvents, completedEvents, totalDocuments };
     };
-
     const stats = getStats();
     const getMonthName = (date) => format(date, 'MMMM yyyy', { locale: fr });
 
-    // Badge de statut pour les demandes
-    const DemandeStatusBadge = ({ status }) => {
+    // Actions documents
+    const handleViewPDF = (url) => {
+        window.open(url, '_blank');
+    };
+    const handleDownloadPDF = (url, filename) => {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // Composants UI
+    const StatusBadge = ({ status }) => {
         const config = {
             'en attente': { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: ClockIcon, label: 'En attente' },
-            'acceptée': { bg: 'bg-green-100', text: 'text-green-700', icon: CheckCircleIcon, label: 'Acceptée' },
-            'refusée': { bg: 'bg-red-100', text: 'text-red-700', icon: XCircle, label: 'Refusée' }
+            'en cours': { bg: 'bg-blue-100', text: 'text-blue-700', icon: TrendingUp, label: 'En cours' },
+            'terminé': { bg: 'bg-green-100', text: 'text-green-700', icon: CheckCircleIcon, label: 'Terminé' }
         };
         const conf = config[status] || config['en attente'];
         const Icon = conf.icon;
@@ -687,33 +541,17 @@ export default function OrganizerDashboard() {
                 </button>
                 <button onClick={() => setActiveTab('resources')} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'resources' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
                     <Package size={16} />
-                    <span>Mes favories</span>
+                    <span>Mes favoris</span>
                     {resources.length > 0 && <span className="bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{resources.length}</span>}
                 </button>
-
-                <button onClick={() => { setActiveTab('demandes'); fetchDemandes(); }} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'demandes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
+                <button onClick={() => setActiveTab('demandes')} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'demandes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
                     <FileText size={16} />
-                    <span>Mes Demandes</span>
-                    {demandes.length > 0 && <span className="bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{demandes.length}</span>}
+                    <span>Mes Documents</span>
+                    <span className="bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{mockInvoices.length + mockContracts.length}</span>
                 </button>
             </div>
         </div>
     );
-
-    const StatusBadge = ({ status }) => {
-        const config = {
-            'en attente': { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: ClockIcon, label: 'En attente' },
-            'en cours': { bg: 'bg-blue-100', text: 'text-blue-700', icon: TrendingUp, label: 'En cours' },
-            'terminé': { bg: 'bg-green-100', text: 'text-green-700', icon: CheckCircleIcon, label: 'Terminé' }
-        };
-        const conf = config[status] || config['en attente'];
-        const Icon = conf.icon;
-        return (
-            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${conf.bg} ${conf.text}`}>
-                <Icon size={12} /> {conf.label}
-            </span>
-        );
-    };
 
     if (loading) {
         return (
@@ -852,9 +690,18 @@ export default function OrganizerDashboard() {
                                     </div>
                                 </div>
                                 <div className="w-full grid grid-cols-3 gap-1 sm:gap-2 mt-4 sm:mt-6">
-                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer"><p className="text-base sm:text-lg font-bold text-blue-600">{events.length}</p><p className="text-[10px] sm:text-xs text-gray-600">Événements</p></motion.div>
-                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer"><p className="text-base sm:text-lg font-bold text-purple-600">{resources.length}</p><p className="text-[10px] sm:text-xs text-gray-600">Adores</p></motion.div>
-                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer"><p className="text-base sm:text-lg font-bold text-green-600">{demandes.length}</p><p className="text-[10px] sm:text-xs text-gray-600">Demmandes</p></motion.div>
+                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer">
+                                        <p className="text-base sm:text-lg font-bold text-blue-600">{events.length}</p>
+                                        <p className="text-[10px] sm:text-xs text-gray-600">Événements</p>
+                                    </motion.div>
+                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer">
+                                        <p className="text-base sm:text-lg font-bold text-purple-600">{resources.length}</p>
+                                        <p className="text-[10px] sm:text-xs text-gray-600">Favoris</p>
+                                    </motion.div>
+                                    <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer">
+                                        <p className="text-base sm:text-lg font-bold text-green-600">{mockInvoices.length + mockContracts.length}</p>
+                                        <p className="text-[10px] sm:text-xs text-gray-600">Documents</p>
+                                    </motion.div>
                                 </div>
                             </div>
                         </div>
@@ -959,7 +806,6 @@ export default function OrganizerDashboard() {
                                                         <div><StatusBadge status={event.status} /></div>
                                                     </div>
                                                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={(e) => { e.stopPropagation(); handleEditEvent(event); }} className="w-full flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-medium hover:shadow-lg transition-all group"><Edit2 size={12} className="group-hover:rotate-12 transition-transform" /> Modifier</motion.button>
-
                                                 </motion.div>
                                             );
                                         })}
@@ -988,240 +834,169 @@ export default function OrganizerDashboard() {
                             </motion.div>
                         )}
                         {activeTab === 'resources' && (
-                            <motion.div
-                                key="resources"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                {/* HEADER */}
+                            <motion.div key="resources" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
                                 <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-3 mb-4 sm:mb-6">
                                     <h2 className="text-base sm:text-xl font-bold text-gray-900 flex items-center gap-2">
                                         <Package size={20} className="text-purple-600" />
                                         Mes Favoris Ressources
                                     </h2>
-
                                     <div className="relative w-full xs:w-auto">
-                                        <Search
-                                            size={16}
-                                            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                                        />
-                                        <input
-                                            type="text"
-                                            placeholder="Rechercher..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="w-full xs:w-48 sm:w-64 pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                                        />
+                                        <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                        <input type="text" placeholder="Rechercher..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full xs:w-48 sm:w-64 pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
                                     </div>
                                 </div>
-
-                                {/* GRID */}
                                 <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-                                    {resources
-                                        .filter((resource) =>
-                                            likedResources.includes(resource._id)
-                                        )
-                                        .filter((resource) =>
-                                            resource.name
-                                                .toLowerCase()
-                                                .includes(searchTerm.toLowerCase())
-                                        ).length > 0 ? (
-                                        resources
-                                            .filter((resource) =>
-                                                likedResources.includes(resource._id)
-                                            )
-                                            .filter((resource) =>
-                                                resource.name
-                                                    .toLowerCase()
-                                                    .includes(searchTerm.toLowerCase())
-                                            )
-                                            .map((resource, index) => (
-                                                <motion.div
-                                                    key={resource._id}
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: index * 0.05 }}
-                                                    whileHover={{ y: -5 }}
-                                                    className="relative bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-200 hover:shadow-xl transition-all group"
-                                                >
-                                                    {/* ❤️ LIKE */}
-                                                    <div
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            toggleLike(e, resource._id);
-                                                        }}
-                                                        className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow cursor-pointer hover:scale-110 transition"
-                                                    >
-                                                        <Heart
-                                                            size={16}
-                                                            className={`transition-all duration-200 ${likedResources.includes(resource._id)
-                                                                ? "text-red-500 fill-red-500 scale-110"
-                                                                : "text-gray-400"
-                                                                }`}
-                                                        />
+                                    {resources.filter((resource) => likedResources.includes(resource._id)).filter((resource) => resource.name.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 ? (
+                                        resources.filter((resource) => likedResources.includes(resource._id)).filter((resource) => resource.name.toLowerCase().includes(searchTerm.toLowerCase())).map((resource, index) => (
+                                            <motion.div key={resource._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} whileHover={{ y: -5 }} className="relative bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-200 hover:shadow-xl transition-all group">
+                                                <div onClick={(e) => { e.stopPropagation(); toggleLike(e, resource._id); }} className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow cursor-pointer hover:scale-110 transition">
+                                                    <Heart size={16} className={`transition-all duration-200 ${likedResources.includes(resource._id) ? "text-red-500 fill-red-500 scale-110" : "text-gray-400"}`} />
+                                                </div>
+                                                <div className="flex flex-col xs:flex-row items-start gap-2 sm:gap-4">
+                                                    <div className="w-full xs:w-12 sm:w-16 h-24 xs:h-12 sm:h-16 rounded-lg sm:rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 group-hover:shadow-md transition-all">
+                                                        {resource.media && resource.media.length > 0 && resource.media[0]?.img_vd ? (
+                                                            <img src={`http://localhost:5000/${resource.media[0].img_vd[0]}`} alt={resource.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center"><Camera size={20} className="sm:w-6 sm:h-6 text-gray-400" /></div>
+                                                        )}
                                                     </div>
-
-                                                    {/* CONTENT */}
-                                                    <div className="flex flex-col xs:flex-row items-start gap-2 sm:gap-4">
-                                                        {/* IMAGE */}
-                                                        <div className="w-full xs:w-12 sm:w-16 h-24 xs:h-12 sm:h-16 rounded-lg sm:rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 group-hover:shadow-md transition-all">
-                                                            {resource.media &&
-                                                                resource.media.length > 0 &&
-                                                                resource.media[0]?.img_vd ? (
-                                                                <img
-                                                                    src={`http://localhost:5000/${resource.media[0].img_vd[0]}`}
-                                                                    alt={resource.name}
-                                                                    className="w-full h-full object-cover"
-                                                                />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center">
-                                                                    <Camera
-                                                                        size={20}
-                                                                        className="sm:w-6 sm:h-6 text-gray-400"
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                        {/* INFO */}
-                                                        <div className="flex-1 min-w-0">
-                                                            <h3 className="font-semibold text-gray-900 text-xs sm:text-sm truncate group-hover:text-blue-600 transition-colors">
-                                                                {resource.name}
-                                                            </h3>
-
-                                                            <p className="text-[10px] sm:text-xs text-gray-500 mt-1 line-clamp-2">
-                                                                {resource.description?.substring(0, 60)}...
-                                                            </p>
-
-                                                            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-2">
-                                                                <span className="px-1.5 sm:px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[8px] sm:text-xs">
-                                                                    {resource.type}
-                                                                </span>
-
-                                                                <span className="text-xs sm:text-sm font-bold text-green-600">
-                                                                    {formatPrice(resource.price)}
-                                                                </span>
-                                                            </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="font-semibold text-gray-900 text-xs sm:text-sm truncate group-hover:text-blue-600 transition-colors">{resource.name}</h3>
+                                                        <p className="text-[10px] sm:text-xs text-gray-500 mt-1 line-clamp-2">{resource.description?.substring(0, 60)}...</p>
+                                                        <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-2">
+                                                            <span className="px-1.5 sm:px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[8px] sm:text-xs">{resource.type}</span>
+                                                            <span className="text-xs sm:text-sm font-bold text-green-600">{formatPrice(resource.price)}</span>
                                                         </div>
                                                     </div>
-                                                </motion.div>
-                                            ))
+                                                </div>
+                                            </motion.div>
+                                        ))
                                     ) : (
                                         <div className="col-span-full text-center py-8 sm:py-16 bg-white rounded-xl sm:rounded-2xl">
-                                            <Heart
-                                                size={32}
-                                                className="sm:w-12 sm:h-12 text-gray-300 mx-auto mb-3 sm:mb-4"
-                                            />
-                                            <p className="text-gray-500 text-xs sm:text-sm">
-                                                Aucun favori trouvé
-                                            </p>
+                                            <Heart size={32} className="sm:w-12 sm:h-12 text-gray-300 mx-auto mb-3 sm:mb-4" />
+                                            <p className="text-gray-500 text-xs sm:text-sm">Aucun favori trouvé</p>
                                         </div>
                                     )}
                                 </div>
                             </motion.div>
                         )}
-
                         {activeTab === 'demandes' && (
-                            <motion.div key="demandes" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                        <FileText size={24} className="text-orange-600" />
-                                        Mes demandes de réservation
-                                    </h2>
+                            <motion.div
+                                key="documents"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                {/* Deux grands boutons (taille réduite) */}
+                                <div className="flex flex-col sm:flex-row gap-4 mb-6">
                                     <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={fetchDemandes}
-                                        className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all flex items-center gap-2 text-sm"
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => setSelectedDocType('invoices')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-6 rounded-xl transition-all ${selectedDocType === 'invoices'
+                                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
                                     >
-                                        <RefreshCw size={16} />
-                                        Actualiser
+                                        <Receipt size={20} />
+                                        <span className="font-semibold text-base">Mes Factures</span>
+                                    </motion.button>
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => setSelectedDocType('contracts')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-6 rounded-xl transition-all ${selectedDocType === 'contracts'
+                                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                    >
+                                        <FileSignature size={20} />
+                                        <span className="font-semibold text-base">Mes Contrats</span>
                                     </motion.button>
                                 </div>
 
-                                {demandeLoading ? (
-                                    <div className="flex justify-center py-12">
-                                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full" />
+                                {/* Barre de filtrage et tri */}
+                                <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                                    <div className="relative flex-1">
+                                        <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Rechercher par nom..."
+                                            value={docSearchTerm}
+                                            onChange={(e) => setDocSearchTerm(e.target.value)}
+                                            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                        />
                                     </div>
-                                ) : demandes.length === 0 ? (
+                                    <select
+                                        value={docSortOption}
+                                        onChange={(e) => setDocSortOption(e.target.value)}
+                                        className="px-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white"
+                                    >
+                                        <option value="nameAsc">Nom (A → Z)</option>
+                                        <option value="nameDesc">Nom (Z → A)</option>
+                                        <option value="dateDesc">Date (récent → ancien)</option>
+                                        <option value="dateAsc">Date (ancien → récent)</option>
+                                    </select>
+                                </div>
+
+                                {/* Tableau des documents filtrés et triés */}
+                                {filteredAndSortedDocuments.length === 0 ? (
                                     <div className="text-center py-16 bg-gray-50 rounded-2xl">
                                         <FileText size={48} className="mx-auto text-gray-300 mb-4" />
-                                        <p className="text-gray-500">Aucune demande de réservation pour le moment</p>
-                                        <p className="text-sm text-gray-400 mt-2">Vos demandes apparaîtront ici</p>
+                                        <p className="text-gray-500">Aucun document trouvé</p>
+                                        <p className="text-sm text-gray-400 mt-2">
+                                            {selectedDocType === 'invoices' ? 'Aucune facture ne correspond à votre recherche' : 'Aucun contrat ne correspond à votre recherche'}
+                                        </p>
                                     </div>
                                 ) : (
                                     <div className="overflow-x-auto">
                                         <table className="w-full">
                                             <thead className="bg-gray-50 border-b border-gray-200">
                                                 <tr>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ressource</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Événement</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Période</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom du document</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-100">
-                                                {demandes.map((demande) => (
+                                                {filteredAndSortedDocuments.map((doc) => (
                                                     <motion.tr
-                                                        key={demande._id}
+                                                        key={doc.id}
                                                         initial={{ opacity: 0, y: 10 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         className="hover:bg-gray-50 transition-colors"
                                                     >
                                                         <td className="px-4 py-3">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                                                    {demande.resource?.media?.[0]?.img_vd?.[0] ? (
-                                                                        <img
-                                                                            src={`http://localhost:5000/${demande.resource.media[0].img_vd[0]}`}
-                                                                            alt={demande.resource?.name}
-                                                                            className="w-full h-full object-cover"
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="w-full h-full flex items-center justify-center">
-                                                                            <Package size={16} className="text-gray-400" />
-                                                                        </div>
-                                                                    )}
+                                                                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                                                                    <FileText size={16} />
                                                                 </div>
-                                                                <div>
-                                                                    <p className="font-medium text-gray-900 text-sm">{demande.resource?.name || 'Ressource'}</p>
-                                                                    <p className="text-xs text-gray-500">{demande.resource?.type}</p>
-                                                                </div>
+                                                                <span className="font-medium text-gray-900">{doc.name}</span>
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-3">
-                                                            <p className="text-sm text-gray-900">{demande.event?.title || 'Événement'}</p>
-                                                            <p className="text-xs text-gray-500">{demande.event?.category}</p>
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <p className="text-sm text-gray-900">{formatDateTime(demande.dateDebut)}</p>
-                                                            <p className="text-xs text-gray-500">au {formatDateTime(demande.dateFin)}</p>
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <DemandeStatusBadge status={demande.status} />
+                                                        <td className="px-4 py-3 text-sm text-gray-600">
+                                                            {formatDate(doc.date)}
                                                         </td>
                                                         <td className="px-4 py-3">
                                                             <div className="flex items-center gap-2">
                                                                 <motion.button
-                                                                    whileHover={{ scale: 1.1 }}
+                                                                    whileHover={{ scale: 1.05 }}
                                                                     whileTap={{ scale: 0.95 }}
-                                                                    onClick={() => handleEditDemande(demande)}
-                                                                    className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-all"
-                                                                    title="Modifier"
+                                                                    onClick={() => handleViewPDF(doc.url)}
+                                                                    className="px-3 py-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-all flex items-center gap-1 text-sm"
                                                                 >
-                                                                    <Edit2 size={16} />
+                                                                    <Eye size={14} />
+                                                                    Voir
                                                                 </motion.button>
                                                                 <motion.button
-                                                                    whileHover={{ scale: 1.1 }}
+                                                                    whileHover={{ scale: 1.05 }}
                                                                     whileTap={{ scale: 0.95 }}
-                                                                    onClick={() => handleDeleteDemande(demande._id)}
-                                                                    className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all"
-                                                                    title="Supprimer"
+                                                                    onClick={() => handleDownloadPDF(doc.url, doc.name)}
+                                                                    className="px-3 py-1.5 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-all flex items-center gap-1 text-sm"
                                                                 >
-                                                                    <Trash2 size={16} />
+                                                                    <Download size={14} />
+                                                                    Télécharger
                                                                 </motion.button>
                                                             </div>
                                                         </td>
@@ -1315,32 +1090,21 @@ export default function OrganizerDashboard() {
                                             <AlertCircle size={16} /> {editEventError}
                                         </div>
                                     )}
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
                                         <input type="text" value={editEventFormData.title} onChange={(e) => setEditEventFormData({ ...editEventFormData, title: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required />
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
                                         <textarea value={editEventFormData.description} onChange={(e) => setEditEventFormData({ ...editEventFormData, description: e.target.value })} rows={3} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 resize-none" required />
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                                             <MapPin size={16} className="text-blue-500" />
                                             Lieu *
                                         </label>
-                                        <input
-                                            type="text"
-                                            value={editEventFormData.lieu}
-                                            onChange={(e) => setEditEventFormData({ ...editEventFormData, lieu: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-                                            placeholder="Ex: Paris, France | Salle des fêtes..."
-                                            required
-                                        />
+                                        <input type="text" value={editEventFormData.lieu} onChange={(e) => setEditEventFormData({ ...editEventFormData, lieu: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="Ex: Paris, France | Salle des fêtes..." required />
                                     </div>
-
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label>
@@ -1360,7 +1124,6 @@ export default function OrganizerDashboard() {
                                             </select>
                                         </div>
                                     </div>
-
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Date début *</label>
@@ -1371,12 +1134,10 @@ export default function OrganizerDashboard() {
                                             <input type="datetime-local" value={editEventFormData.dateFin} onChange={(e) => setEditEventFormData({ ...editEventFormData, dateFin: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required />
                                         </div>
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de participants</label>
                                         <input type="number" value={editEventFormData.nombreParticipants} onChange={(e) => setEditEventFormData({ ...editEventFormData, nombreParticipants: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" min="0" />
                                     </div>
-
                                     <div className="pt-4 flex gap-3">
                                         <button type="button" onClick={() => setShowEditEventModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
                                         <button type="submit" disabled={editEventLoading} className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">
@@ -1388,98 +1149,9 @@ export default function OrganizerDashboard() {
                         </motion.div>
                     )}
                 </AnimatePresence>
-
-                {/* Modal de modification de demande */}
-                <AnimatePresence>
-                    {showEditDemandeModal && editingDemande && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowEditDemandeModal(false)}>
-                            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden mx-3 sm:mx-4" onClick={(e) => e.stopPropagation()}>
-                                <div className="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-red-50">
-                                    <div className="flex justify-between items-center">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-orange-100 rounded-xl">
-                                                <Edit2 size={20} className="text-orange-600" />
-                                            </div>
-                                            <h3 className="text-lg sm:text-xl font-bold text-gray-900">Modifier la demande</h3>
-                                        </div>
-                                        <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowEditDemandeModal(false)} className="p-1.5 sm:p-2 hover:bg-white rounded-lg sm:rounded-xl transition-all">
-                                            <X size={18} className="sm:w-5 sm:h-5 text-gray-500" />
-                                        </motion.button>
-                                    </div>
-                                    <p className="text-xs sm:text-sm text-gray-500 mt-2">
-                                        Modifiez les dates de votre reservation
-                                    </p>
-                                </div>
-
-                                <form onSubmit={handleEditDemandeSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto max-h-[60vh]">
-                                    {editDemandeError && (
-                                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-sm">
-                                            <AlertCircle size={16} /> {editDemandeError}
-                                        </div>
-                                    )}
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                                            <Calendar size={16} className="text-blue-500" />
-                                            Date début *
-                                        </label>
-                                        <input
-                                            type="datetime-local"
-                                            value={editDemandeFormData.dateDebut}
-                                            onChange={(e) => setEditDemandeFormData({ ...editDemandeFormData, dateDebut: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                                            <Calendar size={16} className="text-blue-500" />
-                                            Date fin *
-                                        </label>
-                                        <input
-                                            type="datetime-local"
-                                            value={editDemandeFormData.dateFin}
-                                            onChange={(e) => setEditDemandeFormData({ ...editDemandeFormData, dateFin: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="pt-4 flex gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowEditDemandeModal(false)}
-                                            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium"
-                                        >
-                                            Annuler
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            disabled={editDemandeLoading}
-                                            className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all font-medium"
-                                        >
-                                            {editDemandeLoading ? (
-                                                <>
-                                                    <RefreshCw size={16} className="animate-spin" />
-                                                    Modification...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <CheckCircle size={16} />
-                                                    Enregistrer
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                </form>
-                            </motion.div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
             </div>
 
-            <style >{`
+            <style>{`
                 @keyframes shake { 0%, 100% { transform: rotate(0deg); } 10%, 30%, 50%, 70%, 90% { transform: rotate(-5deg); } 20%, 40%, 60%, 80% { transform: rotate(5deg); } }
                 .animate-shake { animation: shake 0.5s ease-in-out; }
             `}</style>
