@@ -4,6 +4,7 @@ import Event from "../model/event.js";
 import Ressource from "../model/ressources.js";
 import axios from "axios";
 import mongoose from "mongoose";
+import Comment from "../model/commantaire.js";
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
 export const getStats = async (req, res) => {
@@ -138,19 +139,6 @@ export const deleteResource = async (req, res) => {
   }
 };
 
-// GET /api/admin/resources/:id/paniers
-// Retourne les organisateurs qui ont cette ressource dans leur panier (champ adore)
-export const getResourcePaniers = async (req, res) => {
-  try {
-    const users = await User.find({ adore: req.params.id })
-      .select("firstname lastname email numTel region")
-      .sort({ _id: -1 });
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
 export const getMonthlyStats = async (req, res) => {
   try {
     const now = new Date();
@@ -191,6 +179,17 @@ export const getMonthlyStats = async (req, res) => {
     ]);
 
     res.json({ users, resources });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const getResourceComments = async (req, res) => {
+  try {
+    const comments = await Comment.find({ C_res: req.params.id })
+      .populate("C_user", "firstname lastname email image")
+      .sort({ createdAt: -1 });
+    res.json(comments);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

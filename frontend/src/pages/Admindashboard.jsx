@@ -437,17 +437,17 @@ const ComptesPage = () => {
   useEffect(() => { load(); }, [load]);
 
   const handleValidate = async (id, name) => {
-    try { setAL(id+"_v"); await axios.patch(`${API}/admin/users/${id}/status`,{status:"valide"},{headers:authHeaders()}); setUsers(p=>p.map(u=>u._id===id?{...u,status:"valide"}:u)); toast.success(`${name} valid\xe9`); }
+    try { setAL(id+"_v"); await axios.patch(`${API}/admin/users/${id}/status`,{status:"valide"},{headers:authHeaders()}); setUsers(p=>p.map(u=>u._id===id?{...u,status:"valide"}:u)); toast.success(`${name} validé`); }
     catch { toast.error("Erreur"); } finally { setAL(null); }
   };
   const handleReject = async (id, name) => {
-    if (!await confirm({type:"warning",title:"Rejeter ce compte ?",message:`"${name}" ne pourra pas acc\xe9der \xe0 la plateforme.`,confirmLabel:"Rejeter"})) return;
-    try { setAL(id+"_r"); await axios.patch(`${API}/admin/users/${id}/status`,{status:"rejected"},{headers:authHeaders()}); setUsers(p=>p.map(u=>u._id===id?{...u,status:"rejected"}:u)); toast.info(`${name} rejet\xe9`); }
+    if (!await confirm({type:"warning",title:"Rejeter ce compte ?",message:`"${name}" ne pourra pas accéder à la plateforme.`,confirmLabel:"Rejeter"})) return;
+    try { setAL(id+"_r"); await axios.patch(`${API}/admin/users/${id}/status`,{status:"rejected"},{headers:authHeaders()}); setUsers(p=>p.map(u=>u._id===id?{...u,status:"rejected"}:u)); toast.info(`${name} rejeté`); }
     catch { toast.error("Erreur"); } finally { setAL(null); }
   };
   const handleDelete = async (id, name) => {
-    if (!await confirm({type:"danger",title:"Supprimer ce compte ?",message:`Le compte de "${name}" sera d\xe9finitivement supprim\xe9.`,confirmLabel:"Supprimer"})) return;
-    try { setAL(id+"_d"); await axios.delete(`${API}/admin/users/${id}`,{headers:authHeaders()}); setUsers(p=>p.filter(u=>u._id!==id)); toast.success(`${name} supprim\xe9`); }
+    if (!await confirm({type:"danger",title:"Supprimer ce compte ?",message:`Le compte de "${name}" sera définitivement supprimé.`,confirmLabel:"Supprimer"})) return;
+    try { setAL(id+"_d"); await axios.delete(`${API}/admin/users/${id}`,{headers:authHeaders()}); setUsers(p=>p.filter(u=>u._id!==id)); toast.success(`${name} supprimé`); }
     catch { toast.error("Erreur"); } finally { setAL(null); }
   };
 
@@ -506,13 +506,13 @@ const ComptesPage = () => {
       <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden"}}>
         {loading
           ? <div style={{padding:24}}>{[1,2,3,4,5].map(i=><div key={i} style={{marginBottom:12}}><Skel h={52} r={8}/></div>)}</div>
-          : filtered.length===0 ? <EmptyState icon={Users} message="Aucun utilisateur trouv\xe9"/>
+          : filtered.length===0 ? <EmptyState icon={Users} message="Aucun utilisateur trouvé"/>
           : (
             <div style={{overflowX:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",minWidth:700}}>
                 <thead>
                   <tr style={{borderBottom:`1px solid ${C.border}`,background:C.bg}}>
-                    <TH>Nom</TH><TH>Email</TH><TH>Telephone</TH><TH>Role</TH><TH>Statut</TH><TH>Actions</TH>
+                    <TH>Nom</TH><TH>Email</TH><TH>Téléphone</TH><TH>Rôle</TH><TH>Statut</TH><TH>Actions</TH>
                   </tr>
                 </thead>
                 <tbody>
@@ -526,14 +526,14 @@ const ComptesPage = () => {
                             <UserAvatar user={u}/>
                             <div>
                               <div style={{fontWeight:500,color:C.t1,fontSize:14}}>{name}</div>
-                              <div style={{fontSize:12,color:C.t3}}>{u.region||""}</div>
+                              <div style={{fontSize:12,color:C.t3}}>{u.region||"—"}</div>
                             </div>
                           </div>
                         </TD>
                         <TD>{u.email}</TD>
-                        <TD>{u.numTel||""}</TD>
+                        <TD>{u.numTel||"—"}</TD>
                         <TD><Badge statut={u.role}/></TD>
-                        <TD>{isPrest?<Badge statut={u.status||"en_attente"}/>:<span style={{color:C.t3}}></span>}</TD>
+                        <TD>{isPrest?<Badge statut={u.status||"en_attente"}/>:<span style={{color:C.t3}}>—</span>}</TD>
                         <TD>
                           <div style={{display:"flex",alignItems:"center",gap:6}}>
                             {isPrest&&u.status==="en_attente"&&<>
@@ -547,7 +547,7 @@ const ComptesPage = () => {
                               </button>
                             </>}
                             {isPrest&&u.status==="rejected"&&(
-                              <button onClick={()=>handleValidate(u._id,name)} disabled={actionLoading===u._id+"_v"} title="R\xe9-activer"
+                              <button onClick={()=>handleValidate(u._id,name)} disabled={actionLoading===u._id+"_v"} title="Ré-activer"
                                 style={{width:32,height:32,borderRadius:8,border:"none",background:C.greenBg,color:C.green,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                                 <CheckCircle size={16}/>
                               </button>
@@ -576,16 +576,13 @@ const ComptesPage = () => {
 ═══════════════════════════════════════════════════════════ */
 const RessourcesPage = () => {
   const [resources, setResources] = useState([]);
-  const [loading, setLoad] = useState(true);
-  const [filter, setFilter] = useState("tous");
-  const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState(null);
-  const [paniers, setPaniers] = useState({});
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [loading,   setLoad]      = useState(true);
+  const [filter,    setFilter]    = useState("tous");
+  const [search,    setSearch]    = useState("");
+  const [expanded,  setExpanded]  = useState(null);
+  const [comments,  setComments]  = useState({});
   const toast = useToast();
   const { modal, confirm, yes, no } = useConfirm();
-  useEffect(() => { const h = () => setWindowWidth(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
-  const isMobile = windowWidth <= 640;
 
   useEffect(() => {
     const load = async () => {
@@ -594,17 +591,26 @@ const RessourcesPage = () => {
     }; load();
   }, []);
 
-  const loadPanier = async id => {
-    if (paniers[id] !== undefined) { setExpanded(expanded === id ? null : id); return; }
-    try { const { data } = await axios.get(`${API}/admin/resources/${id}/paniers`, { headers: authHeaders() }); setPaniers(p => ({ ...p, [id]: data })); setExpanded(id); }
-    catch { setPaniers(p => ({ ...p, [id]: [] })); setExpanded(id); }
+  const loadComments = async (id) => {
+    if (comments[id] !== undefined) { setExpanded(expanded === id ? null : id); return; }
+    try {
+      const { data } = await axios.get(`${API}/admin/resources/${id}/commentaires`, { headers: authHeaders() });
+      setComments(p => ({ ...p, [id]: data }));
+      setExpanded(id);
+    } catch {
+      setComments(p => ({ ...p, [id]: [] }));
+      setExpanded(id);
+    }
   };
 
   const handleDelete = async (id, name) => {
-    if (!await confirm({ type: "danger", title: "Supprimer cette ressource ?", message: `"${name}" sera définitivement supprimée.`, confirmLabel: "Supprimer" })) return;
+    if (!await confirm({ type:"danger", title:"Supprimer cette ressource ?", message:`"${name}" sera définitivement supprimée.`, confirmLabel:"Supprimer" })) return;
     try { await axios.delete(`${API}/admin/resources/${id}`, { headers: authHeaders() }); setResources(p => p.filter(r => r._id !== id)); toast.success(`"${name}" supprimée`); }
     catch { toast.error("Erreur"); }
   };
+
+  const types = ["tous","salle","materiel","decoration","traiteur"];
+  const typeLabels = { tous:"Toutes", salle:"Salle", materiel:"Matériel", decoration:"Décoration", traiteur:"Traiteur" };
 
   const filtered = resources.filter(r => {
     const mt = filter === "tous" || r.type === filter;
@@ -614,73 +620,143 @@ const RessourcesPage = () => {
 
   return (
     <div>
-      <ConfirmModal modal={modal} yes={yes} no={no} />
-      <Toasts toasts={toast.toasts} remove={toast.remove} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {["tous", "salle", "materiel", "decoration", "traiteur"].map(t => (
-            <button key={t} onClick={() => setFilter(t)} className={`adash-filter${filter === t ? " active-purple" : ""}`}>
-              {t === "tous" ? "Toutes" : t}
+      <ConfirmModal modal={modal} yes={yes} no={no}/>
+      <Toasts toasts={toast.toasts} remove={toast.remove}/>
+
+      {/* Header: filters + search */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24, flexWrap:"wrap", gap:12 }}>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+          {types.map(t => (
+            <button key={t} onClick={() => setFilter(t)}
+              style={{
+                padding:"6px 18px", borderRadius:20, fontSize:13, fontWeight:500, cursor:"pointer",
+                fontFamily:"inherit", transition:"all .15s",
+                background: filter===t ? C.accentBg : C.card,
+                color:      filter===t ? C.accent    : C.t2,
+                border:     filter===t ? `1.5px solid ${C.accent}` : `1px solid ${C.border}`,
+              }}>
+              {typeLabels[t]}
             </button>
           ))}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 24, padding: "8px 16px", width: isMobile ? "100%" : "auto" }}>
-          <Search size={14} color={C.t3} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..."
-            style={{ border: "none", background: "transparent", fontSize: 13, color: C.t1, width: isMobile ? "100%" : 200, fontFamily: "inherit" }} />
+        <div style={{ display:"flex", alignItems:"center", gap:8, background:C.card, border:`1px solid ${C.border}`, borderRadius:24, padding:"8px 16px", width:220 }}>
+          <Search size={14} color={C.t3}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher..."
+            style={{ border:"none", background:"transparent", fontSize:13, color:C.t1, width:"100%", fontFamily:"inherit" }}/>
         </div>
       </div>
-      <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-        {loading ? (
-          <div style={{ padding: 24 }}>{[1, 2, 3, 4].map(i => <div key={i} style={{ marginBottom: 12 }}><Skel h={48} r={8} /></div>)}</div>
-        ) : filtered.length === 0 ? <EmptyState icon={Package} message="Aucune ressource trouvée" /> : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 800 }}>
-              <thead><tr style={{ background: C.bg }}><TH>Ressource</TH><TH>Type</TH><TH>Prix</TH><TH>Prestataire</TH><TH>Localisation</TH><TH>Paniers</TH><TH>Actions</TH></tr></thead>
-              <tbody>
-                {filtered.map(r => (
-                  <>
-                    <tr key={r._id} className="adash-table-row">
-                      <TD style={{ fontWeight: 500, color: C.t1 }}>{r.name}</TD>
-                      <TD><Badge statut={r.type} /></TD>
-                      <TD style={{ fontWeight: 600, color: C.purple }}>{Number(r.price).toFixed(2)} €</TD>
-                      <TD><div style={{ fontWeight: 500, color: C.t1, fontSize: 13 }}>{r.provider_name}</div><div style={{ fontSize: 12, color: C.t3 }}>{r.provider_email}</div></TD>
-                      <TD>{r.location || "—"}</TD>
-                      <TD>
-                        <button onClick={() => loadPanier(r._id)}
-                          style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 20, background: C.accentBg, border: "none", color: C.accent, cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: "inherit" }}>
-                          <Eye size={13} /> Voir
-                          <ChevronDown size={12} style={{ transform: expanded === r._id ? "rotate(180deg)" : "none", transition: "transform .25s" }} />
-                        </button>
-                      </TD>
-                      <TD>
-                        <button className="adash-action-btn" onClick={() => handleDelete(r._id, r.name)} style={{ background: C.redBg, color: C.red }}>
-                          <Trash2 size={13} /> Supprimer
-                        </button>
-                      </TD>
-                    </tr>
-                    {expanded === r._id && (
-                      <tr key={r._id + "_exp"}>
-                        <td colSpan={7} style={{ padding: "0 16px 16px", background: "#fafbff" }}>
-                          <div style={{ borderRadius: 8, border: `1px solid ${C.accentBg}`, overflow: "hidden" }}>
-                            <div style={{ padding: "10px 16px", background: C.accentBg, fontSize: 13, fontWeight: 500, color: C.accentText }}>Organisateurs — « {r.name} »</div>
-                            {!paniers[r._id] || paniers[r._id].length === 0
-                              ? <div style={{ padding: "14px 16px", fontSize: 13, color: C.t3 }}>Aucun organisateur.</div>
-                              : <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                                  <thead><tr style={{ background: C.bg }}><TH>Nom</TH><TH>Email</TH><TH>Téléphone</TH><TH>Région</TH></tr></thead>
-                                  <tbody>{paniers[r._id].map(u => (<tr key={u._id} className="adash-table-row"><TD style={{ fontWeight: 500, color: C.t1 }}>{u.firstname} {u.lastname}</TD><TD>{u.email}</TD><TD>{u.numTel || "—"}</TD><TD>{u.region || "—"}</TD></tr>))}</tbody>
-                                </table>
-                            }
-                          </div>
-                        </td>
+
+      {/* Table */}
+      <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, overflow:"hidden" }}>
+        {loading
+          ? <div style={{padding:24}}>{[1,2,3,4,5].map(i=><div key={i} style={{marginBottom:12}}><Skel h={52} r={8}/></div>)}</div>
+          : filtered.length===0 ? <EmptyState icon={Package} message="Aucune ressource trouvée"/>
+          : (
+            <div style={{ overflowX:"auto" }}>
+              <table style={{ width:"100%", borderCollapse:"collapse", minWidth:860 }}>
+                <thead>
+                  <tr style={{ background:C.bg, borderBottom:`1px solid ${C.border}` }}>
+                    <TH>Ressource</TH>
+                    <TH>Type</TH>
+                    <TH>Prix</TH>
+                    <TH>Prestataire</TH>
+                    <TH>Localisation</TH>
+                    <TH>Commentaires</TH>
+                    <TH>Actions</TH>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(r => (
+                    <>
+                      <tr key={r._id} className="adash-table-row">
+                        <TD style={{ fontWeight:600, color:C.t1, fontSize:14 }}>{r.name}</TD>
+                        <TD><Badge statut={r.type}/></TD>
+                        <TD style={{ fontWeight:700, color:C.purple, fontSize:14 }}>{Number(r.price).toFixed(2)} €</TD>
+                        <TD>
+                          <div style={{ fontWeight:500, color:C.t1, fontSize:13 }}>{r.provider_name}</div>
+                          <div style={{ fontSize:12, color:C.t3 }}>{r.provider_email}</div>
+                        </TD>
+                        <TD style={{ color:C.t2 }}>{r.location || "—"}</TD>
+                        <TD>
+                          <button onClick={() => loadComments(r._id)}
+                            style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"6px 14px", borderRadius:20, background:C.accentBg, border:`1px solid ${C.accentBg}`, color:C.accent, cursor:"pointer", fontSize:13, fontWeight:500, fontFamily:"inherit", transition:"all .15s" }}>
+                            <Eye size={14}/>
+                            Voir
+                            <ChevronDown size={13} style={{ transform: expanded===r._id ? "rotate(180deg)" : "none", transition:"transform .25s" }}/>
+                          </button>
+                        </TD>
+                        <TD>
+                        <TD>
+                          <button onClick={() => handleDelete(r._id, r.name)} title="Supprimer"
+                            style={{ width:32, height:32, borderRadius:8, border:"none", background:C.redBg, color:C.red, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                            <Trash2 size={16}/>
+                          </button>
+                        </TD>
+                        </TD>
                       </tr>
-                    )}
-                  </>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+
+                      {expanded === r._id && (
+                        <tr key={r._id + "_exp"}>
+                          <td colSpan={7} style={{ padding:"0 20px 16px", background:"#f8f9ff" }}>
+                            <div style={{ borderRadius:10, border:`1px solid ${C.accentBg}`, overflow:"hidden", marginTop:4 }}>
+                              <div style={{ padding:"10px 16px", background:C.accentBg, fontSize:13, fontWeight:600, color:C.accentText }}>
+                                Commentaires pour « {r.name} »
+                              </div>
+                              {!comments[r._id] || comments[r._id].length === 0
+                                ? <div style={{ padding:"16px", fontSize:13, color:C.t3 }}>Aucun commentaire pour cette ressource.</div>
+                                : (
+                                  <div style={{ padding:"12px 16px", display:"flex", flexDirection:"column", gap:10 }}>
+                                    {comments[r._id].map(c => {
+                                      const stars = c.nbr_stars || 0;
+                                      const user  = c.C_user;
+                                      const init  = user ? `${user.firstname?.[0]||""}${user.lastname?.[0]||""}`.toUpperCase() : "?";
+                                      const imgUrl = user?.image
+                                        ? (user.image.startsWith("http") ? user.image : `http://localhost:5000/uploads/${user.image.replace(/\\/g,"/").split("/").pop()}`)
+                                        : null;
+                                      return (
+                                        <div key={c._id} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:"12px 16px" }}>
+                                          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+                                            {/* Avatar */}
+                                            <div style={{ width:34, height:34, borderRadius:"50%", background:C.accentBg, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", flexShrink:0 }}>
+                                              {imgUrl
+                                                ? <img src={imgUrl} alt={init} style={{ width:"100%", height:"100%", objectFit:"cover" }} onError={e=>e.target.style.display="none"}/>
+                                                : <span style={{ color:C.accent, fontSize:12, fontWeight:700 }}>{init}</span>
+                                              }
+                                            </div>
+                                            <div style={{ flex:1 }}>
+                                              <div style={{ fontWeight:600, fontSize:13, color:C.t1 }}>
+                                                {user ? `${user.firstname} ${user.lastname}` : "Utilisateur inconnu"}
+                                              </div>
+                                              <div style={{ fontSize:11, color:C.t3 }}>{user?.email}</div>
+                                            </div>
+                                            {/* Stars */}
+                                            <div style={{ display:"flex", gap:2 }}>
+                                              {[1,2,3,4,5].map(s => (
+                                                <span key={s} style={{ fontSize:16, color: s<=stars ? "#f59e0b" : "#e8eaed" }}>&#9733;</span>
+                                              ))}
+                                            </div>
+                                            <div style={{ fontSize:11, color:C.t3 }}>
+                                              {new Date(c.createdAt).toLocaleDateString("fr-FR")}
+                                            </div>
+                                          </div>
+                                          <p style={{ fontSize:13, color:C.t2, margin:0, lineHeight:1.5 }}>{c.contenue}</p>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )
+                              }
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        }
       </div>
     </div>
   );

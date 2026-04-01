@@ -10,8 +10,8 @@ import {
   deleteEvent,
   getAllResources,
   deleteResource,
-  getResourcePaniers,
   getMonthlyStats,
+  getResourceComments
 } from "../controller/Admincontroller.js";
 
 const router = express.Router();
@@ -34,6 +34,5 @@ router.delete("/events/:id",deleteEvent);
 // Resources
 router.get("/resources",getAllResources);
 router.delete("/resources/:id",deleteResource);
-router.get("/resources/:id/paniers",getResourcePaniers); 
-
+router.get("/resources/:id/commentaires", getResourceComments);
 export default router;
