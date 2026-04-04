@@ -212,11 +212,7 @@ export default function HomePage() {
                 </motion.button>
               )}
 
-              {!isAdmin && (
-                <motion.button whileHover={{ x: 5 }} onClick={() => { navigate("/messenger"); setIsProfileMenuOpen(false); setIsOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors">
-                  <MessageCircle className="w-5 h-5 text-blue-600" /><span>Messenger</span>
-                </motion.button>
-              )}
+
               {role === "prestataire" && (
                 <motion.button whileHover={{ x: 5 }} onClick={() => { navigate("/add-resource"); setIsProfileMenuOpen(false); setIsOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors">
                   <PlusCircle className="w-5 h-5 text-orange-600" /><span>Publier une ressource</span>
@@ -302,11 +298,7 @@ export default function HomePage() {
                         <User className="w-5 h-5 text-blue-600" /><span>Mon Profil</span>
                       </motion.button>
                     )}
-                    {!isAdmin && (
-                      <motion.button whileHover={{ x: 10 }} onClick={() => { navigate("/messenger"); setIsOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg">
-                        <MessageCircle className="w-5 h-5 text-blue-600" /><span>Messenger</span>
-                      </motion.button>
-                    )}
+
                     {role === "organisateur" && (
                       <motion.button whileHover={{ x: 10 }} onClick={() => { navigate("/panier"); setIsOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg">
                         <ShoppingCart className="w-5 h-5 text-purple-600" /><span>Mon Panier</span>
@@ -377,6 +369,8 @@ export default function HomePage() {
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/les_ressources")} className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-2xl font-semibold text-lg hover:bg-white/20 transition-all">🔍 Voir la plateforme</motion.button>
                 </>)}
                 {role === "organisateur" && (<>
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/les_ressources")} className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-semibold text-lg hover:bg-gray-100 transition-all"> Explorer</motion.button>
+
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/CreerEvenement")} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-lg">Créer votre événement</motion.button>
                 </>)}
                 {role === "prestataire" && (<>

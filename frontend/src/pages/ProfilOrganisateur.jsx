@@ -1,4 +1,4 @@
-import React, { useState, useEffect,useMemo  } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Calendar, ChevronLeft, ChevronRight,
     User, Mail, Phone, Building2,
@@ -542,7 +542,7 @@ export default function OrganizerDashboard() {
                 <button onClick={() => setActiveTab('resources')} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'resources' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
                     <Package size={16} />
                     <span>Mes favoris</span>
-                    {resources.length > 0 && <span className="bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{resources.length}</span>}
+                    {likedResources.length > 0 && <span className="bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{likedResources.length}</span>}
                 </button>
                 <button onClick={() => setActiveTab('demandes')} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'demandes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
                     <FileText size={16} />
@@ -695,7 +695,7 @@ export default function OrganizerDashboard() {
                                         <p className="text-[10px] sm:text-xs text-gray-600">Événements</p>
                                     </motion.div>
                                     <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer">
-                                        <p className="text-base sm:text-lg font-bold text-purple-600">{resources.length}</p>
+                                        <p className="text-base sm:text-lg font-bold text-purple-600">{likedResources.length}</p>
                                         <p className="text-[10px] sm:text-xs text-gray-600">Favoris</p>
                                     </motion.div>
                                     <motion.div whileHover={{ scale: 1.05 }} className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg sm:rounded-xl p-1.5 sm:p-2 text-center cursor-pointer">
@@ -895,8 +895,8 @@ export default function OrganizerDashboard() {
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => setSelectedDocType('invoices')}
                                         className={`flex-1 flex items-center justify-center gap-2 py-2 px-6 rounded-xl transition-all ${selectedDocType === 'invoices'
-                                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                             }`}
                                     >
                                         <Receipt size={20} />
@@ -907,8 +907,8 @@ export default function OrganizerDashboard() {
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => setSelectedDocType('contracts')}
                                         className={`flex-1 flex items-center justify-center gap-2 py-2 px-6 rounded-xl transition-all ${selectedDocType === 'contracts'
-                                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                             }`}
                                     >
                                         <FileSignature size={20} />

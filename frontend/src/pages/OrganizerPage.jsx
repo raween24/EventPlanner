@@ -96,6 +96,7 @@ export default function OrganizerPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-10 px-4">
+
       <div className="max-w-7xl mx-auto">
 
         {/* 🔹 Header */}

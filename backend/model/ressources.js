@@ -16,8 +16,37 @@ const resourceSchema = new mongoose.Schema(
     type: {
       type: String,
       required: true,
-      enum: ["salle", "materiel", "decoration", "traiteur"],
+      enum: ["product", "service"]
     },
+
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true
+    },
+
+    // 🔹 Champs dynamiques
+    attributes: {
+      type: Map,
+      of: mongoose.Schema.Types.Mixed,
+      default: {}
+    },
+
+    // 🔹 Champs personnalisés
+    customAttributes: [
+      {
+        name: {
+          type: String,
+          required: true
+        },
+        type: {
+          type: String,
+          enum: ["text", "number", "boolean"],
+          required: true
+        },
+        value: mongoose.Schema.Types.Mixed
+      }
+    ],
 
     price: {
       type: Number,
@@ -29,35 +58,36 @@ const resourceSchema = new mongoose.Schema(
       type: String,
     },
 
-    capacity: {
-      type: Number,
-    },
+    media: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Media"
+      }
+    ],
 
-    provider_name: {
-      type: String,
-      required: true,
-    },
+    availability: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Dispo"
+      }
+    ],
 
-    provider_email: {
-      type: String,
-    },
-
-    media: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Media"
-    }],
-
-    availability: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Dispo"
-    }],
     prestataire: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User"
-    },
-    terms: {
-      type: String,
+      ref: "User",
       required: true
+    },
+
+    // 🔥 🔥 TERMS amélioré
+    terms: {
+      text: {
+        type: String,
+        default: null
+      },
+      file: {
+        type: String, // URL du fichier PDF
+        default: null
+      }
     }
 
   },
@@ -65,6 +95,13 @@ const resourceSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// 🔐 validation
+resourceSchema.pre("validate", function () {
+  if (!this.terms?.text && !this.terms?.file) {
+    throw new Error("Terms must have text or file");
+  }
+});
 
 const Resource = mongoose.model("Resource", resourceSchema);
 
