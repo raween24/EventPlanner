@@ -11,11 +11,6 @@ eventplanner315@gmail.com
 pass: event123456
 ok binome
 
-
-tw f prestataire :
-gerer la disponibilité il faut le mettre dans gestion des ressource 
-rq : rw ely f use case cest ce que je peux le faire losque je suis dans ton dashboard !!!!!!!!!! (madame )
-====> donc ya adem shyh ahna ly amlynu adhka f profile manbadlou chy mrigl juste f profile naamlou modifier les donnees personnelles (photos  nom prenom  numero ..)
 tw f admin :
 gestion des ressources pas gestion des events ( deja hdhka chaamlyn f site ahna ya adem )
 valider le compte de quii ??? il faut specifier !
