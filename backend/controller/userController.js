@@ -7,19 +7,8 @@ import axios from "axios";
 /* ================= REGISTER ================= */
 const registerUser = async (req, res) => {
   try {
-    const {
-      passportOrCid,
-      lastname,
-      firstname,
-      date_de_naissance,
-      email,
-      password,
-      numTel,
-      region,
-      gender,
-      image,
-      role
-    } = req.body;
+    const { lastname, firstname, email, password, image, role, patente } = req.body;
+
 
     // verifier email existant
     const existingUser = await User.findOne({ email });
@@ -43,19 +32,15 @@ const registerUser = async (req, res) => {
     }
 
     const user = new User({
-      passportOrCid,
-      lastname,
-      firstname,
-      date_de_naissance,
-      email,
-      password: hashedPassword,
-      numTel,
-      region,
-      gender,
-      image: req.file ? req.file.path : image || null,
-      role,
-      status
-    });
+  lastname,
+  firstname,
+  email,
+  password: hashedPassword,
+  image: req.file ? req.file.path : image || null,
+  role,
+  status,
+  patente: role === "prestataire" ? patente : undefined,
+});
 
     await user.save();
     if (role === "prestataire") {
@@ -97,7 +82,7 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: "Mot de passe incorrect" });
     }
 
-    // 🚨 Vérification prestataire en attente
+    //  Vérification prestataire en attente
     if (user.role === "prestataire" && user.status === "en_attente") {
       return res.status(403).json({
         message: "Votre compte est en attente de validation par l'administrateur",
@@ -156,13 +141,13 @@ const updateUser = async (req, res) => {
 
     Object.assign(user, otherFields);
 
-    // 🔐 password
+    //  password
     if (password) {
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(password, salt);
     }
 
-    // 🖼️ image (🔥 LA PARTIE MANQUANTE)
+    //  image (🔥 LA PARTIE MANQUANTE)
     if (req.file) {
       user.image = `/uploads/${req.file.filename}`;
     } else if (image) {
@@ -189,7 +174,7 @@ const addToAdore = async (req, res) => {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
-    // 🔥 si déjà dans les favoris → retourner 200
+    // 6si déjà dans les favoris → retourner 200
     if (user.adore.some(id => id.toString() === resourceId)) {
       return res.status(200).json({ 
         message: "Déjà dans les favoris",

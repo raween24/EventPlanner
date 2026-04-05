@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-export default function RoleGuard() {
+export default function SignupChoice() {
   const navigate = useNavigate();
 
   return (
