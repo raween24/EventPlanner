@@ -5,29 +5,8 @@ des noms pour le site
 ****Eventora****
 ****Yalla Events****POURRRRRRR YALLAAAAA mrigl
 ****GoEvent****
-
-w ha9a mail mt3a application mt3na:
 eventplanner315@gmail.com
 pass: event123456
-ok binome
-
-les modification dans vcl sagar :
-payer tji  baed confirmation de commade (baed ma le prestataire valide ta reservation) mtjich f usecase hkaka wa7adha  (d'apres sagar) 
-vous pouvez le faire comme extend dans consulter reservation ely heya na9sa 3andkom deja f use case 
-consulter notification pas recevoir 
-tw f prestataire :
-gerer la disponibilité il faut le mettre dans gestion des ressource 
-rq : rw ely f use case cest ce que je peux le faire losque je suis dans ton dashboard !!!!!!!!!! (madame )
-====> donc ya adem shyh ahna ly amlynu adhka f profile manbadlou chy mrigl juste f profile naamlou modifier les donnees personnelles (photos  nom prenom  numero ..)
-tw f admin :
-gestion des ressources pas gestion des events ( deja hdhka chaamlyn f site ahna ya adem )
-valider le compte de quii ??? il faut specifier !
-vous allez rien a modifier f compte prestataire !! na7uha ca pas de sens 
-cest pas gerer les events cest gerer les ressources dun compte (kima amlyn ahna f site taana deja akaka ana amltha )
-galt na7uha modifier compte adhika gotlha ana madame rw kif yscani prestataire  par expl l document w ghlot par exemple wla taswira floue ywali ykalem ladmin yfsakhhelu wla ymodifiha w kol gatly la hawka andu f bd kif tgolu y7el bd w ybadlha cest pas la paine galt tamou menha 7kye 
-<===> cest bon sala7t ly galt alyh madame kol f use case mzelt faze heritege kamlha + les systeme adhukom ly fi les carreaux a adem w tbadel chy ken kif ntfhmou fyha saa chtodkhlch denya baadhha 
-remaarque :
-galt zidu des pâtisseries par exemple et des adresses de decorations et hajet akaak 
 
 des patisseries == traiteur bissifa 3ama non ? 
 la binome 
@@ -36,3 +15,29 @@ Spécialité : préparation de plats salés et sucrés, mais surtout plats cuisi
 Pâtisserie:
 Spécialité : produits sucrés uniquement.
 Objectif : proposer des desserts, gâteaux et viennoiseries pour consommation immédiate ou événements.
+
+les taches : 
+Admin :
+-Visulaiser les documents(batindaa) 
+-les signales
+
+sign up :
+-separe l'organisateur et le presatatire (chaqu un a sa propre champs)
+-google (lezme nal9oulha solution)
+
+ressources:
+-modifier les champs du creation du ressources
+
+evenment:
+-modifier les champs du evenement
+
+--cree une pages mes demmande pour le prestataire 
+--modifier le navbar(ajouter button s'insrit) et le navbar doit etre dans tous les pages
+
+
+sur le panier on a dit que :
+1->ajouter un ressource au panier 
+2->si veux envoier une demmande le site doit verife que le user est connecter sinon  naviget(sign in ) 
+3->si oragnisateur n'avait pas aucun evenement ->une pop up qui montre et lui dit de cree un evemenet qui marche avec le date de location du ressources 
+4-> si oragnisateur a des evenement on dois verifier la correspandances entre les dates de ressources et le date d'evenement pour continer au payement
+ 
