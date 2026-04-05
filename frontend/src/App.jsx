@@ -4,9 +4,7 @@ import CreerEvenement     from "./pages/CreeEvent";
 import OrganizerPage      from "./pages/OrganizerPage";
 import HomePage           from "./pages/HomePage";
 import Login              from "./pages/Login";
-import SignupChoice       from "./pages/SignupChoice";       // ✅ page choix rôle
-import SignupOrganisateur from "./pages/SignupOrganisateur"; // ✅ form organisateur
-import SignupPrestataire  from "./pages/SignupPrestataire";  // ✅ form prestataire
+import Signup     from "./pages/Signup";       
 import RessourceDetail    from "./pages/RessourceDetail";
 import AddResource        from "./pages/AddResource";
 import RoleGuard          from "./components/RoleGuard";    // ⚠️ ton RoleGuard existant, pas touché
@@ -22,9 +20,7 @@ export default function App() {
         {/* pages publiques */}
         <Route path="/"                     element={<HomePage />} />
         <Route path="/login"                element={<Login />} />
-        <Route path="/signup"               element={<SignupChoice />} />       
-        <Route path="/signup/organisateur"  element={<SignupOrganisateur />} /> 
-        <Route path="/signup/prestataire"   element={<SignupPrestataire />} />  
+        <Route path="/signup" element={<Signup />} /> 
         <Route path="/panier"               element={<PanierRessources />} />
 
         {/* Admin */}
