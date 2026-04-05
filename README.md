@@ -5,12 +5,8 @@ des noms pour le site
 ****Eventora****
 ****Yalla Events****POURRRRRRR YALLAAAAA mrigl
 ****GoEvent****
-
-w ha9a mail mt3a application mt3na:
 eventplanner315@gmail.com
 pass: event123456
-ok binome
-
 
 des patisseries == traiteur bissifa 3ama non ? 
 la binome 
