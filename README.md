@@ -11,10 +11,7 @@ eventplanner315@gmail.com
 pass: event123456
 ok binome
 
-les modification dans vcl sagar :
-payer tji  baed confirmation de commade (baed ma le prestataire valide ta reservation) mtjich f usecase hkaka wa7adha  (d'apres sagar) 
-vous pouvez le faire comme extend dans consulter reservation ely heya na9sa 3andkom deja f use case 
-consulter notification pas recevoir 
+
 tw f prestataire :
 gerer la disponibilité il faut le mettre dans gestion des ressource 
 rq : rw ely f use case cest ce que je peux le faire losque je suis dans ton dashboard !!!!!!!!!! (madame )
