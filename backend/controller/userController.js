@@ -3,14 +3,12 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import axios from "axios";
 
-
 /* ================= REGISTER ================= */
 const registerUser = async (req, res) => {
   try {
-    const { lastname, firstname, email, password, image, role, patente } = req.body;
+    const { lastname, firstname, email, password, role, numPatente, numTel } = req.body;
 
-
-    // verifier email existant
+    // vérifier email existant
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email déjà utilisé" });
@@ -20,29 +18,26 @@ const registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 🔹 définir le status automatiquement
+    // définir le status automatiquement
     let status = "en_attente";
-
-    if (role === "organisateur") {
-      status = "valide";
-    }
-
-    if (role === "prestataire") {
-      status = "en_attente";
-    }
+    if (role === "organisateur") status = "valide";
+    if (role === "prestataire")  status = "en_attente";
 
     const user = new User({
-  lastname,
-  firstname,
-  email,
-  password: hashedPassword,
-  image: req.file ? req.file.path : image || null,
-  role,
-  status,
-  patente: role === "prestataire" ? patente : undefined,
-});
+      lastname,
+      firstname,
+      email,
+      password: hashedPassword,
+      image:      req.files?.image?.[0]?.path   || null,
+      patente:    req.files?.patente?.[0]?.path  || null, // ✅ chemin PDF
+      numPatente: role === "prestataire" ? numPatente : undefined, // ✅ numéro texte
+      numTel:     role === "prestataire" ? numTel     : undefined, // ✅ téléphone
+      role,
+      status,
+    });
 
     await user.save();
+
     if (role === "prestataire") {
       try {
         await axios.post("http://localhost:5678/webhook/signup-provider", {
@@ -54,35 +49,30 @@ const registerUser = async (req, res) => {
       }
     }
 
-    res.status(201).json({
-      message: "Utilisateur créé",
-      user
-    });
+    res.status(201).json({ message: "Utilisateur créé", user });
 
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: error.message });
   }
 };
+
 /* ================= LOGIN ================= */
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-
     if (!user) {
       return res.status(401).json({ message: "Utilisateur non trouvé" });
     }
 
-    // comparer hash
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
       return res.status(401).json({ message: "Mot de passe incorrect" });
     }
 
-    //  Vérification prestataire en attente
+    // Vérification prestataire en attente
     if (user.role === "prestataire" && user.status === "en_attente") {
       return res.status(403).json({
         message: "Votre compte est en attente de validation par l'administrateur",
@@ -90,7 +80,6 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // JWT
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -101,13 +90,13 @@ const loginUser = async (req, res) => {
       message: "Login réussi",
       token,
       user: {
-        id: user._id,
+        id:        user._id,
         firstname: user.firstname,
-        lastname: user.lastname,
-        email: user.email,
-        role: user.role,
-        image: user.image,
-        status: user.status
+        lastname:  user.lastname,
+        email:     user.email,
+        role:      user.role,
+        image:     user.image,
+        status:    user.status
       }
     });
 
@@ -117,7 +106,7 @@ const loginUser = async (req, res) => {
   }
 };
 
-/* ================= GET USERS ================= */
+/* ================= GET ALL USERS ================= */
 const getUser = async (req, res) => {
   try {
     const users = await User.find().select("-password");
@@ -127,27 +116,36 @@ const getUser = async (req, res) => {
   }
 };
 
+/* ================= GET USER BY ID ================= */
+const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 /* ================= UPDATE USER ================= */
 const updateUser = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
-    // 🔹 éviter écrasement image/password
     const { password, image, ...otherFields } = req.body;
-
     Object.assign(user, otherFields);
 
-    //  password
     if (password) {
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(password, salt);
     }
 
-    //  image (🔥 LA PARTIE MANQUANTE)
     if (req.file) {
       user.image = `/uploads/${req.file.filename}`;
     } else if (image) {
@@ -155,7 +153,6 @@ const updateUser = async (req, res) => {
     }
 
     await user.save();
-
     res.status(200).json(user);
 
   } catch (error) {
@@ -163,52 +160,58 @@ const updateUser = async (req, res) => {
   }
 };
 
+/* ================= ADORE (FAVORIS) ================= */
 const addToAdore = async (req, res) => {
   try {
     const userId = req.user.id;
     const { resourceId } = req.body;
 
     const user = await User.findById(userId);
-
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
-    // 6si déjà dans les favoris → retourner 200
     if (user.adore.some(id => id.toString() === resourceId)) {
-      return res.status(200).json({ 
-        message: "Déjà dans les favoris",
-        adore: user.adore
-      });
+      return res.status(200).json({ message: "Déjà dans les favoris", adore: user.adore });
     }
 
     user.adore.push(resourceId);
     await user.save();
 
-    return res.status(200).json({
-      message: "Ajouté aux favoris",
-      adore: user.adore
-    });
+    return res.status(200).json({ message: "Ajouté aux favoris", adore: user.adore });
 
   } catch (error) {
     console.log(error);
-
-    return res.status(500).json({ 
-      message: "Erreur serveur" 
-    });
+    return res.status(500).json({ message: "Erreur serveur" });
   }
 };
+
+const removeFromAdore = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { resourceId } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    user.adore = user.adore.filter(id => id.toString() !== resourceId);
+    await user.save();
+
+    res.status(200).json({ message: "Supprimé des favoris", adore: user.adore });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const getAdore = async (req, res) => {
   try {
     const { userId } = req.params;
 
     const user = await User.findById(userId)
-      .populate({
-        path: "adore",
-        populate: {
-          path: "media"
-        }
-      })
+      .populate({ path: "adore", populate: { path: "media" } })
       .select("-password");
 
     if (!user) {
@@ -219,54 +222,15 @@ const getAdore = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};const removeFromAdore = async (req, res) => {
-  try {
-    const userId = req.user.id; // ✅ FIX
-    const { resourceId } = req.body;
-
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({ message: "Utilisateur non trouvé" });
-    }
-
-    user.adore = user.adore.filter(
-      (id) => id.toString() !== resourceId
-    );
-
-    await user.save();
-
-    res.status(200).json({
-      message: "Supprimé des favoris",
-      adore: user.adore
-    });
-
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-const getUserById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const user = await User.findById(id).select("-password");
-
-    if (!user) {
-      return res.status(404).json({ message: "Utilisateur non trouvé" });
-    }
-
-    res.status(200).json(user);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
 };
 
 export {
   registerUser,
   loginUser,
   getUser,
+  getUserById,
   updateUser,
   addToAdore,
   removeFromAdore,
-  getAdore, getUserById
+  getAdore,
 };

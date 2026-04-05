@@ -3,10 +3,10 @@ import path from "path";
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    if (file.fieldname === "termsFile") {
-      cb(null, "uploads/docs/");
-    } else if (file.fieldname === "media") {
-      cb(null, "uploads");
+    if (file.fieldname === "patente") {
+      cb(null, "uploads/patentes/");
+    } else {
+      cb(null, "uploads/");
     }
   },
   filename: (req, file, cb) => {
@@ -15,22 +15,20 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  if (file.fieldname === "termsFile") {
-    const allowed = /pdf/;
-    const valid = allowed.test(file.mimetype);
-    return valid ? cb(null, true) : cb("PDF seulement !");
+  if (file.fieldname === "image") {
+    const allowed = /jpg|jpeg|png|webp/;
+    return allowed.test(file.mimetype) ? cb(null, true) : cb("Images seulement !");
   }
-
-  if (file.fieldname === "media") {
-    const allowed = /jpg|jpeg|png/;
-    const valid = allowed.test(file.mimetype);
-    return valid ? cb(null, true) : cb("Images seulement !");
+  if (file.fieldname === "patente") {
+    const allowed = /jpg|jpeg|png|webp|pdf/;
+    return allowed.test(file.mimetype) ? cb(null, true) : cb("PDF ou image seulement !");
   }
+  cb(null, true);
 };
 
 const upload = multer({
   storage,
-limits: { fileSize: 20 * 1024 * 1024 } ,
+  limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter
 });
 

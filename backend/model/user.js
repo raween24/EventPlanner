@@ -1,10 +1,11 @@
+import mongoose from "mongoose";
+
 const UserSchema = new mongoose.Schema({
-  // ✅ Communs aux deux
-  lastname:  { type: String, required: true },
-  firstname: { type: String, required: true },
-  email:     { type: String, required: true, unique: true },
-  password:  { type: String, default: "" },
-  image:     { type: String },
+  lastname:   { type: String, required: true },
+  firstname:  { type: String, required: true },
+  email:      { type: String, required: true, unique: true },
+  password:   { type: String, default: "" },
+  image:      { type: String },
   role: {
     type: String,
     enum: ["organisateur", "prestataire", "admin"],
@@ -17,7 +18,9 @@ const UserSchema = new mongoose.Schema({
   },
   googleId: { type: String },
   adore: [{ type: mongoose.Schema.Types.ObjectId, ref: "Resource" }],
-
-  // ✅ Spécifique prestataire uniquement
-  patente: { type: String },
+  patente:    { type: String }, 
+  numPatente: { type: String }, 
+  numTel:     { type: String },
 });
+
+export default mongoose.model("User", UserSchema);

@@ -59,7 +59,9 @@ export default function Signup() {
   const [role, setRole] = useState("organisateur");
   const [showPendingPopup, setShowPendingPopup] = useState(false);
   const [form, setForm] = useState({
-    firstname: "", lastname: "", email: "", password: "", patente: "", image: "",
+    firstname: "", lastname: "", email: "", password: "",
+    numPatente: "", numTel: "",
+    patenteFile: null, image: "",
   });
   const [preview, setPreview] = useState(null);
 
@@ -72,9 +74,15 @@ export default function Signup() {
     setForm({ ...form, image: file });
   };
 
+  const handlePatenteChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setForm({ ...form, patenteFile: file });
+  };
+
   const handleRoleChange = (newRole) => {
     setRole(newRole);
-    setForm(f => ({ ...f, patente: "" }));
+    setForm(f => ({ ...f, numPatente: "", numTel: "", patenteFile: null }));
   };
 
   const handleSubmit = async (e) => {
@@ -85,7 +93,11 @@ export default function Signup() {
     formData.append("email", form.email);
     formData.append("password", form.password);
     formData.append("role", role);
-    if (role === "prestataire") formData.append("patente", form.patente);
+    if (role === "prestataire") {
+      formData.append("numPatente", form.numPatente);
+      formData.append("numTel", form.numTel);
+      if (form.patenteFile) formData.append("patente", form.patenteFile);
+    }
     if (form.image) formData.append("image", form.image);
 
     try {
@@ -94,7 +106,6 @@ export default function Signup() {
         body: formData,
       });
       const data = await res.json();
-
       if (res.ok) {
         if (role === "prestataire") {
           setShowPendingPopup(true);
@@ -137,39 +148,24 @@ export default function Signup() {
           </div>
 
           {/* ── Toggle rôle ── */}
-          <div style={{
-            display: "flex",
-            background: "#f1f5f9",
-            borderRadius: 12,
-            padding: 4,
-            gap: 4,
-            marginBottom: 28,
-          }}>
-            <button
-              type="button"
-              onClick={() => handleRoleChange("organisateur")}
-              style={{
-                flex: 1, padding: "10px 0", borderRadius: 9, border: "none", cursor: "pointer",
-                fontWeight: 600, fontSize: 14, transition: "all 0.2s",
-                background: !isPrestataire ? "#fff" : "transparent",
-                color: !isPrestataire ? "#2563eb" : "#64748b",
-                boxShadow: !isPrestataire ? "0 1px 6px rgba(0,0,0,0.1)" : "none",
-              }}
-            >
-              🎯 Organisateur
+          <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 12, padding: 4, gap: 4, marginBottom: 28 }}>
+            <button type="button" onClick={() => handleRoleChange("organisateur")} style={{
+              flex: 1, padding: "10px 0", borderRadius: 9, border: "none", cursor: "pointer",
+              fontWeight: 600, fontSize: 14, transition: "all 0.2s",
+              background: !isPrestataire ? "#fff" : "transparent",
+              color: !isPrestataire ? "#2563eb" : "#64748b",
+              boxShadow: !isPrestataire ? "0 1px 6px rgba(0,0,0,0.1)" : "none",
+            }}>
+              Organisateur
             </button>
-            <button
-              type="button"
-              onClick={() => handleRoleChange("prestataire")}
-              style={{
-                flex: 1, padding: "10px 0", borderRadius: 9, border: "none", cursor: "pointer",
-                fontWeight: 600, fontSize: 14, transition: "all 0.2s",
-                background: isPrestataire ? "#fff" : "transparent",
-                color: isPrestataire ? "#7c3aed" : "#64748b",
-                boxShadow: isPrestataire ? "0 1px 6px rgba(0,0,0,0.1)" : "none",
-              }}
-            >
-              🛠️ Prestataire
+            <button type="button" onClick={() => handleRoleChange("prestataire")} style={{
+              flex: 1, padding: "10px 0", borderRadius: 9, border: "none", cursor: "pointer",
+              fontWeight: 600, fontSize: 14, transition: "all 0.2s",
+              background: isPrestataire ? "#fff" : "transparent",
+              color: isPrestataire ? "#7c3aed" : "#64748b",
+              boxShadow: isPrestataire ? "0 1px 6px rgba(0,0,0,0.1)" : "none",
+            }}>
+              Prestataire
             </button>
           </div>
 
@@ -195,25 +191,77 @@ export default function Signup() {
               <input type="password" name="password" placeholder="••••••••" value={form.password} onChange={handleChange} required />
             </div>
 
-            {/* ── Patente — uniquement prestataire ── */}
+            {/* ── Champs spécifiques prestataire ── */}
             <AnimatePresence>
               {isPrestataire && (
                 <motion.div
-                  className="field-wrap span-2"
-                  initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                  animate={{ opacity: 1, height: "auto", marginBottom: 0 }}
-                  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                  className="span-2"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.25 }}
-                  style={{ overflow: "hidden" }}
+                  style={{ overflow: "hidden", display: "contents" }}
                 >
-                  <label>Numéro de patente</label>
-                  <input
-                    name="patente"
-                    placeholder="Ex: TU-123456"
-                    value={form.patente}
-                    onChange={handleChange}
-                    required
-                  />
+                  {/* Numéro de téléphone */}
+                  <div className="field-wrap span-2">
+                    <label>Numéro de téléphone</label>
+                    <input
+                      name="numTel"
+                      type="tel"
+                      placeholder="Ex: +216 12 345 678"
+                      value={form.numTel}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+
+                  {/* Numéro de patente */}
+                  <div className="field-wrap span-2">
+                    <label>Numéro de patente</label>
+                    <input
+                      name="numPatente"
+                      placeholder="Ex: TU-123456"
+                      value={form.numPatente}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+
+                  {/* PDF patente */}
+                  <div className="field-wrap span-2">
+                    <label>Document patente (PDF)</label>
+                    <label
+                      htmlFor="patenteInput"
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        border: "1.5px dashed #a78bfa", borderRadius: 10, padding: "14px 16px",
+                        background: "#faf5ff", cursor: "pointer"
+                      }}
+                    >
+                      <div>
+                        <strong style={{ fontSize: 13, color: "#5b21b6", display: "block" }}>
+                          {form.patenteFile ? form.patenteFile.name : "Ajouter le document patente"}
+                        </strong>
+                        <span style={{ fontSize: 11, color: "#94a3b8" }}>
+                          {form.patenteFile ? "✅ Fichier sélectionné" : "PDF uniquement — max 5 MB"}
+                        </span>
+                      </div>
+                      <div style={{
+                        background: "#7c3aed", color: "#fff", borderRadius: 8,
+                        padding: "6px 14px", fontSize: 12, fontWeight: 600, flexShrink: 0
+                      }}>
+                        Parcourir
+                      </div>
+                    </label>
+                    <input
+                      id="patenteInput"
+                      type="file"
+                      accept=".pdf"
+                      onChange={handlePatenteChange}
+                      style={{ display: "none" }}
+                      required
+                    />
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -232,7 +280,7 @@ export default function Signup() {
                     </div>
                     <div className="photo-placeholder-text">
                       <strong>Ajouter une photo de profil</strong>
-                      <span>Cliquez ou glissez une image ici · JPG, PNG ou WEBP — max 5 MB</span>
+                      <span>JPG, PNG ou WEBP — max 5 MB</span>
                     </div>
                     <div className="photo-upload-badge">Parcourir</div>
                   </div>
@@ -263,7 +311,6 @@ export default function Signup() {
             Déjà un compte ?{" "}
             <span onClick={() => navigate("/login")}>Se connecter</span>
           </p>
-
         </div>
       </div>
 
@@ -295,23 +342,18 @@ export default function Signup() {
             >
               <X size={20} />
             </button>
-
             <div style={{ padding: 32, textAlign: "center" }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
-              <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, color: "#0f172a" }}>
-                Demande envoyée !
-              </h3>
+              <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, color: "#0f172a" }}>Demande envoyée !</h3>
               <p style={{ color: "#64748b", marginBottom: 24, lineHeight: 1.6 }}>
                 Votre compte prestataire est en cours de validation par l'administrateur.
               </p>
-
               <div style={{ background: "#f8fafc", borderRadius: 12, padding: "12px 16px", marginBottom: 24 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#64748b" }}>Temps estimé</span>
                   <span style={{ fontWeight: 600, color: "#6366f1" }}>24-48 heures</span>
                 </div>
               </div>
-
               <button
                 onClick={() => { setShowPendingPopup(false); navigate("/login"); }}
                 style={{ width: "100%", background: "#4f46e5", color: "#fff", fontWeight: 600, padding: "14px 0", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 15 }}
