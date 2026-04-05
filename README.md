@@ -11,9 +11,6 @@ eventplanner315@gmail.com
 pass: event123456
 ok binome
 
-<===> cest bon sala7t ly galt alyh madame kol f use case mzelt faze heritege kamlha + les systeme adhukom ly fi les carreaux a adem w tbadel chy ken kif ntfhmou fyha saa chtodkhlch denya baadhha 
-remaarque :
-galt zidu des pâtisseries par exemple et des adresses de decorations et hajet akaak 
 
 des patisseries == traiteur bissifa 3ama non ? 
 la binome 
