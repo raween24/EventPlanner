@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -40,7 +39,6 @@ export default function CreatePassword() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Mettre à jour le user dans localStorage
       const user = JSON.parse(localStorage.getItem("user"));
       localStorage.setItem("user", JSON.stringify({ ...user, hasAppPassword: true }));
 
@@ -54,7 +52,6 @@ export default function CreatePassword() {
     }
   };
 
-  // Indicateur de force du mot de passe
   const getStrength = (pwd) => {
     if (!pwd) return { level: 0, label: "", color: "#e5e7eb" };
     if (pwd.length < 6) return { level: 1, label: "Trop court", color: "#ef4444" };
@@ -79,6 +76,7 @@ export default function CreatePassword() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         style={{
+          position: "relative", // ← important pour le bouton retour
           background: "white",
           borderRadius: 24,
           padding: "48px 40px",
@@ -87,6 +85,33 @@ export default function CreatePassword() {
           boxShadow: "0 25px 60px rgba(0,0,0,0.2)"
         }}
       >
+        {/* Bouton retour */}
+        <button
+           onClick={() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");}}
+          style={{
+            position: "absolute",
+            top: 24,
+            left: 24,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            color: "#64748b",
+            fontSize: 14,
+            fontWeight: 500,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 5l-7 7 7 7" />
+          </svg>
+          Retour
+        </button>
+
         {/* Icône */}
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{
@@ -223,7 +248,7 @@ export default function CreatePassword() {
             </motion.div>
           )}
 
-          {/* Bouton */}
+          {/* Bouton soumettre */}
           <button
             type="submit"
             disabled={loading || success}
