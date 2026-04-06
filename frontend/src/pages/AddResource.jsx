@@ -487,6 +487,7 @@ const AddResourceForm = () => {
           }))
         )
       );
+      console.log(availabilityEvents);
 
       // ✅ MEDIA
       mediaFiles.forEach(file => resourceData.append("media", file));
@@ -505,7 +506,7 @@ const AddResourceForm = () => {
       setShowSuccessAnimation(true);
       setTimeout(() => {
         setShowSuccessAnimation(false);
-        navigate("/mes-ressources");
+        
       }, 2000);
     } catch (err) {
       console.error(err);

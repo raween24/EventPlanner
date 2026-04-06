@@ -5,7 +5,10 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     if (file.fieldname === "patente") {
       cb(null, "uploads/patentes/");
-    } else {
+    } else if (file.fieldname === "termsFile") {
+      cb(null, "uploads/contracts/");
+    } 
+     else {
       cb(null, "uploads/");
     }
   },
@@ -23,6 +26,12 @@ const fileFilter = (req, file, cb) => {
     const allowed = /jpg|jpeg|png|webp|pdf/;
     return allowed.test(file.mimetype) ? cb(null, true) : cb("PDF ou image seulement !");
   }
+  if (file.fieldname === "termsFile") {
+  const allowed = /pdf/;
+  return allowed.test(file.mimetype)
+    ? cb(null, true)
+    : cb("Seulement PDF pour le contrat !");
+}
   cb(null, true);
 };
 

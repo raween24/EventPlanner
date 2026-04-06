@@ -20,9 +20,9 @@ const resourceSchema = new mongoose.Schema(
     },
 
     category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
-      required: true
+      type: String,
+      required: true,
+      enum: ["salle", "materiel", "decoration", "traiteur"]
     },
 
     // 🔹 Champs dynamiques
@@ -97,12 +97,14 @@ const resourceSchema = new mongoose.Schema(
 );
 
 // 🔐 validation
-resourceSchema.pre("validate", function () {
-  if (!this.terms?.text && !this.terms?.file) {
+resourceSchema.pre("save", async function () {
+  const hasText = this.terms?.text && this.terms.text.trim() !== "";
+  const hasFile = this.terms?.file && this.terms.file !== "";
+
+  if (!hasText && !hasFile) {
     throw new Error("Terms must have text or file");
   }
 });
-
 const Resource = mongoose.model("Resource", resourceSchema);
 
 export default Resource;

@@ -4,36 +4,75 @@ import Dispo from "../model/disponibilite.js";
 import { resourceFields } from "../config/resourceFields.js";
 
 // ================= AJOUTER RESSOURCE =================
+
 const addResource = async (req, res) => {
-  try {
-    console.log("FILES:", req.files);
+    try {
+        // 🔹 FILES
+        const termsFile = req.files?.termsFile?.[0];
+        const mediaFiles = req.files?.media || [];
 
-    const termsFile = req.files?.termsFile?.[0];
-    const mediaFiles = req.files?.media || [];
+        const pdfPath = termsFile ? termsFile.path : null;
+        const mediaPaths = mediaFiles.map(f => f.path);
 
-    const pdfPath = termsFile ? termsFile.path : null;
-    const mediaPaths = mediaFiles.map(f => f.path);
+        // 🔹 AVAILABILITY (parse + convert)
+        const availabilityData = JSON.parse(req.body.availability || "[]");
 
-    const newResource = new Resource({
-      name: req.body.name,
-      description: req.body.description,
-      type: req.body.type,
-      price: req.body.price,
-      location: req.body.location,
-      category: req.body.categoryName,
-      terms: req.body.terms || null,
-      termsFile: pdfPath,
-      media: mediaPaths
-    });
+        const dispoDocs = await Dispo.create(
+            availabilityData.map(({ start, end, type }) => ({
+                date_deb: new Date(start),
+                date_fin: new Date(end),
+                satut_disp: type === "available"
+            }))
+        );
 
-    await newResource.save();
+        // 🔹 MEDIA
+        const mediaDoc = await Media.create({
+            img_vd: mediaPaths
+        });
 
-    res.status(201).json(newResource);
+        // 🔹 CREATE RESOURCE
+        const newResource = new Resource({
+            name: req.body.name,
+            description: req.body.description,
+            type: req.body.type,
+            price: Number(req.body.price),
+            location: req.body.location,
 
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
-  }
+            // ✅ category simple (string)
+            category: req.body.categoryName,
+
+            // ✅ user connecté
+            prestataire: req.user.id,
+
+            // 🔹 JSON
+            attributes: JSON.parse(req.body.attributes || "{}"),
+            customAttributes: JSON.parse(req.body.customAttributes || "[]"),
+
+            // 🔹 relations
+            availability: dispoDocs.map(d => d._id),
+            media: [mediaDoc._id],
+
+            // 🔹 terms
+            terms: {
+                text: req.body.terms || null,
+                file: pdfPath || null
+            }
+        });
+
+        await newResource.save();
+
+        // 🔥 POPULATE FINAL
+        const populatedResource = await Resource.findById(newResource._id)
+            .populate("prestataire", "name email")
+            .populate("media")
+            .populate("availability");
+
+        res.status(201).json(populatedResource);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: err.message });
+    }
 };
 
 
@@ -82,7 +121,6 @@ const getResourcesByUser = async (req, res) => {
         })
             .populate("media")
             .populate("availability");
-
         res.status(200).json(resources);
 
     } catch (error) {

@@ -200,7 +200,7 @@ export default function ResourceCard({ resource = {} }) {
         </div>
 
         <p className="text-xs mt-3 text-gray-500">
-          Proposé par {resource.provider_name}
+          Proposé par {resource.prestataire?.lastname || "Inconnu"}
         </p>
       </div>
     </div>

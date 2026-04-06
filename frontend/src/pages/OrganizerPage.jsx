@@ -202,6 +202,7 @@ export default function OrganizerPage() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredResources.map((resource) => (
+              console.log(resource._id),
               <ResourceCard
                 key={resource._id}
                 eventId={eventId}
@@ -209,6 +210,7 @@ export default function OrganizerPage() {
                 onBook={handleBook}
                 isLiked={likedResources.includes(resource._id)} // 🔥 ici
               />
+              
             ))}
           </div>
         )}

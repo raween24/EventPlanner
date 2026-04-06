@@ -1,32 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import {
-  MapPin, Mail,
-  Users, Phone,
-  ArrowLeft,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  Maximize2,
-  X,
-  Calendar,
-  Clock,
-  CalendarRange,
-  Star,
-  MessageCircle,
-  ThumbsUp,
-  Send,
-  Map,
-  User,
-  Clock3,
-  CalendarClock,
-  Check,
-  AlertCircle,
-  Info,
-  Edit3,
-  Trash2,
-  Flag,
-} from "lucide-react";
+import { MapPin, Mail, Users, Phone, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Maximize2, X, Calendar, Clock, CalendarRange, Star, MessageCircle, ThumbsUp, Send, Map, User, Clock3, CalendarClock, Check, AlertCircle, Info, Edit3, Trash2, Flag, Zap, Ruler, Palette, Weight, Tag, Building } from "lucide-react";
+
 
 export default function ResourceDetailsPage() {
   const { id } = useParams();
@@ -625,37 +600,105 @@ export default function ResourceDetailsPage() {
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">Description</h2>
                 <p className="text-gray-600 leading-relaxed">{resource.description}</p>
               </div>
-              <div className="border-t border-gray-100 pt-4">
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">Caractéristiques</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-3 rounded-xl">
-                    <p className="text-sm text-gray-500">Capacité</p>
-                    <p className="font-semibold flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      {resource.capacity} personnes
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-xl">
-                    <p className="text-sm text-gray-500">Fournisseur</p>
-                    <p className="font-semibold">{resource.provider_name}</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-xl">
-                    <p className="text-sm text-gray-500">Email</p>
-                    <p className="font-semibold flex items-center gap-2">
-                      <Mail className="h-4 w-4 " />
-                      {resource?.prestataire?.email || resource?.provider_email || "Non disponible"}
-                    </p>
-                  </div>
 
-                  {/* Téléphone */}
-                  <div className="bg-gray-50 p-3 rounded-xl">
-                    <p className="text-sm text-gray-500">Téléphone</p>
-                    <p className="font-semibold flex items-center gap-2">
-                      <Phone className="h-4 w-4 " />
-                      {resource?.prestataire?.numTel || "Non disponible"}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Fournisseur */}
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-start justify-between">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Fournisseur
+                    </p>
+                    <Building className="h-4 w-4 text-indigo-400" />
+                  </div>
+                  <p className="mt-2 text-base font-semibold text-gray-800">
+                    {resource?.prestataire?.lastname || 'Non disponible'}
+                  </p>
+                </div>
+
+                {/* Email */}
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-start justify-between">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Email
+                    </p>
+                    <Mail className="h-4 w-4 text-sky-500" />
+                  </div>
+                  <p className="mt-2 text-base font-semibold text-gray-800 truncate">
+                    {resource?.prestataire?.email || 'Non disponible'}
+                  </p>
+                </div>
+
+                {/* Téléphone */}
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-start justify-between">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Téléphone
+                    </p>
+                    <Phone className="h-4 w-4 text-emerald-500" />
+                  </div>
+                  <p className="mt-2 text-base font-semibold text-gray-800">
+                    {resource?.prestataire?.numTel || 'Non disponible'}
+                  </p>
+                </div>
+                
+                {/* Attributs standards avec icônes */}
+                {resource.attributes &&
+                  Object.entries(resource.attributes).map(([key, value]) => {
+                    // Mapping d'icônes selon le nom de l'attribut
+                    const getIcon = (attrKey) => {
+                      switch (attrKey) {
+                        case 'capacity':
+                          return <Users className="h-4 w-4 text-indigo-500" />;
+                        case 'power':
+                          return <Zap className="h-4 w-4 text-amber-500" />;
+                        case 'size':
+                          return <Ruler className="h-4 w-4 text-emerald-500" />;
+                        case 'color':
+                          return <Palette className="h-4 w-4 text-rose-500" />;
+                        case 'weight':
+                          return <Weight className="h-4 w-4 text-blue-500" />;
+                        default:
+                          return <Info className="h-4 w-4 text-gray-400" />;
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={key}
+                        className="group bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200"
+                      >
+                        <div className="flex items-start justify-between">
+                          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            {key}
+                          </p>
+                          {getIcon(key)}
+                        </div>
+                        <p className="mt-2 text-base font-semibold text-gray-800">
+                          {typeof value === 'boolean' ? (value ? 'Oui' : 'Non') : value}
+                        </p>
+                      </div>
+                    );
+                  })}
+
+                {/* Attributs personnalisés avec icône générique */}
+                {resource.customAttributes?.map((attr, index) => (
+                  <div
+                    key={index}
+                    className="group bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200"
+                  >
+                    <div className="flex items-start justify-between">
+                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        {attr.name}
+                      </p>
+                      <Tag className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <p className="mt-2 text-base font-semibold text-gray-800">
+                      {typeof attr.value === 'boolean' ? (attr.value ? 'Oui' : 'Non') : attr.value}
                     </p>
                   </div>
-                </div>
+                ))}
+
+
               </div>
             </div>
 
