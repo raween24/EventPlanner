@@ -38,7 +38,7 @@ const faqData = [
   { question: "Y a-t-il des frais d'utilisation ?", answer: "L'inscription est gratuite ! Nous proposons différents forfaits selon vos besoins. Le forfait de base est gratuit avec des fonctionnalités essentielles, et nos forfaits premium offrent des options avancées." }
 ];
 
-// ─── UserAvatar — VERSION CORRIGÉE ───────────────────────────────────────────
+// ─── UserAvatar ───────────────────────────────────────────────────────────────
 const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
   const sizeClasses = { sm: "w-8 h-8 text-sm", md: "w-10 h-10 text-lg", lg: "w-12 h-12 text-xl" };
   const [imgError, setImgError] = useState(false);
@@ -87,7 +87,6 @@ const AdminAvatar = ({ size = "md", showOnlineStatus = true }) => {
 
 // ─── HomePage ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
-  console.log(localStorage);
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -102,8 +101,6 @@ export default function HomePage() {
   const role = user?.role;
   const isAdmin = role === "admin";
 
-  console.log('Rôle utilisateur:', role); // Ajoutez ceci
-  console.log('Chemin de navigation:', '/profileO'); // Ajoutez ceci
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -137,17 +134,13 @@ export default function HomePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormStatus("sending");
-
     try {
       await axios.post("http://localhost:5000/api/send-mail", formData);
-
       setFormStatus("success");
       setFormData({ name: '', email: '', subject: '', message: '' });
-
     } catch (error) {
       setFormStatus("error");
     }
-
     setTimeout(() => setFormStatus(''), 3000);
   };
 
@@ -211,8 +204,6 @@ export default function HomePage() {
                   <span className="ml-auto bg-purple-100 text-purple-600 text-xs font-semibold px-2 py-1 rounded-full">0</span>
                 </motion.button>
               )}
-
-
               {role === "prestataire" && (
                 <motion.button whileHover={{ x: 5 }} onClick={() => { navigate("/add-resource"); setIsProfileMenuOpen(false); setIsOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors">
                   <PlusCircle className="w-5 h-5 text-orange-600" /><span>Publier une ressource</span>
@@ -239,6 +230,7 @@ export default function HomePage() {
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">EventPlanner</span>
           </motion.div>
 
+          {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-8">
             {getNavLinks().map((item, index) => (
               <motion.button key={item.name} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}
@@ -248,8 +240,27 @@ export default function HomePage() {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 group-hover:w-full transition-all duration-300" />
               </motion.button>
             ))}
+
+            {/* ← MODIFIÉ : Se connecter + S'inscrire */}
             {!user ? (
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/login")} className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all">Connexion</motion.button>
+              <div className="flex items-center gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate("/login")}
+                  className="px-6 py-2.5 border-2 border-blue-600 text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition-all"
+                >
+                  Se connecter
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate("/signup")}
+                  className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all"
+                >
+                  S'inscrire
+                </motion.button>
+              </div>
             ) : <ProfileMenu />}
           </div>
 
@@ -298,7 +309,6 @@ export default function HomePage() {
                         <User className="w-5 h-5 text-blue-600" /><span>Mon Profil</span>
                       </motion.button>
                     )}
-
                     {role === "organisateur" && (
                       <motion.button whileHover={{ x: 10 }} onClick={() => { navigate("/panier"); setIsOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg">
                         <ShoppingCart className="w-5 h-5 text-purple-600" /><span>Mon Panier</span>
@@ -315,8 +325,24 @@ export default function HomePage() {
                   </>
                 )}
 
+                {/* ← MODIFIÉ : Se connecter + S'inscrire mobile */}
                 {!user && (
-                  <motion.button whileHover={{ scale: 1.02 }} onClick={() => { navigate("/login"); setIsOpen(false); }} className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold">Connexion</motion.button>
+                  <div className="flex flex-col gap-3 pt-2">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      onClick={() => { navigate("/login"); setIsOpen(false); }}
+                      className="w-full px-4 py-3 border-2 border-blue-600 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-all"
+                    >
+                      Se connecter
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      onClick={() => { navigate("/signup"); setIsOpen(false); }}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold"
+                    >
+                      S'inscrire
+                    </motion.button>
+                  </div>
                 )}
               </div>
             </motion.div>
@@ -370,7 +396,6 @@ export default function HomePage() {
                 </>)}
                 {role === "organisateur" && (<>
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/les_ressources")} className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-semibold text-lg hover:bg-gray-100 transition-all"> Explorer</motion.button>
-
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate("/CreerEvenement")} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-lg">Créer votre événement</motion.button>
                 </>)}
                 {role === "prestataire" && (<>
@@ -541,130 +566,39 @@ export default function HomePage() {
       {/* ── Contact ────────────────────────────────────────────────────────── */}
       <section id="contact" className="py-24 bg-gradient-to-br from-slate-50 to-white">
         <div className="max-w-5xl mx-auto px-6">
-
-          {/* Title */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Contactez-
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                Nous
-              </span>
-            </h2>
-            <p className="text-xl text-gray-600">
-              Une question ? Notre équipe est là pour vous répondre
-            </p>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Contactez-<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Nous</span></h2>
+            <p className="text-xl text-gray-600">Une question ? Notre équipe est là pour vous répondre</p>
           </motion.div>
-
-          {/* Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="bg-white rounded-3xl shadow-xl p-10 border border-gray-200"
-          >
-
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-white rounded-3xl shadow-xl p-10 border border-gray-200">
             <form onSubmit={handleSubmit} className="space-y-6">
-
-              {/* Inputs */}
               <div className="grid md:grid-cols-2 gap-6">
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Nom complet"
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="Email"
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                />
+                <input type="text" name="name" value={formData.name} onChange={handleInputChange} placeholder="Nom complet" required className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
+                <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="Email" required className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
-
-              <input
-                type="text"
-                name="subject"
-                value={formData.subject}
-                onChange={handleInputChange}
-                placeholder="Sujet"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-
-              <textarea
-                name="message"
-                value={formData.message}
-                onChange={handleInputChange}
-                rows="5"
-                placeholder="Votre message..."
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-              />
-
-              {/* Button */}
-              <motion.button
-                type="submit"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                disabled={formStatus === "sending"}
-                className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition"
-              >
-                {formStatus === "sending"
-                  ? "Envoi en cours..."
-                  : formStatus === "success"
-                    ? "Message envoyé !"
-                    : "Envoyer le message"}
+              <input type="text" name="subject" value={formData.subject} onChange={handleInputChange} placeholder="Sujet" required className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
+              <textarea name="message" value={formData.message} onChange={handleInputChange} rows="5" placeholder="Votre message..." required className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none" />
+              <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={formStatus === "sending"} className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition">
+                {formStatus === "sending" ? "Envoi en cours..." : formStatus === "success" ? "Message envoyé !" : "Envoyer le message"}
               </motion.button>
-
-              {/* ── Coordonnées (MAINTENANT EN DESSOUS) ── */}
               <div className="pt-6 border-t border-gray-100">
-
-
                 <div className="flex flex-col md:flex-row justify-center items-center gap-6">
-
-                  {/* Email */}
                   <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl hover:shadow-md transition">
                     <Mail className="w-5 h-5 text-blue-600" />
-                    <a href="mailto:contact@smarteventplanner.com" className="text-gray-700 font-medium hover:text-blue-600">
-                      contact@smarteventplanner.com
-                    </a>
+                    <a href="mailto:contact@smarteventplanner.com" className="text-gray-700 font-medium hover:text-blue-600">contact@smarteventplanner.com</a>
                   </div>
-
-                  {/* Phone */}
                   <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl hover:shadow-md transition">
                     <Phone className="w-5 h-5 text-purple-600" />
-                    <a href="tel:+21654809630" className="text-gray-700 font-medium hover:text-purple-600">
-                      +216 54 809 630
-                    </a>
+                    <a href="tel:+21654809630" className="text-gray-700 font-medium hover:text-purple-600">+216 54 809 630</a>
                   </div>
-
-                  {/* Address */}
                   <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl hover:shadow-md transition">
                     <MapPinned className="w-5 h-5 text-green-600" />
-                    <span className="text-gray-700 font-medium">
-                      Sousse, Tunisie
-                    </span>
+                    <span className="text-gray-700 font-medium">Sousse, Tunisie</span>
                   </div>
-
                 </div>
               </div>
-
             </form>
-
           </motion.div>
-
         </div>
       </section>
 

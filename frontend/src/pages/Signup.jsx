@@ -59,7 +59,9 @@ export default function Signup() {
   const [role, setRole] = useState("organisateur");
   const [showPendingPopup, setShowPendingPopup] = useState(false);
   const [form, setForm] = useState({
-    firstname: "", lastname: "", email: "", password: "",
+    firstname: "", lastname: "",
+    nomSociete: "",           // ← NOUVEAU
+    email: "", password: "",
     numPatente: "", numTel: "",
     patenteFile: null, image: "",
   });
@@ -82,17 +84,27 @@ export default function Signup() {
 
   const handleRoleChange = (newRole) => {
     setRole(newRole);
-    setForm(f => ({ ...f, numPatente: "", numTel: "", patenteFile: null }));
+    setForm(f => ({ ...f, numPatente: "", numTel: "", patenteFile: null, nomSociete: "" }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
-    formData.append("firstname", form.firstname);
-    formData.append("lastname", form.lastname);
+
+    if (role === "prestataire") {
+      // Pour prestataire : nom de société → stocké dans firstname
+      formData.append("firstname", form.nomSociete);
+      formData.append("lastname", "");
+      formData.append("nomSociete", form.nomSociete);
+    } else {
+      formData.append("firstname", form.firstname);
+      formData.append("lastname", form.lastname);
+    }
+
     formData.append("email", form.email);
     formData.append("password", form.password);
     formData.append("role", role);
+
     if (role === "prestataire") {
       formData.append("numPatente", form.numPatente);
       formData.append("numTel", form.numTel);
@@ -171,15 +183,31 @@ export default function Signup() {
 
           <form className="signup-form" onSubmit={handleSubmit}>
 
-            <div className="field-wrap">
-              <label>Prénom</label>
-              <input name="firstname" placeholder="Votre prénom" value={form.firstname} onChange={handleChange} required />
-            </div>
-
-            <div className="field-wrap">
-              <label>Nom</label>
-              <input name="lastname" placeholder="Votre nom" value={form.lastname} onChange={handleChange} required />
-            </div>
+            {/* ── Champs selon le rôle ── */}
+            {!isPrestataire ? (
+              <>
+                <div className="field-wrap">
+                  <label>Prénom</label>
+                  <input name="firstname" placeholder="Votre prénom" value={form.firstname} onChange={handleChange} required />
+                </div>
+                <div className="field-wrap">
+                  <label>Nom</label>
+                  <input name="lastname" placeholder="Votre nom" value={form.lastname} onChange={handleChange} required />
+                </div>
+              </>
+            ) : (
+              // ← NOUVEAU : Nom de société pour prestataire
+              <div className="field-wrap span-2">
+                <label>Nom de société</label>
+                <input
+                  name="nomSociete"
+                  placeholder="Ex: Traiteur El Amal, Studio Photo Lumière..."
+                  value={form.nomSociete}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            )}
 
             <div className="field-wrap span-2">
               <label>Email</label>
@@ -202,42 +230,23 @@ export default function Signup() {
                   transition={{ duration: 0.25 }}
                   style={{ overflow: "hidden", display: "contents" }}
                 >
-                  {/* Numéro de téléphone */}
                   <div className="field-wrap span-2">
                     <label>Numéro de téléphone</label>
-                    <input
-                      name="numTel"
-                      type="tel"
-                      placeholder="Ex: +216 12 345 678"
-                      value={form.numTel}
-                      onChange={handleChange}
-                      required
-                    />
+                    <input name="numTel" type="tel" placeholder="Ex: +216 12 345 678" value={form.numTel} onChange={handleChange} required />
                   </div>
 
-                  {/* Numéro de patente */}
                   <div className="field-wrap span-2">
                     <label>Numéro de patente</label>
-                    <input
-                      name="numPatente"
-                      placeholder="Ex: TU-123456"
-                      value={form.numPatente}
-                      onChange={handleChange}
-                      required
-                    />
+                    <input name="numPatente" placeholder="Ex: TU-123456" value={form.numPatente} onChange={handleChange} required />
                   </div>
 
-                  {/* PDF patente */}
                   <div className="field-wrap span-2">
                     <label>Document patente (PDF)</label>
-                    <label
-                      htmlFor="patenteInput"
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                        border: "1.5px dashed #a78bfa", borderRadius: 10, padding: "14px 16px",
-                        background: "#faf5ff", cursor: "pointer"
-                      }}
-                    >
+                    <label htmlFor="patenteInput" style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      border: "1.5px dashed #a78bfa", borderRadius: 10, padding: "14px 16px",
+                      background: "#faf5ff", cursor: "pointer"
+                    }}>
                       <div>
                         <strong style={{ fontSize: 13, color: "#5b21b6", display: "block" }}>
                           {form.patenteFile ? form.patenteFile.name : "Ajouter le document patente"}
@@ -246,21 +255,11 @@ export default function Signup() {
                           {form.patenteFile ? "✅ Fichier sélectionné" : "PDF uniquement — max 5 MB"}
                         </span>
                       </div>
-                      <div style={{
-                        background: "#7c3aed", color: "#fff", borderRadius: 8,
-                        padding: "6px 14px", fontSize: 12, fontWeight: 600, flexShrink: 0
-                      }}>
+                      <div style={{ background: "#7c3aed", color: "#fff", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
                         Parcourir
                       </div>
                     </label>
-                    <input
-                      id="patenteInput"
-                      type="file"
-                      accept=".pdf"
-                      onChange={handlePatenteChange}
-                      style={{ display: "none" }}
-                      required
-                    />
+                    <input id="patenteInput" type="file" accept=".pdf" onChange={handlePatenteChange} style={{ display: "none" }} required />
                   </div>
                 </motion.div>
               )}
@@ -268,7 +267,9 @@ export default function Signup() {
 
             {/* ── Photo de profil ── */}
             <div className="photo-upload-wrap">
-              <label className="field-label">Photo de profil</label>
+              <label className="field-label">
+                {isPrestataire ? "Logo de la société" : "Photo de profil"}
+              </label>
               <label className={`photo-upload-area ${preview ? "has-photo" : ""}`} htmlFor="imageInput">
                 {!preview ? (
                   <div className="photo-placeholder">
@@ -279,20 +280,20 @@ export default function Signup() {
                       </svg>
                     </div>
                     <div className="photo-placeholder-text">
-                      <strong>Ajouter une photo de profil</strong>
+                      <strong>{isPrestataire ? "Ajouter un logo" : "Ajouter une photo de profil"}</strong>
                       <span>JPG, PNG ou WEBP — max 5 MB</span>
                     </div>
                     <div className="photo-upload-badge">Parcourir</div>
                   </div>
                 ) : (
                   <div className="photo-preview-wrap">
-                    <img src={preview} alt="Photo de profil" />
+                    <img src={preview} alt="Aperçu" />
                     <div className="photo-preview-overlay">
                       <div className="photo-change-btn">
                         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Z" />
                         </svg>
-                        Changer la photo
+                        Changer
                       </div>
                     </div>
                   </div>
