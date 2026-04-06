@@ -1,10 +1,11 @@
 import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema({
-  lastname:   { type: String, required: true },
+lastname: { type: String, default: "" },
   firstname:  { type: String, required: true },
   email:      { type: String, required: true, unique: true },
   password:   { type: String, default: "" },
+  hasAppPassword: { type: Boolean, default: false }, // ← AJOUTER CETTE LIGNE
   image:      { type: String },
   role: {
     type: String,
