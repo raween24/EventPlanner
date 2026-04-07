@@ -217,13 +217,7 @@ export default function MesDemandes() {
                             <Filter size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                             <ChevronDown size={14} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         </div>
-                        <button
-                            onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                            className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"
-                        >
-                            <ArrowUpDown size={14} className="text-gray-500" />
-                            <span>Date {sortOrder === 'desc' ? '(récent → ancien)' : '(ancien → récent)'}</span>
-                        </button>
+                    
                         <button
                             onClick={fetchRequests}
                             className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"

@@ -1,14 +1,13 @@
 import {
   Shield, Menu, X, ChevronDown, LogOut, User,
-  ShoppingCart, LayoutDashboard, PlusCircle, Bell
+  ShoppingCart, LayoutDashboard, PlusCircle
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
 
 // ─── UserAvatar ───────────────────────────────────────────────────────────────
-export const UserAvatar = ({ user, size = "md", showOnlineStatus = true, hasPendingRequests = false }) => {
+export const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
   const sizeClasses = { sm: "w-8 h-8 text-sm", md: "w-10 h-10 text-lg", lg: "w-12 h-12 text-xl" };
   const [imgError, setImgError] = useState(false);
 
@@ -39,10 +38,6 @@ export const UserAvatar = ({ user, size = "md", showOnlineStatus = true, hasPend
       {showOnlineStatus && (
         <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
       )}
-      {/* Point orange pour demandes en attente */}
-      {hasPendingRequests && (
-        <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-orange-500 border-2 border-white rounded-full animate-pulse" />
-      )}
     </div>
   );
 };
@@ -70,39 +65,10 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
-  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
   const user = JSON.parse(localStorage.getItem("user"));
   const role = user?.role;
   const isAdmin = role === "admin";
-  const isPrestataire = role === "prestataire";
-
-  const token = localStorage.getItem("token");
-  const api = axios.create({
-    baseURL: "http://localhost:5000/api",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  // Récupération du nombre de demandes en attente (uniquement pour prestataire)
-  const fetchPendingRequests = async () => {
-    if (!isPrestataire || !token) return;
-    try {
-      const response = await api.get("/location/get_pres");
-      const locations = response.data;
-      const pending = locations.filter((loc) => loc.status === "en_attente").length;
-      setPendingRequestsCount(pending);
-    } catch (err) {
-      console.error("Erreur lors de la récupération des demandes:", err);
-    }
-  };
-
-  useEffect(() => {
-    if (isPrestataire && token) {
-      fetchPendingRequests();
-      const interval = setInterval(fetchPendingRequests, 30000); // rafraîchissement toutes les 30s
-      return () => clearInterval(interval);
-    }
-  }, [isPrestataire, token]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -119,6 +85,7 @@ export default function Navbar() {
     setIsOpen(false);
     setIsProfileMenuOpen(false);
     if (path.startsWith("#")) {
+      // Si on n'est pas sur la home, naviguer d'abord
       if (location.pathname !== "/") {
         navigate("/");
         setTimeout(() => {
@@ -149,6 +116,7 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Fermer le menu mobile au changement de route
   useEffect(() => {
     setIsOpen(false);
     setIsProfileMenuOpen(false);
@@ -173,16 +141,10 @@ export default function Navbar() {
         onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
         className="flex items-center gap-2 focus:outline-none"
       >
-        {isAdmin ? (
-          <AdminAvatar size="md" showOnlineStatus={true} />
-        ) : (
-          <UserAvatar
-            user={user}
-            size="md"
-            showOnlineStatus={true}
-            hasPendingRequests={isPrestataire && pendingRequestsCount > 0}
-          />
-        )}
+        {isAdmin
+          ? <AdminAvatar size="md" showOnlineStatus={true} />
+          : <UserAvatar user={user} size="md" showOnlineStatus={true} />
+        }
         <span className="text-gray-700 font-medium hidden lg:block">
           {isAdmin ? "Admin" : user?.firstname}
         </span>
@@ -201,11 +163,10 @@ export default function Navbar() {
             {/* Header du menu */}
             <div className={`px-4 py-3 border-b border-gray-100 ${isAdmin ? "bg-gradient-to-r from-red-50 to-orange-50" : "bg-gradient-to-r from-blue-50 to-purple-50"}`}>
               <div className="flex items-center gap-3">
-                {isAdmin ? (
-                  <AdminAvatar size="sm" showOnlineStatus={false} />
-                ) : (
-                  <UserAvatar user={user} size="sm" showOnlineStatus={false} />
-                )}
+                {isAdmin
+                  ? <AdminAvatar size="sm" showOnlineStatus={false} />
+                  : <UserAvatar user={user} size="sm" showOnlineStatus={false} />
+                }
                 <div className="flex-1">
                   <p className="text-sm text-gray-500">Connecté en tant que</p>
                   <p className="font-semibold text-gray-900">
@@ -232,27 +193,13 @@ export default function Navbar() {
                 </motion.button>
               )}
 
-              {isPrestataire && (
+              {role === "prestataire" && (
                 <motion.button whileHover={{ x: 5 }}
                   onClick={() => { navigate("/profileP"); setIsProfileMenuOpen(false); }}
                   className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors"
                 >
                   <User className="w-5 h-5 text-blue-600" />
                   <span>Mon Profil</span>
-                </motion.button>
-              )}
-              {isPrestataire && (
-                <motion.button whileHover={{ x: 5 }}
-                  onClick={() => { navigate("/mes-demandes"); setIsProfileMenuOpen(false); }}
-                  className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors"
-                >
-                  <Bell className="w-5 h-5 text-orange-500" />
-                  <span>Mes demandes</span>
-                  {pendingRequestsCount > 0 && (
-                    <span className="ml-auto bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                      {pendingRequestsCount}
-                    </span>
-                  )}
                 </motion.button>
               )}
 
@@ -277,7 +224,7 @@ export default function Navbar() {
                 </motion.button>
               )}
 
-              {isPrestataire && (
+              {role === "prestataire" && (
                 <motion.button whileHover={{ x: 5 }}
                   onClick={() => { navigate("/add-resource"); setIsProfileMenuOpen(false); }}
                   className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors"
@@ -333,8 +280,8 @@ export default function Navbar() {
               transition={{ delay: index * 0.1 }}
               onClick={() => handleNavClick(item.path)}
               className={`relative font-medium group transition-colors ${isActive(item.path) && !item.path.startsWith("#")
-                ? "text-blue-600"
-                : "text-gray-700 hover:text-blue-600"
+                  ? "text-blue-600"
+                  : "text-gray-700 hover:text-blue-600"
                 }`}
             >
               {item.name}
@@ -391,16 +338,10 @@ export default function Navbar() {
               {user && (
                 <div className={`mb-4 p-4 rounded-xl ${isAdmin ? "bg-gradient-to-r from-red-50 to-orange-50" : "bg-gradient-to-r from-blue-50 to-purple-50"}`}>
                   <div className="flex items-center gap-3">
-                    {isAdmin ? (
-                      <AdminAvatar size="lg" showOnlineStatus={true} />
-                    ) : (
-                      <UserAvatar
-                        user={user}
-                        size="lg"
-                        showOnlineStatus={true}
-                        hasPendingRequests={isPrestataire && pendingRequestsCount > 0}
-                      />
-                    )}
+                    {isAdmin
+                      ? <AdminAvatar size="lg" showOnlineStatus={true} />
+                      : <UserAvatar user={user} size="lg" showOnlineStatus={true} />
+                    }
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900">
                         {isAdmin ? "Administrateur" : `${user?.firstname} ${user?.lastname}`}
@@ -421,8 +362,8 @@ export default function Navbar() {
                   whileHover={{ x: 10 }}
                   onClick={() => handleNavClick(item.path)}
                   className={`block w-full text-left py-2 px-4 rounded-lg transition ${isActive(item.path) && !item.path.startsWith("#")
-                    ? "bg-blue-50 text-blue-600 font-semibold"
-                    : "text-gray-700 hover:bg-blue-50"
+                      ? "bg-blue-50 text-blue-600 font-semibold"
+                      : "text-gray-700 hover:bg-blue-50"
                     }`}
                 >
                   {item.name}
@@ -445,27 +386,13 @@ export default function Navbar() {
                     </motion.button>
                   )}
 
-                  {isPrestataire && (
+                  {role === "prestataire" && (
                     <motion.button whileHover={{ x: 10 }}
                       onClick={() => { navigate("/profileP"); setIsOpen(false); }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg"
                     >
                       <User className="w-5 h-5 text-blue-600" />
                       <span>Mon Profil</span>
-                    </motion.button>
-                  )}
-                  {isPrestataire && (
-                    <motion.button whileHover={{ x: 10 }}
-                      onClick={() => { navigate("/mes-demandes"); setIsOpen(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg"
-                    >
-                      <Bell className="w-5 h-5 text-orange-500" />
-                      <span>Mes demandes</span>
-                      {pendingRequestsCount > 0 && (
-                        <span className="ml-auto bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                          {pendingRequestsCount}
-                        </span>
-                      )}
                     </motion.button>
                   )}
 
@@ -489,7 +416,7 @@ export default function Navbar() {
                     </motion.button>
                   )}
 
-                  {isPrestataire && (
+                  {role === "prestataire" && (
                     <motion.button whileHover={{ x: 10 }}
                       onClick={() => { navigate("/add-resource"); setIsOpen(false); }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg"
