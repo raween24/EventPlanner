@@ -113,6 +113,7 @@ export default function OrganizerDashboard() {
 
     // Token et userId
     const token = localStorage.getItem('token');
+    console.log(token);
     const userStr = localStorage.getItem('user');
     const user = userStr ? JSON.parse(userStr) : null;
     const userId = user?._id || user?.id;
