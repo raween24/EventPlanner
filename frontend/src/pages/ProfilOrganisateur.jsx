@@ -24,6 +24,7 @@ import { useNavigate } from 'react-router-dom';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, getDay, addMonths, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
+import { addYears, subYears } from 'date-fns';
 
 export default function OrganizerDashboard() {
     const navigate = useNavigate();
@@ -849,7 +850,7 @@ export default function OrganizerDashboard() {
                                 <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
                                     {resources.filter((resource) => likedResources.includes(resource._id)).filter((resource) => resource.name.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 ? (
                                         resources.filter((resource) => likedResources.includes(resource._id)).filter((resource) => resource.name.toLowerCase().includes(searchTerm.toLowerCase())).map((resource, index) => (
-                                            <motion.div key={resource._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} whileHover={{ y: -5 }} className="relative bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-200 hover:shadow-xl transition-all group">
+                                            <motion.div key={resource._id} initial={{ opacity: 0, y: 20 }} onClick={() => navigate(`/RessourceDetail/${resource._id}`)} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} whileHover={{ y: -5 }} className="relative bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-200 hover:shadow-xl transition-all group cursor-pointer">
                                                 <div onClick={(e) => { e.stopPropagation(); toggleLike(e, resource._id); }} className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow cursor-pointer hover:scale-110 transition">
                                                     <Heart size={16} className={`transition-all duration-200 ${likedResources.includes(resource._id) ? "text-red-500 fill-red-500 scale-110" : "text-gray-400"}`} />
                                                 </div>
@@ -865,11 +866,12 @@ export default function OrganizerDashboard() {
                                                         <h3 className="font-semibold text-gray-900 text-xs sm:text-sm truncate group-hover:text-blue-600 transition-colors">{resource.name}</h3>
                                                         <p className="text-[10px] sm:text-xs text-gray-500 mt-1 line-clamp-2">{resource.description?.substring(0, 60)}...</p>
                                                         <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-2">
-                                                            <span className="px-1.5 sm:px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[8px] sm:text-xs">{resource.type}</span>
+                                                            <span className="px-1.5 sm:px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[8px] sm:text-xs">{resource.category}</span>
                                                             <span className="text-xs sm:text-sm font-bold text-green-600">{formatPrice(resource.price)}</span>
                                                         </div>
                                                     </div>
                                                 </div>
+
                                             </motion.div>
                                         ))
                                     ) : (
