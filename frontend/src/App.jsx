@@ -36,8 +36,8 @@ export default function App() {
         <Route path="/add-resource"    element={<RoleGuard roles={["prestataire"]}><AddResource /></RoleGuard>} />
 
         {/* Organisateur + Prestataire */}
-        <Route path="/les_ressources"       element={<RoleGuard roles={["organisateur", "prestataire"]}><OrganizerPage /></RoleGuard>} />
-        <Route path="/RessourceDetail/:id"  element={<RoleGuard roles={["organisateur", "prestataire"]}><RessourceDetail /></RoleGuard>} />
+      <Route path="/les_ressources" element={<OrganizerPage />} />
+      <Route path="/RessourceDetail/:id" element={<RessourceDetail />} />
         <Route path="/create-password" element={<CreatePassword />} />
       </Routes>
     </BrowserRouter>

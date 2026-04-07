@@ -150,7 +150,7 @@ export default function Signup() {
         <div className="form-wrapper">
 
           <div className="auth-card-header">
-            <span className="auth-badge">✦ Event Planner</span>
+            <span className="auth-badge">✦ YallaEvents</span>
             <h2>Créer un compte</h2>
             <p className="auth-subtitle">
               {isPrestataire
