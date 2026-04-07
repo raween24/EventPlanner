@@ -566,7 +566,7 @@ export default function ResourceDetailsPage() {
               )}
             </div>
 
-            {/* Informations */}
+            {/* Informations principales */}
             <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
@@ -592,115 +592,99 @@ export default function ResourceDetailsPage() {
                   {resource.type}
                 </span>
               </div>
+
               <div className="flex items-center gap-2 text-gray-500">
                 <MapPin className="h-4 w-4" />
                 <span>{resource.location}</span>
               </div>
+
               <div className="border-t border-gray-100 pt-4">
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">Description</h2>
                 <p className="text-gray-600 leading-relaxed">{resource.description}</p>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                {/* Fournisseur */}
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
-                  <div className="flex items-start justify-between">
-                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Fournisseur
-                    </p>
-                    <Building className="h-4 w-4 text-indigo-400" />
+            </div>
+            {/* Carte Informations prestataire */}
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                <Building className="h-5 w-5 text-indigo-500" />
+                Informations du prestataire
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <Building className="h-4 w-4 text-indigo-500" />
+                  <div>
+                    <p className="text-xs text-gray-500">Fournisseur</p>
+                    <p className="font-semibold text-gray-800">{resource?.prestataire?.lastname || 'Non disponible'}</p>
                   </div>
-                  <p className="mt-2 text-base font-semibold text-gray-800">
-                    {resource?.prestataire?.lastname || 'Non disponible'}
-                  </p>
                 </div>
-
-                {/* Email */}
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
-                  <div className="flex items-start justify-between">
-                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Email
-                    </p>
-                    <Mail className="h-4 w-4 text-sky-500" />
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <Mail className="h-4 w-4 text-sky-500" />
+                  <div>
+                    <p className="text-xs text-gray-500">Email</p>
+                    <p className="font-semibold text-gray-800 truncate">{resource?.prestataire?.email || 'Non disponible'}</p>
                   </div>
-                  <p className="mt-2 text-base font-semibold text-gray-800 truncate">
-                    {resource?.prestataire?.email || 'Non disponible'}
-                  </p>
                 </div>
-
-                {/* Téléphone */}
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
-                  <div className="flex items-start justify-between">
-                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Téléphone
-                    </p>
-                    <Phone className="h-4 w-4 text-emerald-500" />
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <Phone className="h-4 w-4 text-emerald-500" />
+                  <div>
+                    <p className="text-xs text-gray-500">Téléphone</p>
+                    <p className="font-semibold text-gray-800">{resource?.prestataire?.numTel || 'Non disponible'}</p>
                   </div>
-                  <p className="mt-2 text-base font-semibold text-gray-800">
-                    {resource?.prestataire?.numTel || 'Non disponible'}
-                  </p>
                 </div>
-                
-                {/* Attributs standards avec icônes */}
+              </div>
+            </div>
+
+
+
+            {/* Section Caractéristiques - style badges */}
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Zap className="h-5 w-5 text-amber-500" />
+                Caractéristiques
+              </h2>
+              <div className="flex flex-wrap gap-3">
+                {/* Attributs standards */}
                 {resource.attributes &&
                   Object.entries(resource.attributes).map(([key, value]) => {
-                    // Mapping d'icônes selon le nom de l'attribut
-                    const getIcon = (attrKey) => {
-                      switch (attrKey) {
-                        case 'capacity':
-                          return <Users className="h-4 w-4 text-indigo-500" />;
-                        case 'power':
-                          return <Zap className="h-4 w-4 text-amber-500" />;
-                        case 'size':
-                          return <Ruler className="h-4 w-4 text-emerald-500" />;
-                        case 'color':
-                          return <Palette className="h-4 w-4 text-rose-500" />;
-                        case 'weight':
-                          return <Weight className="h-4 w-4 text-blue-500" />;
-                        default:
-                          return <Info className="h-4 w-4 text-gray-400" />;
-                      }
-                    };
-
+                    let icon = <Zap className="h-4 w-4" />;
+                    switch (key) {
+                      case 'capacity': icon = <Users className="h-4 w-4" />; break;
+                      case 'power': icon = <Zap className="h-4 w-4" />; break;
+                      case 'size': icon = <Ruler className="h-4 w-4" />; break;
+                      case 'color': icon = <Palette className="h-4 w-4" />; break;
+                      case 'weight': icon = <Weight className="h-4 w-4" />; break;
+                      default: icon = <Tag className="h-4 w-4" />;
+                    }
+                    const displayValue = typeof value === 'boolean' ? (value ? 'Oui' : 'Non') : value;
                     return (
                       <div
                         key={key}
-                        className="group bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200"
+                        className="flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2 rounded-full text-sm font-medium"
                       >
-                        <div className="flex items-start justify-between">
-                          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            {key}
-                          </p>
-                          {getIcon(key)}
-                        </div>
-                        <p className="mt-2 text-base font-semibold text-gray-800">
-                          {typeof value === 'boolean' ? (value ? 'Oui' : 'Non') : value}
-                        </p>
+                        <span className="text-amber-500">{icon}</span>
+                        <span className="capitalize">{key}</span>
+                        <span className="text-amber-400">·</span>
+                        <span>{displayValue}</span>
                       </div>
                     );
                   })}
 
-                {/* Attributs personnalisés avec icône générique */}
+                {/* Attributs personnalisés */}
                 {resource.customAttributes?.map((attr, index) => (
                   <div
                     key={index}
-                    className="group bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200"
+                    className="flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2 rounded-full text-sm font-medium"
                   >
-                    <div className="flex items-start justify-between">
-                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                        {attr.name}
-                      </p>
-                      <Tag className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <p className="mt-2 text-base font-semibold text-gray-800">
-                      {typeof attr.value === 'boolean' ? (attr.value ? 'Oui' : 'Non') : attr.value}
-                    </p>
+                    <span className="text-amber-500"><Tag className="h-4 w-4" /></span>
+                    <span className="capitalize">{attr.name}</span>
+                    <span className="text-amber-400">·</span>
+                    <span>{typeof attr.value === 'boolean' ? (attr.value ? 'Oui' : 'Non') : attr.value}</span>
                   </div>
                 ))}
-
-
               </div>
             </div>
+
+
 
             {/* Section commentaires */}
             <div className="bg-white rounded-2xl shadow-sm p-6">

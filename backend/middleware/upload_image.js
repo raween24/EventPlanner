@@ -7,8 +7,10 @@ const storage = multer.diskStorage({
       cb(null, "uploads/patentes/");
     } else if (file.fieldname === "termsFile") {
       cb(null, "uploads/contracts/");
-    } 
-     else {
+    }
+
+
+    else {
       cb(null, "uploads/");
     }
   },
@@ -22,16 +24,18 @@ const fileFilter = (req, file, cb) => {
     const allowed = /jpg|jpeg|png|webp/;
     return allowed.test(file.mimetype) ? cb(null, true) : cb("Images seulement !");
   }
+
+
   if (file.fieldname === "patente") {
     const allowed = /jpg|jpeg|png|webp|pdf/;
     return allowed.test(file.mimetype) ? cb(null, true) : cb("PDF ou image seulement !");
   }
   if (file.fieldname === "termsFile") {
-  const allowed = /pdf/;
-  return allowed.test(file.mimetype)
-    ? cb(null, true)
-    : cb("Seulement PDF pour le contrat !");
-}
+    const allowed = /pdf/;
+    return allowed.test(file.mimetype)
+      ? cb(null, true)
+      : cb("Seulement PDF pour le contrat !");
+  }
   cb(null, true);
 };
 

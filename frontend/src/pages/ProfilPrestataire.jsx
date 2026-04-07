@@ -16,14 +16,43 @@ import {
     FileText, Upload, Download, CheckSquare,
     Clock as ClockIcon, CheckCircle as CheckCircleIcon,
     XCircle, AlertTriangle, File, Image as ImageIcon,
-    Layers, Save, Lock
+    Layers, Save, Lock, Zap, Ruler, Palette, Weight, Info, Tag, Plus, Minus
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, getDay, addMonths, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
-
+// Configuration des caractéristiques par catégorie
+const resourceFields = {
+    salle: [
+        { name: "capacity", label: "Capacité (personnes)", type: "number", required: true },
+        { name: "surface", label: "Surface (m²)", type: "number" },
+        { name: "parking", label: "Parking", type: "boolean" },
+        { name: "wifi", label: "Wi-Fi", type: "boolean" },
+        { name: "climatisation", label: "Climatisation", type: "boolean" },
+        { name: "nombreChaises", label: "Nombre de chaises", type: "number" },
+        { name: "nombreTables", label: "Nombre de tables", type: "number" }
+    ],
+    materiel: [
+        { name: "quantite", label: "Quantité", type: "number", required: true },
+        { name: "etat", label: "État", type: "text" },
+        { name: "couleur", label: "Couleur", type: "text" },
+        { name: "matiere", label: "Matière", type: "text" },
+        { name: "dimensions", label: "Dimensions", type: "text" }
+    ],
+    decoration: [
+        { name: "type", label: "Type", type: "text" },
+        { name: "couleur", label: "Couleur", type: "text" },
+        { name: "quantite", label: "Quantité", type: "number" },
+        { name: "matiere", label: "Matière", type: "text" }
+    ],
+    traiteur: [
+        { name: "typeCuisine", label: "Type de cuisine", type: "text", required: true },
+        { name: "nombrePersonnes", label: "Nombre de personnes", type: "number", required: true },
+        { name: "serveursInclus", label: "Serveurs inclus", type: "boolean" }
+    ]
+};
 export default function ProfilPres() {
     const [showRequestDetailsModal, setShowRequestDetailsModal] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
@@ -49,7 +78,7 @@ export default function ProfilPres() {
     const [resources, setResources] = useState([]);
     const [filteredResources, setFilteredResources] = useState([]);
     const [requests, setRequests] = useState([]);
-    const [requestsLoading, setRequestsLoading] = useState(false); // État de chargement des demandes
+    const [requestsLoading, setRequestsLoading] = useState(false);
     const [documents, setDocuments] = useState([]);
 
     // États pour les disponibilités
@@ -64,7 +93,8 @@ export default function ProfilPres() {
         type: '',
         price: '',
         location: '',
-        capacity: ''
+        attributes: {},          // contiendra capacity, power, size, color, weight, etc.
+        customAttributes: []     // [{ name, value }]
     });
     const [editLoading, setEditLoading] = useState(false);
     const [editError, setEditError] = useState('');
@@ -81,6 +111,13 @@ export default function ProfilPres() {
     const [editImages, setEditImages] = useState([]);
     const [editNewImages, setEditNewImages] = useState([]);
     const [editImagePreviews, setEditImagePreviews] = useState([]);
+
+    // États pour la gestion des caractéristiques dans la modale
+    const [showAttributesModal, setShowAttributesModal] = useState(false);
+    const [tempAttributes, setTempAttributes] = useState({});
+    const [tempCustomAttributes, setTempCustomAttributes] = useState([]);
+    const [newCustomAttrName, setNewCustomAttrName] = useState('');
+    const [newCustomAttrValue, setNewCustomAttrValue] = useState('');
 
     // États pour la modification du profil prestataire
     const [showProfileEditModal, setShowProfileEditModal] = useState(false);
@@ -102,30 +139,29 @@ export default function ProfilPres() {
     const [profileSuccess, setProfileSuccess] = useState('');
     const [profileActiveTab, setProfileActiveTab] = useState('info');
 
-    // Récupérer le token et userId du localStorage
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
     const user = userStr ? JSON.parse(userStr) : null;
     const userId = user?.id;
 
-    // Configuration axios avec token
     const api = axios.create({
         baseURL: 'http://localhost:5000/api',
         headers: {
             'Authorization': `Bearer ${token}`
         }
     });
+
     const handleRequestClick = (request) => {
         setSelectedRequest(request);
         setShowRequestDetailsModal(true);
     };
-    // ==================== Fonctions de récupération des données ====================
+
+    // ==================== Récupération des données ====================
     const fetchProviderData = async () => {
         try {
             setLoading(true);
             const userRes = await api.get(`/users/${userId}`);
             setProvider(userRes.data);
-
             setProfileFormData({
                 firstname: userRes.data.firstname || '',
                 lastname: userRes.data.lastname || '',
@@ -133,11 +169,9 @@ export default function ProfilPres() {
                 numTel: userRes.data.numTel || '',
                 region: userRes.data.region || ''
             });
-
             const resourcesRes = await api.get('/ressources/res_user');
             setResources(resourcesRes.data);
             setFilteredResources(resourcesRes.data);
-
             const availabilityList = [];
             resourcesRes.data.forEach(resource => {
                 if (resource.availability && resource.availability.length > 0) {
@@ -165,13 +199,11 @@ export default function ProfilPres() {
         }
     };
 
-    // Fonction pour récupérer les demandes de réservation (pour le prestataire)
     const fetchRequests = async () => {
         try {
             setRequestsLoading(true);
             const response = await api.get('/location/get_pres');
             const locations = response.data;
-
             const formattedRequests = locations.map(loc => ({
                 id: loc._id,
                 resourceName: loc.resource?.name || 'Ressource inconnue',
@@ -180,7 +212,6 @@ export default function ProfilPres() {
                 cin: loc.organisateur.passportOrCid,
                 tel: loc.organisateur.numTel,
                 region: loc.organisateur.region,
-
                 eventName: loc.event?.title || 'Événement inconnu',
                 dateDebut: loc.dateDebut,
                 dateFin: loc.dateFin,
@@ -188,10 +219,7 @@ export default function ProfilPres() {
                 price: loc.resource?.price || 0,
                 message: loc.message || '',
             }));
-
-            // Tri : plus récent en premier (dateDebut décroissante)
             formattedRequests.sort((a, b) => new Date(b.dateDebut) - new Date(a.dateDebut));
-
             setRequests(formattedRequests);
         } catch (err) {
             console.error('Erreur lors du chargement des demandes:', err);
@@ -200,7 +228,6 @@ export default function ProfilPres() {
         }
     };
 
-    // Charger les données au montage
     useEffect(() => {
         if (!token || !userId) {
             navigate('/login');
@@ -208,8 +235,6 @@ export default function ProfilPres() {
         }
         fetchProviderData();
         fetchRequests();
-
-        // Données mockées pour les documents (à remplacer plus tard)
         setDocuments([
             { id: 1, name: 'Devis - Salle de conférence.pdf', type: 'pdf', size: '2.4 MB', date: '2026-03-15', status: 'validé' },
             { id: 2, name: 'Contrat prestation.docx', type: 'doc', size: '1.1 MB', date: '2026-03-10', status: 'en_attente' },
@@ -224,8 +249,6 @@ export default function ProfilPres() {
         try {
             const newStatus = action === 'accept' ? 'acceptée' : 'refusée';
             await api.put(`/location/update_pres/${requestId}`, { status: newStatus });
-
-            // Mise à jour locale
             setRequests(prev =>
                 prev.map(req =>
                     req.id === requestId
@@ -240,18 +263,23 @@ export default function ProfilPres() {
         }
     };
 
-    // ==================== Gestion des ressources (modification, suppression) ====================
+    // ==================== Gestion des ressources (modification) ====================
     const handleEditResource = (resource) => {
         setEditingResource(resource);
+        const attrs = resource.attributes || {};
+        if (resource.capacity !== undefined && !attrs.capacity) {
+            attrs.capacity = resource.capacity;
+        }
         setEditFormData({
             name: resource.name || '',
             description: resource.description || '',
-            type: resource.type || '',
+            type: resource.type || 'service',     // ← 'product' ou 'service'
+            category: resource.category || '',    // ← 'salle', 'materiel', 'decoration', 'traiteur'
             price: resource.price || '',
             location: resource.location || '',
-            capacity: resource.capacity || ''
+            attributes: attrs,
+            customAttributes: resource.customAttributes || []
         });
-
         const existingImages = (resource.media || []).map(media => ({
             _id: media._id,
             url: media.img_vd?.[0] || media,
@@ -260,7 +288,6 @@ export default function ProfilPres() {
         setEditImages(existingImages);
         setEditImagePreviews([]);
         setEditNewImages([]);
-
         const availabilities = (resource.availability || []).map(avail => ({
             id: avail._id,
             start: avail.date_deb,
@@ -272,13 +299,12 @@ export default function ProfilPres() {
         setShowEditModal(true);
     };
 
+    // Gestion des images
     const handleAddEditImages = (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
-
         const newImages = [...editNewImages];
         const newPreviews = [...editImagePreviews];
-
         files.forEach(file => {
             newImages.push(file);
             const reader = new FileReader();
@@ -288,7 +314,6 @@ export default function ProfilPres() {
             };
             reader.readAsDataURL(file);
         });
-
         setEditNewImages(newImages);
     };
 
@@ -296,12 +321,12 @@ export default function ProfilPres() {
         if (isExisting) {
             setEditImages(prev => prev.filter(img => img._id !== imageId));
         } else {
-            const index = editNewImages.findIndex((_, i) => i === imageId);
-            setEditNewImages(prev => prev.filter((_, i) => i !== index));
-            setEditImagePreviews(prev => prev.filter((_, i) => i !== index));
+            setEditNewImages(prev => prev.filter((_, i) => i !== imageId));
+            setEditImagePreviews(prev => prev.filter((_, i) => i !== imageId));
         }
     };
 
+    // Gestion des disponibilités
     const handleAddEditAvailability = () => {
         if (editNewAvailability.start && editNewAvailability.end) {
             setEditAvailabilities([
@@ -322,43 +347,89 @@ export default function ProfilPres() {
         setEditAvailabilities(prev => prev.filter((_, i) => i !== index));
     };
 
+    // Gestion des caractéristiques : ouverture de la modale dédiée
+    const openAttributesModal = () => {
+        const currentType = editFormData.category; // ← category au lieu de type
+        const fields = resourceFields[currentType] || [];
+
+        const newTempAttributes = { ...editFormData.attributes };
+        fields.forEach(field => {
+            if (!(field.name in newTempAttributes)) {
+                if (field.type === 'boolean') newTempAttributes[field.name] = false;
+                else newTempAttributes[field.name] = '';
+            }
+        });
+
+        setTempAttributes(newTempAttributes);
+        setTempCustomAttributes(editFormData.customAttributes.map(attr => ({ ...attr })));
+        setNewCustomAttrName('');
+        setNewCustomAttrValue('');
+        setShowAttributesModal(true);
+    };
+    const addCustomAttribute = () => {
+        if (newCustomAttrName.trim() && newCustomAttrValue.trim()) {
+            setTempCustomAttributes([
+                ...tempCustomAttributes,
+                { name: newCustomAttrName.trim(), value: newCustomAttrValue.trim() }
+            ]);
+            setNewCustomAttrName('');
+            setNewCustomAttrValue('');
+        }
+    };
+
+    const removeCustomAttribute = (index) => {
+        setTempCustomAttributes(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const updateCustomAttribute = (index, field, value) => {
+        const updated = [...tempCustomAttributes];
+        updated[index][field] = value;
+        setTempCustomAttributes(updated);
+    };
+
+    const saveAttributes = () => {
+        setEditFormData(prev => ({
+            ...prev,
+            attributes: tempAttributes,
+            customAttributes: tempCustomAttributes
+        }));
+        setShowAttributesModal(false);
+    };
+
+    // Soumission du formulaire de modification
     const handleEditSubmit = async (e) => {
         e.preventDefault();
         setEditLoading(true);
         setEditError('');
-
         try {
             const formData = new FormData();
             formData.append('name', editFormData.name);
             formData.append('description', editFormData.description);
-            formData.append('type', editFormData.type);
+            formData.append('type', editFormData.type);           // 'product' ou 'service'
+            formData.append('category', editFormData.category);   // 'salle', 'materiel', etc.
             formData.append('price', editFormData.price);
             formData.append('location', editFormData.location || '');
-            formData.append('capacity', editFormData.capacity || '');
-
+            formData.append('attributes', JSON.stringify(editFormData.attributes));
+            formData.append('customAttributes', JSON.stringify(editFormData.customAttributes));
             const imagesToKeep = editImages.map(img => img._id).filter(id => id);
             formData.append('imagesToKeep', JSON.stringify(imagesToKeep));
             editNewImages.forEach(image => {
                 formData.append('images', image);
             });
-
             const availabilityData = editAvailabilities.map(avail => ({
                 start: avail.start,
                 end: avail.end,
                 status: avail.status
             }));
             formData.append('availability', JSON.stringify(availabilityData));
-
             const response = await api.put(`/ressources/modify/${editingResource._id}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-
             const updatedResources = resources.map(r =>
                 r._id === editingResource._id ? response.data : r
             );
             setResources(updatedResources);
             setFilteredResources(updatedResources);
-
             setShowEditModal(false);
             setEditingResource(null);
             alert('Ressource modifiée avec succès !');
@@ -405,19 +476,16 @@ export default function ProfilPres() {
         setProfileLoading(true);
         setProfileError('');
         setProfileSuccess('');
-
         if (profilePasswordData.password && profilePasswordData.password !== profilePasswordData.confirmPassword) {
             setProfileError('Les mots de passe ne correspondent pas');
             setProfileLoading(false);
             return;
         }
-
         if (profilePasswordData.password && profilePasswordData.password.length < 6) {
             setProfileError('Le mot de passe doit contenir au moins 6 caractères');
             setProfileLoading(false);
             return;
         }
-
         try {
             const formData = new FormData();
             formData.append('firstname', profileFormData.firstname);
@@ -425,21 +493,16 @@ export default function ProfilPres() {
             formData.append('email', profileFormData.email);
             formData.append('numTel', profileFormData.numTel || '');
             formData.append('region', profileFormData.region || '');
-
             if (profilePasswordData.password) {
                 formData.append('password', profilePasswordData.password);
             }
-
             if (profileImage) {
                 formData.append('image', profileImage);
             }
-
             const response = await api.put(`/users/update`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-
             setProvider(response.data);
-
             setProfileFormData({
                 firstname: response.data.firstname || '',
                 lastname: response.data.lastname || '',
@@ -447,7 +510,6 @@ export default function ProfilPres() {
                 numTel: response.data.numTel || '',
                 region: response.data.region || ''
             });
-
             const updatedUser = {
                 ...user,
                 id: response.data._id,
@@ -459,12 +521,10 @@ export default function ProfilPres() {
                 status: response.data.status
             };
             localStorage.setItem('user', JSON.stringify(updatedUser));
-
             setProfileSuccess('Profil modifié avec succès !');
             setProfilePasswordData({ password: '', confirmPassword: '' });
             setProfileImage(null);
             setProfileImagePreview(null);
-
             setTimeout(() => {
                 setShowProfileEditModal(false);
                 setProfileSuccess('');
@@ -505,7 +565,7 @@ export default function ProfilPres() {
         }
     };
 
-    // ==================== Gestion du calendrier et des disponibilités ====================
+    // ==================== Gestion du calendrier ====================
     const getAvailabilityForDay = (day) => {
         if (!allAvailability || allAvailability.length === 0) return [];
         const dayStr = format(day, 'yyyy-MM-dd');
@@ -565,7 +625,6 @@ export default function ProfilPres() {
         setSelectedDate(day);
         const dayAvailability = getAvailabilityForDay(day);
         const unavailableOnly = dayAvailability.filter(avail => avail.satut_disp === false);
-
         if (unavailableOnly.length > 0) {
             const groupedByResource = {};
             unavailableOnly.forEach(avail => {
@@ -623,9 +682,17 @@ export default function ProfilPres() {
         return eachDayOfInterval({ start, end });
     };
 
-    // Statistiques
     const pendingRequestsCount = requests.filter(r => r.status === 'en_attente').length;
     const totalDocuments = documents.length;
+
+    // Filtrage des ressources par recherche
+    useEffect(() => {
+        if (searchTerm) {
+            setFilteredResources(resources.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase())));
+        } else {
+            setFilteredResources(resources);
+        }
+    }, [searchTerm, resources]);
 
     // ==================== Composants d'affichage ====================
     const Tabs = () => (
@@ -731,11 +798,11 @@ export default function ProfilPres() {
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8">
-                {/* Section Profil + Calendrier */}
+                {/* Section Profil + Calendrier (inchangée) */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                     {/* Carte Profil */}
                     <motion.div className="lg:col-span-1">
-                        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-6  border-gray-100 h-full ">
+                        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-6 border-gray-100 h-full">
                             <div className="flex flex-col items-center">
                                 <motion.div className="relative mb-3 sm:mb-4 cursor-pointer">
                                     <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden ring-4 ring-blue-100 shadow-lg">
@@ -811,7 +878,7 @@ export default function ProfilPres() {
                     </motion.div>
                 </div>
 
-                {/* Onglets */}
+                {/* Onglets (resources, requests, documents) - inchangé */}
                 <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-6 border border-gray-100">
                     <Tabs />
                     <AnimatePresence mode="wait">
@@ -831,11 +898,10 @@ export default function ProfilPres() {
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center"><ImageIcon size={40} className="text-gray-400" /></div>
                                                     )}
-                                                    <div className="absolute top-2 right-2"><span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full">{resource.type}</span></div>
+                                                    <div className="absolute top-2 right-2"><span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full">{resource.category}</span></div>
                                                 </div>
                                                 <div className="p-4">
                                                     <h3 className="font-semibold text-gray-900 mb-2 truncate">{resource.name}</h3>
-                                                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{resource.description}</p>
                                                     <div className="flex items-center justify-between mb-3"><span className="text-lg font-bold text-blue-600">{formatPrice(resource.price)}</span><span className="text-sm text-gray-500">{resource.location || 'Lieu non défini'}</span></div>
                                                     <div className="flex gap-2">
                                                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleEditResource(resource)} className="flex-1 flex items-center justify-center gap-1 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-all"><Edit2 size={14} /> Modifier</motion.button>
@@ -852,26 +918,13 @@ export default function ProfilPres() {
                             <motion.div key="requests" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
                                 <h2 className="text-base sm:text-xl font-bold text-gray-900 flex items-center gap-2 mb-4"><ClockIcon size={20} className="text-yellow-600" /> Demandes de réservation</h2>
                                 {requestsLoading ? (
-                                    <div className="flex justify-center py-12">
-                                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full" />
-                                    </div>
+                                    <div className="flex justify-center py-12"><motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full" /></div>
                                 ) : requests.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <ClockIcon size={48} className="mx-auto mb-4 text-gray-300" />
-                                        <p className="text-gray-500">Aucune demande de réservation</p>
-                                    </div>
+                                    <div className="text-center py-12"><ClockIcon size={48} className="mx-auto mb-4 text-gray-300" /><p className="text-gray-500">Aucune demande de réservation</p></div>
                                 ) : (
                                     <div className="space-y-3">
                                         {requests.map((request, index) => (
-                                            <motion.div
-                                                key={request.id}
-                                                initial={{ opacity: 0, x: -20 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: index * 0.05 }}
-                                                whileHover={{ scale: 1.01 }}
-                                                onClick={() => handleRequestClick(request)}
-                                                className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all cursor-pointer"
-                                            >
+                                            <motion.div key={request.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }} whileHover={{ scale: 1.01 }} onClick={() => handleRequestClick(request)} className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all cursor-pointer">
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                     <div className="flex items-start gap-3">
                                                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${request.status === 'en_attente' ? 'bg-yellow-100' : request.status === 'confirmé' ? 'bg-green-100' : 'bg-red-100'}`}>
@@ -923,22 +976,12 @@ export default function ProfilPres() {
                                             <tbody>
                                                 {documents.map((doc, index) => (
                                                     <motion.tr key={doc.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                                        <td className="py-3 px-4">
-                                                            <div className="flex items-center gap-2">
-                                                                {doc.type === 'pdf' ? <FileText size={16} className="text-red-500" /> : doc.type === 'image' ? <ImageIcon size={16} className="text-blue-500" /> : <File size={16} className="text-gray-500" />}
-                                                                <span className="text-sm font-medium text-gray-900">{doc.name}</span>
-                                                            </div>
-                                                        </td>
+                                                        <td className="py-3 px-4"><div className="flex items-center gap-2">{doc.type === 'pdf' ? <FileText size={16} className="text-red-500" /> : doc.type === 'image' ? <ImageIcon size={16} className="text-blue-500" /> : <File size={16} className="text-gray-500" />}<span className="text-sm font-medium text-gray-900">{doc.name}</span></div></td>
                                                         <td className="py-3 px-4 text-sm text-gray-600 uppercase">{doc.type}</td>
                                                         <td className="py-3 px-4 text-sm text-gray-600">{doc.size}</td>
                                                         <td className="py-3 px-4 text-sm text-gray-600">{formatDate(doc.date)}</td>
                                                         <td className="py-3 px-4"><StatusBadge status={doc.status} /></td>
-                                                        <td className="py-3 px-4">
-                                                            <div className="flex items-center gap-2">
-                                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><Download size={16} /></motion.button>
-                                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDocumentDelete(doc.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></motion.button>
-                                                            </div>
-                                                        </td>
+                                                        <td className="py-3 px-4"><div className="flex items-center gap-2"><motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><Download size={16} /></motion.button><motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDocumentDelete(doc.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></motion.button></div></td>
                                                     </motion.tr>
                                                 ))}
                                             </tbody>
@@ -952,160 +995,32 @@ export default function ProfilPres() {
                     </AnimatePresence>
                 </div>
 
+                {/* Modale de détails de demande (inchangée) */}
                 <AnimatePresence>
                     {showRequestDetailsModal && selectedRequest && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm"
-                            onClick={() => setShowRequestDetailsModal(false)}
-                        >
-                            <motion.div
-                                initial={{ scale: 0.9, y: 20 }}
-                                animate={{ scale: 1, y: 0 }}
-                                exit={{ scale: 0.9, y: 20 }}
-                                className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden mx-3 sm:mx-4"
-                                onClick={(e) => e.stopPropagation()}
-                            >
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowRequestDetailsModal(false)}>
+                            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden mx-3 sm:mx-4" onClick={(e) => e.stopPropagation()}>
                                 <div className="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-                                    <div className="flex justify-between items-center">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-blue-100 rounded-xl">
-                                                <FileText size={20} className="text-blue-600" />
-                                            </div>
-                                            <h3 className="text-lg sm:text-xl font-bold text-gray-900">Détails de la demande</h3>
-                                        </div>
-                                        <motion.button
-                                            whileHover={{ scale: 1.1, rotate: 90 }}
-                                            whileTap={{ scale: 0.9 }}
-                                            onClick={() => setShowRequestDetailsModal(false)}
-                                            className="p-1.5 sm:p-2 hover:bg-white rounded-lg transition-all"
-                                        >
-                                            <X size={18} className="sm:w-5 sm:h-5 text-gray-500" />
-                                        </motion.button>
-                                    </div>
+                                    <div className="flex justify-between items-center"><div className="flex items-center gap-3"><div className="p-2 bg-blue-100 rounded-xl"><FileText size={20} className="text-blue-600" /></div><h3 className="text-lg sm:text-xl font-bold text-gray-900">Détails de la demande</h3></div><motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowRequestDetailsModal(false)} className="p-1.5 sm:p-2 hover:bg-white rounded-lg transition-all"><X size={18} className="sm:w-5 sm:h-5 text-gray-500" /></motion.button></div>
                                     <p className="text-xs sm:text-sm text-gray-500 mt-2">Informations complètes sur la réservation</p>
                                 </div>
-
                                 <div className="p-4 sm:p-6 space-y-4 overflow-y-auto max-h-[60vh]">
-                                    {/* Statut avec badge */}
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium text-gray-500">Statut</span>
-                                        <StatusBadge status={selectedRequest.status} />
-                                    </div>
-
-                                    {/* Ressource */}
-                                    <div className="border-t border-gray-100 pt-3">
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-purple-100 rounded-lg">
-                                                <Package size={16} className="text-purple-600" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Ressource</p>
-                                                <p className="font-semibold text-gray-900">{selectedRequest.resourceName}</p>
-                                                <p className="text-xs text-gray-500 mt-1">ID: {selectedRequest.resourceId}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-
-
-                                    {/* Client */}
-                                    <div className="border-t border-gray-100 pt-3">
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-green-100 rounded-lg">
-                                                <User size={16} className="text-green-600" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Client</p>
-                                                <p className="font-semibold text-gray-900">{selectedRequest.clientName}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {/*cin */}
-                                    <div className="border-t border-gray-100 pt-3">
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-green-100 rounded-lg">
-                                                <User size={16} className="text-green-600" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Cin/Passport</p>
-                                                <p className="font-semibold text-gray-900">{selectedRequest.cin}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {/* region */}
-                                    <div className="border-t border-gray-100 pt-3">
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-green-100 rounded-lg">
-                                                <User size={16} className="text-green-600" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Region</p>
-                                                <p className="font-semibold text-gray-900">{selectedRequest.region}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {/*tel */}
-                                    <div className="border-t border-gray-100 pt-3">
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-green-100 rounded-lg">
-                                                <User size={16} className="text-green-600" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">telephone</p>
-                                                <p className="font-semibold text-gray-900">{selectedRequest.tel}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {/* Période */}
-                                    <div className="border-t border-gray-100 pt-3">
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-orange-100 rounded-lg">
-                                                <Clock size={16} className="text-orange-600" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Période</p>
-                                                <p className="font-semibold text-gray-900">{formatDate(selectedRequest.dateDebut)}</p>
-                                                <p className="text-sm text-gray-600">De {formatTime(selectedRequest.dateDebut)} à {formatTime(selectedRequest.dateFin)}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Prix */}
-                                    <div className="border-t border-gray-100 pt-3">
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-red-100 rounded-lg">
-                                                <Euro size={16} className="text-red-600" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Prix total</p>
-                                                <p className="text-2xl font-bold text-blue-600">{formatPrice(selectedRequest.price)}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-
-
+                                    <div className="flex items-center justify-between"><span className="text-sm font-medium text-gray-500">Statut</span><StatusBadge status={selectedRequest.status} /></div>
+                                    <div className="border-t border-gray-100 pt-3"><div className="flex items-start gap-3"><div className="p-2 bg-purple-100 rounded-lg"><Package size={16} className="text-purple-600" /></div><div><p className="text-xs text-gray-500">Ressource</p><p className="font-semibold text-gray-900">{selectedRequest.resourceName}</p><p className="text-xs text-gray-500 mt-1">ID: {selectedRequest.resourceId}</p></div></div></div>
+                                    <div className="border-t border-gray-100 pt-3"><div className="flex items-start gap-3"><div className="p-2 bg-green-100 rounded-lg"><User size={16} className="text-green-600" /></div><div><p className="text-xs text-gray-500">Client</p><p className="font-semibold text-gray-900">{selectedRequest.clientName}</p></div></div></div>
+                                    <div className="border-t border-gray-100 pt-3"><div className="flex items-start gap-3"><div className="p-2 bg-green-100 rounded-lg"><User size={16} className="text-green-600" /></div><div><p className="text-xs text-gray-500">Cin/Passport</p><p className="font-semibold text-gray-900">{selectedRequest.cin}</p></div></div></div>
+                                    <div className="border-t border-gray-100 pt-3"><div className="flex items-start gap-3"><div className="p-2 bg-green-100 rounded-lg"><User size={16} className="text-green-600" /></div><div><p className="text-xs text-gray-500">Région</p><p className="font-semibold text-gray-900">{selectedRequest.region}</p></div></div></div>
+                                    <div className="border-t border-gray-100 pt-3"><div className="flex items-start gap-3"><div className="p-2 bg-green-100 rounded-lg"><User size={16} className="text-green-600" /></div><div><p className="text-xs text-gray-500">Téléphone</p><p className="font-semibold text-gray-900">{selectedRequest.tel}</p></div></div></div>
+                                    <div className="border-t border-gray-100 pt-3"><div className="flex items-start gap-3"><div className="p-2 bg-orange-100 rounded-lg"><Clock size={16} className="text-orange-600" /></div><div><p className="text-xs text-gray-500">Période</p><p className="font-semibold text-gray-900">{formatDate(selectedRequest.dateDebut)}</p><p className="text-sm text-gray-600">De {formatTime(selectedRequest.dateDebut)} à {formatTime(selectedRequest.dateFin)}</p></div></div></div>
+                                    <div className="border-t border-gray-100 pt-3"><div className="flex items-start gap-3"><div className="p-2 bg-red-100 rounded-lg"><Euro size={16} className="text-red-600" /></div><div><p className="text-xs text-gray-500">Prix total</p><p className="text-2xl font-bold text-blue-600">{formatPrice(selectedRequest.price)}</p></div></div></div>
                                 </div>
-
-                                <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50">
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => setShowRequestDetailsModal(false)}
-                                        className="w-full py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg sm:rounded-xl font-medium text-xs sm:text-sm hover:shadow-lg transition-all"
-                                    >
-                                        Fermer
-                                    </motion.button>
-                                </div>
+                                <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50"><motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowRequestDetailsModal(false)} className="w-full py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg sm:rounded-xl font-medium text-xs sm:text-sm hover:shadow-lg transition-all">Fermer</motion.button></div>
                             </motion.div>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                {/* Modal de modification de ressource */}
+                {/* ==================== MODALE DE MODIFICATION DE RESSOURCE ==================== */}
                 <AnimatePresence>
                     {showEditModal && editingResource && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto" onClick={() => setShowEditModal(false)}>
@@ -1152,29 +1067,75 @@ export default function ProfilPres() {
                                                 <div>
                                                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Type *</label>
                                                     <select value={editFormData.type} onChange={(e) => setEditFormData({ ...editFormData, type: e.target.value })} className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required>
+                                                        <option value="product">Produit</option>
+                                                        <option value="service">Service</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Catégorie *</label>
+                                                    <select value={editFormData.category} onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })} className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required>
                                                         <option value="salle">Salle</option>
                                                         <option value="materiel">Matériel</option>
                                                         <option value="decoration">Décoration</option>
                                                         <option value="traiteur">Traiteur</option>
                                                     </select>
                                                 </div>
-                                                <div>
-                                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Prix (€) *</label>
-                                                    <input type="number" value={editFormData.price} onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })} className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" min="0" required />
-                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Localisation</label>
+                                                <input type="text" value={editFormData.location} onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })} className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="Ville, adresse..." />
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                                                <div>
-                                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Localisation</label>
-                                                    <input type="text" value={editFormData.location} onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })} className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="Ville, adresse..." />
+                                            {/* Caractéristiques : simple affichage avec bouton pour ouvrir la modale dédiée */}
+                                            <div className="border-t border-gray-200 pt-3">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Caractéristiques</label>
+                                                    <button
+                                                        type="button"
+                                                        onClick={openAttributesModal}
+                                                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                                                    >
+                                                        <Edit2 size={12} /> Ajouter / Modifier
+                                                    </button>
                                                 </div>
-                                                <div>
-                                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Capacité</label>
-                                                    <input type="number" value={editFormData.capacity} onChange={(e) => setEditFormData({ ...editFormData, capacity: e.target.value })} className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" min="0" placeholder="Nombre de personnes" />
+                                                <div className="mt-2 bg-gray-50 rounded-lg p-3 text-sm">
+                                                    {Object.keys(editFormData.attributes).length === 0 && editFormData.customAttributes.length === 0 ? (
+                                                        <p className="text-gray-500 text-xs">Aucune caractéristique définie</p>
+                                                    ) : (
+                                                        <ul className="space-y-1">
+                                                            {/* Attributs standards du type */}
+                                                            {resourceFields[editFormData.category]?.map(field => {
+                                                                const value = editFormData.attributes[field.name];
+                                                                if (value === undefined || value === '') return null;
+                                                                return (
+                                                                    <li key={field.name} className="flex items-start gap-2">
+                                                                        <span className="text-gray-400">•</span>
+                                                                        <span>
+                                                                            <span className="font-medium">{field.label || field.name}</span> : {typeof value === 'boolean' ? (value ? 'Oui' : 'Non') : value}
+                                                                        </span>
+                                                                    </li>
+                                                                );
+                                                            })}
+                                                            {/* Attributs personnalisés */}
+                                                            {editFormData.customAttributes.map((attr, idx) => (
+                                                                <li key={idx} className="flex items-start gap-2">
+                                                                    <span className="text-gray-400">•</span>
+                                                                    <span><span className="font-medium">{attr.name}</span> : {attr.value}</span>
+                                                                </li>
+                                                            ))}
+                                                            {/* Autres attributs (non standards, au cas où) */}
+                                                            {Object.entries(editFormData.attributes)
+                                                                .filter(([key]) => !resourceFields[editFormData.category]?.some(f => f.name === key))
+                                                                .map(([key, value]) => (
+                                                                    <li key={key} className="flex items-start gap-2">
+                                                                        <span className="text-gray-400">•</span>
+                                                                        <span><span className="font-medium">{key}</span> : {typeof value === 'boolean' ? (value ? 'Oui' : 'Non') : value}</span>
+                                                                    </li>
+                                                                ))}
+                                                        </ul>
+                                                    )}
                                                 </div>
                                             </div>
-
                                             <div className="pt-3 sm:pt-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
                                                 <button type="button" onClick={() => setShowEditModal(false)} className="order-2 sm:order-1 flex-1 px-3 sm:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all text-sm">Annuler</button>
                                                 <button type="submit" disabled={editLoading} className="order-1 sm:order-2 flex-1 px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 text-sm">
@@ -1199,8 +1160,6 @@ export default function ProfilPres() {
                                                     <input type="file" multiple accept="image/*" onChange={handleAddEditImages} className="hidden" />
                                                 </label>
                                             </div>
-
-                                            {/* Images existantes */}
                                             {editImages.length > 0 && (
                                                 <div className="mb-3">
                                                     <p className="text-xs text-gray-500 mb-2">Images actuelles</p>
@@ -1208,16 +1167,12 @@ export default function ProfilPres() {
                                                         {editImages.map((img, idx) => (
                                                             <div key={img._id} className="relative group">
                                                                 <img src={`http://localhost:5000/${img.url}`} alt={`Image ${idx + 1}`} className="w-full h-20 sm:h-24 object-cover rounded-lg border border-gray-200" />
-                                                                <button onClick={() => handleRemoveEditImage(img._id, true)} className="absolute -top-1 -right-1 p-0.5 sm:p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600">
-                                                                    <X size={12} className="sm:w-3 sm:h-3" />
-                                                                </button>
+                                                                <button onClick={() => handleRemoveEditImage(img._id, true)} className="absolute -top-1 -right-1 p-0.5 sm:p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"><X size={12} className="sm:w-3 sm:h-3" /></button>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
-
-                                            {/* Nouvelles images à ajouter */}
                                             {editImagePreviews.length > 0 && (
                                                 <div>
                                                     <p className="text-xs text-gray-500 mb-2">Nouvelles images à ajouter</p>
@@ -1225,15 +1180,12 @@ export default function ProfilPres() {
                                                         {editImagePreviews.map((preview, idx) => (
                                                             <div key={idx} className="relative group">
                                                                 <img src={preview} alt={`Nouvelle ${idx + 1}`} className="w-full h-20 sm:h-24 object-cover rounded-lg border border-green-200" />
-                                                                <button onClick={() => handleRemoveEditImage(idx, false)} className="absolute -top-1 -right-1 p-0.5 sm:p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600">
-                                                                    <X size={12} className="sm:w-3 sm:h-3" />
-                                                                </button>
+                                                                <button onClick={() => handleRemoveEditImage(idx, false)} className="absolute -top-1 -right-1 p-0.5 sm:p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"><X size={12} className="sm:w-3 sm:h-3" /></button>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
-
                                             {editImages.length === 0 && editImagePreviews.length === 0 && (
                                                 <div className="text-center py-4 sm:py-6 bg-gray-50 rounded-lg">
                                                     <ImageIcon size={32} className="mx-auto mb-2 text-gray-400" />
@@ -1250,38 +1202,20 @@ export default function ProfilPres() {
                                                     <ClockIcon size={16} className="sm:w-[18px] sm:h-[18px] text-blue-600" />
                                                     <h4 className="font-semibold text-gray-900 text-sm sm:text-base">Disponibilités</h4>
                                                 </div>
-                                                <button onClick={() => setEditShowAvailabilityForm(true)} className="inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-all w-fit">
-                                                    <PlusCircle size={12} className="sm:w-4 sm:h-4" /> Ajouter
-                                                </button>
+                                                <button onClick={() => setEditShowAvailabilityForm(true)} className="inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-all w-fit"><PlusCircle size={12} className="sm:w-4 sm:h-4" /> Ajouter</button>
                                             </div>
-
                                             {editShowAvailabilityForm && (
                                                 <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200">
                                                     <div className="space-y-2 sm:space-y-3">
                                                         <div className="grid grid-cols-2 gap-2">
-                                                            <div>
-                                                                <label className="block text-[10px] sm:text-xs text-gray-600 mb-1">Date début</label>
-                                                                <input type="datetime-local" value={editNewAvailability.start} onChange={(e) => setEditNewAvailability({ ...editNewAvailability, start: e.target.value })} className="w-full px-2 py-1 text-xs sm:text-sm border border-gray-200 rounded-lg" />
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-[10px] sm:text-xs text-gray-600 mb-1">Date fin</label>
-                                                                <input type="datetime-local" value={editNewAvailability.end} onChange={(e) => setEditNewAvailability({ ...editNewAvailability, end: e.target.value })} className="w-full px-2 py-1 text-xs sm:text-sm border border-gray-200 rounded-lg" />
-                                                            </div>
+                                                            <div><label className="block text-[10px] sm:text-xs text-gray-600 mb-1">Date début</label><input type="datetime-local" value={editNewAvailability.start} onChange={(e) => setEditNewAvailability({ ...editNewAvailability, start: e.target.value })} className="w-full px-2 py-1 text-xs sm:text-sm border border-gray-200 rounded-lg" /></div>
+                                                            <div><label className="block text-[10px] sm:text-xs text-gray-600 mb-1">Date fin</label><input type="datetime-local" value={editNewAvailability.end} onChange={(e) => setEditNewAvailability({ ...editNewAvailability, end: e.target.value })} className="w-full px-2 py-1 text-xs sm:text-sm border border-gray-200 rounded-lg" /></div>
                                                         </div>
-                                                        <div>
-                                                            <div>
-                                                                <label className="block text-[10px] sm:text-xs text-gray-600 mb-1">Statut</label>
-                                                                <div className="w-full px-2 py-1 text-xs sm:text-sm border border-gray-200 rounded-lg bg-gray-100 text-gray-500">Indisponible</div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex gap-2">
-                                                            <button onClick={handleAddEditAvailability} className="flex-1 px-2 py-1.5 bg-blue-600 text-white text-xs sm:text-sm rounded-lg hover:bg-blue-700">Ajouter</button>
-                                                            <button onClick={() => setEditShowAvailabilityForm(false)} className="px-2 py-1.5 border border-gray-300 text-gray-600 text-xs sm:text-sm rounded-lg hover:bg-gray-50">Annuler</button>
-                                                        </div>
+                                                        <div><label className="block text-[10px] sm:text-xs text-gray-600 mb-1">Statut</label><div className="w-full px-2 py-1 text-xs sm:text-sm border border-gray-200 rounded-lg bg-gray-100 text-gray-500">Indisponible</div></div>
+                                                        <div className="flex gap-2"><button onClick={handleAddEditAvailability} className="flex-1 px-2 py-1.5 bg-blue-600 text-white text-xs sm:text-sm rounded-lg hover:bg-blue-700">Ajouter</button><button onClick={() => setEditShowAvailabilityForm(false)} className="px-2 py-1.5 border border-gray-300 text-gray-600 text-xs sm:text-sm rounded-lg hover:bg-gray-50">Annuler</button></div>
                                                     </div>
                                                 </div>
                                             )}
-
                                             <div className="space-y-2 max-h-48 sm:max-h-64 overflow-y-auto">
                                                 <p className="text-[10px] sm:text-xs text-gray-500 mb-2">{editAvailabilities.length} disponibilité(s)</p>
                                                 {editAvailabilities.map((avail, index) => (
@@ -1299,11 +1233,7 @@ export default function ProfilPres() {
                                                     </div>
                                                 ))}
                                                 {editAvailabilities.length === 0 && (
-                                                    <div className="text-center py-3 sm:py-4 text-gray-400">
-                                                        <Clock size={24} className="sm:w-8 sm:h-8 mx-auto mb-1 opacity-50" />
-                                                        <p className="text-[10px] sm:text-xs">Aucune disponibilité</p>
-                                                        <p className="text-[8px] sm:text-[10px]">Cliquez sur "Ajouter"</p>
-                                                    </div>
+                                                    <div className="text-center py-3 sm:py-4 text-gray-400"><Clock size={24} className="sm:w-8 sm:h-8 mx-auto mb-1 opacity-50" /><p className="text-[10px] sm:text-xs">Aucune disponibilité</p><p className="text-[8px] sm:text-[10px]">Cliquez sur "Ajouter"</p></div>
                                                 )}
                                             </div>
                                         </div>
@@ -1314,19 +1244,167 @@ export default function ProfilPres() {
                     )}
                 </AnimatePresence>
 
-                {/* Modal de modification du profil prestataire */}
+                {/* MODALE D'ÉDITION DES CARACTÉRISTIQUES */}
+                <AnimatePresence>
+                    {showAttributesModal && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/50 backdrop-blur-sm"
+                            onClick={() => setShowAttributesModal(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, y: 20 }}
+                                animate={{ scale: 1, y: 0 }}
+                                exit={{ scale: 0.9, y: 20 }}
+                                className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-hidden"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {/* En-tête */}
+                                <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex justify-between items-center sticky top-0">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900">Caractéristiques</h3>
+                                        <p className="text-xs text-purple-600 mt-0.5">
+                                            {editFormData.category === 'salle' ? 'Salle' :
+                                                editFormData.category === 'materiel' ? 'Matériel' :
+                                                    editFormData.category === 'decoration' ? 'Décoration' : 'Traiteur'}
+                                        </p>
+                                    </div>
+                                    <button onClick={() => setShowAttributesModal(false)} className="p-1 hover:bg-white rounded-lg transition">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                {/* Corps avec scroll */}
+                                <div className="p-4 overflow-y-auto max-h-[60vh] space-y-5">
+                                    {/* Attributs standards */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                            Attributs spécifiques
+                                        </label>
+                                        <div className="space-y-3">
+                                            {(resourceFields[editFormData.category] || []).length === 0 ? (
+                                                <p className="text-sm text-gray-400 italic">Aucun attribut standard pour cette catégorie.</p>
+                                            ) : (
+                                                resourceFields[editFormData.category].map(field => (
+                                                    <div key={field.name} className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                                        <span className="text-sm text-gray-600 w-36 flex-shrink-0">
+                                                            {field.label}
+                                                            {field.required && <span className="text-red-500 ml-1">*</span>}
+                                                        </span>
+                                                        {field.type === 'boolean' ? (
+                                                            <select
+                                                                value={tempAttributes[field.name] === true ? 'true' : 'false'}
+                                                                onChange={(e) => setTempAttributes({ ...tempAttributes, [field.name]: e.target.value === 'true' })}
+                                                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
+                                                            >
+                                                                <option value="true">Oui</option>
+                                                                <option value="false">Non</option>
+                                                            </select>
+                                                        ) : (
+                                                            <input
+                                                                type={field.type === 'number' ? 'number' : 'text'}
+                                                                value={tempAttributes[field.name] ?? ''}
+                                                                onChange={(e) => setTempAttributes({ ...tempAttributes, [field.name]: e.target.value })}
+                                                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
+                                                                placeholder={field.label}
+                                                                required={field.required}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Attributs personnalisés */}
+                                    <div className="border-t border-gray-100 pt-4">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                            Attributs personnalisés
+                                        </label>
+                                        {tempCustomAttributes.length > 0 && (
+                                            <div className="space-y-2 mb-3">
+                                                {tempCustomAttributes.map((attr, idx) => (
+                                                    <div key={idx} className="flex items-center gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={attr.name}
+                                                            onChange={(e) => updateCustomAttribute(idx, 'name', e.target.value)}
+                                                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                                            placeholder="Nom"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            value={attr.value}
+                                                            onChange={(e) => updateCustomAttribute(idx, 'value', e.target.value)}
+                                                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                                            placeholder="Valeur"
+                                                        />
+                                                        <button
+                                                            onClick={() => removeCustomAttribute(idx)}
+                                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={newCustomAttrName}
+                                                onChange={(e) => setNewCustomAttrName(e.target.value)}
+                                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                                placeholder="Nom (ex: Matière)"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={newCustomAttrValue}
+                                                onChange={(e) => setNewCustomAttrValue(e.target.value)}
+                                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                                placeholder="Valeur (ex: Bois)"
+                                            />
+                                            <button
+                                                onClick={addCustomAttribute}
+                                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
+                                            >
+                                                <PlusCircle size={20} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Pied de page */}
+                                <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 sticky bottom-0">
+                                    <button
+                                        onClick={() => setShowAttributesModal(false)}
+                                        className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
+                                    >
+                                        Annuler
+                                    </button>
+                                    <button
+                                        onClick={saveAttributes}
+                                        className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition shadow-sm"
+                                    >
+                                        Enregistrer
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+
+
+                {/* Modale de modification du profil prestataire (inchangée) */}
                 <AnimatePresence>
                     {showProfileEditModal && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowProfileEditModal(false)}>
                             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden mx-3 sm:mx-4" onClick={(e) => e.stopPropagation()}>
-                                <div className="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-                                    <div className="flex justify-between items-center"><div className="flex items-center gap-3"><div className="p-2 bg-blue-100 rounded-xl"><User size={20} className="text-blue-600" /></div><h3 className="text-lg sm:text-xl font-bold text-gray-900">Modifier mon profil</h3></div><motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowProfileEditModal(false)} className="p-1.5 sm:p-2 hover:bg-white rounded-lg sm:rounded-xl transition-all"><X size={18} className="sm:w-5 sm:h-5 text-gray-500" /></motion.button></div>
-                                    <p className="text-xs sm:text-sm text-gray-500 mt-2">Modifiez vos informations personnelles</p>
-                                </div>
-                                <div className="flex border-b border-gray-200 px-4 sm:px-6">
-                                    <button onClick={() => setProfileActiveTab('info')} className={`py-3 px-4 text-sm font-medium transition-all relative ${profileActiveTab === 'info' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}><User size={16} className="mr-2" /> Informations</button>
-                                    <button onClick={() => setProfileActiveTab('password')} className={`py-3 px-4 text-sm font-medium transition-all relative ${profileActiveTab === 'password' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}><Lock size={16} className="mr-2" /> Sécurité</button>
-                                </div>
+                                <div className="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50"><div className="flex justify-between items-center"><div className="flex items-center gap-3"><div className="p-2 bg-blue-100 rounded-xl"><User size={20} className="text-blue-600" /></div><h3 className="text-lg sm:text-xl font-bold text-gray-900">Modifier mon profil</h3></div><motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowProfileEditModal(false)} className="p-1.5 sm:p-2 hover:bg-white rounded-lg sm:rounded-xl transition-all"><X size={18} className="sm:w-5 sm:h-5 text-gray-500" /></motion.button></div><p className="text-xs sm:text-sm text-gray-500 mt-2">Modifiez vos informations personnelles</p></div>
+                                <div className="flex border-b border-gray-200 px-4 sm:px-6"><button onClick={() => setProfileActiveTab('info')} className={`py-3 px-4 text-sm font-medium transition-all relative ${profileActiveTab === 'info' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}><User size={16} className="mr-2" /> Informations</button><button onClick={() => setProfileActiveTab('password')} className={`py-3 px-4 text-sm font-medium transition-all relative ${profileActiveTab === 'password' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}><Lock size={16} className="mr-2" /> Sécurité</button></div>
                                 <form onSubmit={handleProfileSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto max-h-[60vh]">
                                     {profileError && (<div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-sm"><AlertCircle size={16} /> {profileError}</div>)}
                                     {profileSuccess && (<div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-600 text-sm"><CheckCircle size={16} /> {profileSuccess}</div>)}
@@ -1355,7 +1433,7 @@ export default function ProfilPres() {
                     )}
                 </AnimatePresence>
 
-                {/* Modal des détails du jour */}
+                {/* Modale des détails du jour (inchangée) */}
                 <AnimatePresence>
                     {showDayDetailsModal && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowDayDetailsModal(false)}>
@@ -1368,7 +1446,7 @@ export default function ProfilPres() {
                 </AnimatePresence>
             </div>
 
-            <style >{`
+            <style>{`
                 @keyframes shake { 0%, 100% { transform: rotate(0deg); } 10%, 30%, 50%, 70%, 90% { transform: rotate(-5deg); } 20%, 40%, 60%, 80% { transform: rotate(5deg); } }
                 .animate-shake { animation: shake 0.5s ease-in-out; }
             `}</style>
