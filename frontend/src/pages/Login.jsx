@@ -99,23 +99,29 @@ export default function Login() {
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    try {
-      if (!credentialResponse?.credential) throw new Error("Pas de token reçu de Google");
+  try {
+    if (!credentialResponse?.credential) throw new Error("Pas de token reçu de Google");
 
-      const res = await axios.post("http://localhost:5000/api/auth/google", {
-        token: credentialResponse.credential,
-      });
+    const res = await axios.post("http://localhost:5000/api/auth/google", {
+      token: credentialResponse.credential,
+    });
 
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+    localStorage.setItem("token", res.data.token);
+    localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      toast.success(`Bienvenue ${res.data.user.firstname || res.data.user.name || "Utilisateur"} ! 👋`);
+    toast.success(`Bienvenue ${res.data.user.firstname || "Utilisateur"} ! 👋`);
+
+    // ← NOUVEAU : vérifier si l'user a déjà un mot de passe app
+    if (res.data.needsPassword) {
+      setTimeout(() => navigate("/create-password"), 800);
+    } else {
       setTimeout(() => navigate("/"), 800);
-
-    } catch (err) {
-      toast.error("Erreur connexion Google : " + (err.response?.data?.message || err.message || "Inconnue"));
     }
-  };
+
+  } catch (err) {
+    toast.error("Erreur connexion Google : " + (err.response?.data?.message || err.message || "Inconnue"));
+  }
+};
 
   const triggerGoogle = () => {
     const btn = googleBtnRef.current?.querySelector("div[role=button]");

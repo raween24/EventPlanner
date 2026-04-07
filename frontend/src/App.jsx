@@ -12,6 +12,7 @@ import PanierRessources   from "./pages/panier";
 import AdminDashboard     from "./pages/Admindashboard";
 import ProfileOrg         from "./pages/ProfilOrganisateur";
 import ProfilPres         from "./pages/ProfilPrestataire";
+import CreatePassword from "./pages/CreatePassword";
 
 export default function App() {
   return (
@@ -37,7 +38,9 @@ export default function App() {
         {/* Organisateur + Prestataire */}
         <Route path="/les_ressources"       element={<RoleGuard roles={["organisateur", "prestataire"]}><OrganizerPage /></RoleGuard>} />
         <Route path="/RessourceDetail/:id"  element={<RoleGuard roles={["organisateur", "prestataire"]}><RessourceDetail /></RoleGuard>} />
+        <Route path="/create-password" element={<CreatePassword />} />
       </Routes>
     </BrowserRouter>
   );
+  
 }
