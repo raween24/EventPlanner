@@ -1,4 +1,4 @@
-// OrganizerDashboard.jsx - Version complète avec NavbarProfileOrg
+// OrganizerDashboard.jsx - Version complète
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
@@ -673,18 +673,40 @@ export default function OrganizerDashboard() {
                             </div>
                         </motion.div>
 
-                        {/* Calendrier avec bouton Nouvel événement sur la même ligne */}
+                        {/* Calendrier avec bouton Nouvel événement dans la barre d'outils */}
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-2">
                             <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-6 border border-gray-100 hover:shadow-2xl transition-all duration-300">
-                                {/* Ligne avec Agenda des événements et bouton Nouvel événement */}
-                                <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 mb-4 sm:mb-6">
-                                    <div className="flex items-center gap-2">
-                                        <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
-                                            <CalendarIcon className="text-blue-600" size={18} />
-                                        </div>
-                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900">Agenda des événements</h3>
+                                {/* Titre Agenda des événements */}
+                                <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                                    <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+                                        <CalendarIcon className="text-blue-600" size={18} />
                                     </div>
-                                    {/* Bouton Nouvel événement - SUR LA MÊME LIGNE */}
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">Agenda des événements</h3>
+                                </div>
+
+                                {/* Barre d'outils avec TOUS les éléments sur la même ligne */}
+                                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {/* Filtre Tous les événements */}
+                                        <select value={selectedEventFilter} onChange={(e) => setSelectedEventFilter(e.target.value)} className="px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                                            <option value="all">Tous les événements</option>
+                                            {events.map(event => (<option key={event._id} value={event._id}>{event.title}</option>))}
+                                        </select>
+                                        
+                                        {/* Bouton Aujourd'hui */}
+                                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={goToToday} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-1 group">
+                                            <Home size={14} className="group-hover:rotate-12 transition-transform" />
+                                            <span>Aujourd'hui</span>
+                                        </motion.button>
+                                        
+                                        {/* Boutons mois précédent/suivant */}
+                                        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={prevMonth} className="p-1.5 sm:p-2 bg-white rounded-lg hover:bg-gray-200 shadow-sm transition-all"><ChevronLeft size={16} /></motion.button>
+                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={nextMonth} className="p-1.5 sm:p-2 bg-white rounded-lg hover:bg-gray-200 shadow-sm transition-all"><ChevronRight size={16} /></motion.button>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Bouton Nouvel événement - À DROITE sur la même ligne */}
                                     <motion.button
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
@@ -697,25 +719,14 @@ export default function OrganizerDashboard() {
                                     </motion.button>
                                 </div>
 
-                                {/* Filtres et navigation */}
-                                <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 mb-4">
-                                    <div className="flex items-center gap-2 w-full xs:w-auto">
-                                        <select value={selectedEventFilter} onChange={(e) => setSelectedEventFilter(e.target.value)} className="px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
-                                            <option value="all">Tous les événements</option>
-                                            {events.map(event => (<option key={event._id} value={event._id}>{event.title}</option>))}
-                                        </select>
-                                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={goToToday} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-1 group"><Home size={14} className="group-hover:rotate-12 transition-transform" /><span>Aujourd'hui</span></motion.button>
-                                        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={prevMonth} className="p-1.5 sm:p-2 bg-white rounded-lg hover:bg-gray-200 shadow-sm transition-all"><ChevronLeft size={16} /></motion.button>
-                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={nextMonth} className="p-1.5 sm:p-2 bg-white rounded-lg hover:bg-gray-200 shadow-sm transition-all"><ChevronRight size={16} /></motion.button>
-                                        </div>
-                                    </div>
-                                </div>
+                                {/* Légende */}
                                 <div className="flex flex-wrap items-center gap-4 mb-4 text-xs">
                                     <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-600 rounded-full ring-2 ring-blue-300"></div><span className="text-gray-600">Jour sélectionné</span></div>
                                     <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-100 border border-blue-300 rounded-full"></div><span className="text-gray-600">Événement</span></div>
                                     {selectedEventFilter !== 'all' && (<div className="flex items-center gap-2"><div className="w-3 h-3 bg-green-500 rounded-full"></div><span className="text-gray-600">Filtre actif: {events.find(e => e._id === selectedEventFilter)?.title}</span></div>)}
                                 </div>
+                                
+                                {/* Calendrier */}
                                 <motion.h4 key={currentMonth.toString()} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center font-semibold text-gray-700 mb-3 sm:mb-4 text-sm sm:text-base bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{getMonthName(currentMonth)}</motion.h4>
                                 <div className="grid grid-cols-7 gap-1 mb-2">{['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (<div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 sm:py-2">{day}</div>))}</div>
                                 <div className="grid grid-cols-7 gap-1">
@@ -735,6 +746,8 @@ export default function OrganizerDashboard() {
                                         );
                                     })}
                                 </div>
+                                
+                                {/* Événements du jour sélectionné */}
                                 <div className="mt-4 sm:mt-6">
                                     <div className="flex items-center justify-between mb-2 sm:mb-3">
                                         <h4 className="text-xs sm:text-sm font-medium text-gray-500 flex items-center gap-1 sm:gap-2"><Calendar size={12} /><span className="truncate max-w-[120px] xs:max-w-[200px] sm:max-w-none">{format(selectedDate, 'EEEE d MMMM', { locale: fr })}</span></h4>
