@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 
+
 // ─── UserAvatar ───────────────────────────────────────────────────────────────
 export const UserAvatar = ({ user, size = "md", showOnlineStatus = true }) => {
   const sizeClasses = { sm: "w-8 h-8 text-sm", md: "w-10 h-10 text-lg", lg: "w-12 h-12 text-xl" };
