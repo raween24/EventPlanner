@@ -1,6 +1,6 @@
-// OrganizerDashboard.js - Version avec Navbar.jsx intégrée
+// OrganizerDashboard.jsx - Version complète avec NavbarProfileOrg
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
     Calendar, ChevronLeft, ChevronRight,
     User, Mail, Phone, Building2,
@@ -26,8 +26,7 @@ import { useNavigate } from 'react-router-dom';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, getDay, addMonths, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
-import Navbar from "../components/Navbar";
-
+import NavbarProfileOrg from "../components/navbarProfileOrg";
 
 export default function OrganizerDashboard() {
     const navigate = useNavigate();
@@ -42,12 +41,11 @@ export default function OrganizerDashboard() {
     const [viewMode, setViewMode] = useState('grid');
     const [hoveredCard, setHoveredCard] = useState(null);
     const [activeTab, setActiveTab] = useState('events');
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // Notifications
-    const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // Données principales
     const [organizer, setOrganizer] = useState(null);
@@ -168,10 +166,9 @@ export default function OrganizerDashboard() {
     }, [selectedDate, events]);
 
     const loadNotifications = () => {
-        // Notifications mockées
         const mockNotifs = [
-            { id: 1, title: 'Bienvenue sur votre espace', message: 'Votre espace organisateur est prêt à être utilisé', time: '5 min', read: false, type: 'success' },
-            { id: 2, title: 'Nouvel événement disponible', message: 'Un nouvel événement a été ajouté à votre calendrier', time: '1 heure', read: false, type: 'info' },
+            { id: 1, title: 'Bienvenue', message: 'Bienvenue sur votre espace organisateur', time: '5 min', read: false, type: 'success' },
+            { id: 2, title: 'Nouvel événement', message: 'Un nouvel événement a été créé', time: '1 heure', read: false, type: 'info' },
         ];
         setNotifications(mockNotifs);
         setUnreadCount(mockNotifs.filter(n => !n.read).length);
@@ -564,90 +561,15 @@ export default function OrganizerDashboard() {
         </div>
     );
 
-    // Composant Notification Bell pour la navbar
-    const NotificationBell = () => (
-        <div className="relative">
-            <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 hover:bg-gray-100 rounded-xl transition-colors group"
-                title="Notifications"
-            >
-                {unreadCount > 0 ? (
-                    <>
-                        <BellRing size={20} className="text-blue-600 group-hover:animate-shake" />
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-md">
-                            {unreadCount > 9 ? '9+' : unreadCount}
-                        </span>
-                    </>
-                ) : (
-                    <Bell size={20} className="text-gray-600 group-hover:text-blue-600 transition-colors" />
-                )}
-            </motion.button>
-            <AnimatePresence>
-                {showNotifications && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
-                    >
-                        <div className="p-3 sm:p-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50">
-                            <h3 className="font-semibold text-gray-900 text-sm sm:text-base flex items-center gap-2">
-                                <Bell size={16} className="text-blue-600" /> Notifications
-                            </h3>
-                            {unreadCount > 0 && (
-                                <button onClick={markAllAsRead} className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-1 bg-white rounded-lg shadow-sm hover:shadow">
-                                    Tout marquer
-                                </button>
-                            )}
-                        </div>
-                        <div className="max-h-96 overflow-y-auto">
-                            {notifications.length > 0 ? (
-                                notifications.map((notif) => (
-                                    <motion.div
-                                        key={notif.id}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className={`p-3 sm:p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-all ${!notif.read ? 'bg-blue-50/30' : ''}`}
-                                        onClick={() => markAsRead(notif.id)}
-                                    >
-                                        <div className="flex items-start gap-2 sm:gap-3">
-                                            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${notif.type === 'success' ? 'bg-green-100' : notif.type === 'warning' ? 'bg-yellow-100' : 'bg-blue-100'}`}>
-                                                {notif.type === 'success' ? <CheckCircle size={16} className="text-green-600" /> : notif.type === 'warning' ? <AlertCircle size={16} className="text-yellow-600" /> : <Bell size={16} className="text-blue-600" />}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">{notif.title}</p>
-                                                <p className="text-gray-500 text-[10px] sm:text-xs mt-0.5 line-clamp-2">{notif.message}</p>
-                                                <p className="text-gray-400 text-[8px] sm:text-[10px] mt-1">il y a {notif.time}</p>
-                                            </div>
-                                            {!notif.read && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-600 rounded-full mt-1" />}
-                                        </div>
-                                    </motion.div>
-                                ))
-                            ) : (
-                                <div className="p-8 text-center text-gray-500 text-sm">
-                                    <Bell size={32} className="mx-auto mb-2 text-gray-300" />
-                                    Aucune notification
-                                </div>
-                            )}
-                        </div>
-                        <div className="p-3 border-t border-gray-100 bg-gray-50">
-                            <button className="w-full text-center text-xs sm:text-sm text-gray-600 hover:text-blue-600 font-medium transition-colors">
-                                Voir toutes les notifications
-                            </button>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
-    );
-
     if (loading) {
         return (
             <>
-                <Navbar />
+                <NavbarProfileOrg 
+                    notifications={notifications}
+                    unreadCount={unreadCount}
+                    onMarkAsRead={markAsRead}
+                    onMarkAllAsRead={markAllAsRead}
+                />
                 <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-gray-50 pt-20">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
@@ -661,7 +583,12 @@ export default function OrganizerDashboard() {
     if (error) {
         return (
             <>
-                <Navbar />
+                <NavbarProfileOrg 
+                    notifications={notifications}
+                    unreadCount={unreadCount}
+                    onMarkAsRead={markAsRead}
+                    onMarkAllAsRead={markAllAsRead}
+                />
                 <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-gray-50 p-4 pt-20">
                     <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="text-center bg-white p-6 sm:p-10 rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full">
                         <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
@@ -679,9 +606,14 @@ export default function OrganizerDashboard() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-            {/* Navbar.jsx avec notification intégrée */}
-            <Navbar notificationComponent={<NotificationBell />} />
-
+            {/* Navbar spécifique pour l'organisateur */}
+            <NavbarProfileOrg 
+                notifications={notifications}
+                unreadCount={unreadCount}
+                onMarkAsRead={markAsRead}
+                onMarkAllAsRead={markAllAsRead}
+            />
+            
             {/* Espacement pour compenser la navbar fixe */}
             <div className="pt-20 sm:pt-24">
                 {/* Main Content */}
@@ -752,7 +684,7 @@ export default function OrganizerDashboard() {
                                         </div>
                                         <h3 className="text-base sm:text-lg font-semibold text-gray-900">Agenda des événements</h3>
                                     </div>
-                                    {/* Bouton Nouvel événement - sur la même ligne que le titre */}
+                                    {/* Bouton Nouvel événement - SUR LA MÊME LIGNE */}
                                     <motion.button
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
@@ -821,7 +753,7 @@ export default function OrganizerDashboard() {
                         </motion.div>
                     </div>
 
-                    {/* Onglets - identiques à l'original */}
+                    {/* Onglets */}
                     <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-6 border border-gray-100">
                         <Tabs />
                         <AnimatePresence mode="wait">
@@ -980,7 +912,7 @@ export default function OrganizerDashboard() {
                         </AnimatePresence>
                     </div>
 
-                    {/* Modals (identiques) */}
+                    {/* Modals */}
                     <AnimatePresence>
                         {showDayEventsModal && (
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowDayEventsModal(false)}>
