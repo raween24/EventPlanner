@@ -1,8 +1,7 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -15,7 +14,6 @@ import {
   X,
 } from "lucide-react"
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
 
 const navItems = [
   { href: "/", label: "Accueil", icon: Home },
@@ -33,33 +31,49 @@ export function MobileNav() {
 
   return (
     <div className="md:hidden">
-      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
+      {/* HEADER */}
+      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-heading font-bold text-xs">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-xs">
             SE
           </div>
-          <span className="font-heading font-semibold text-sm">Smart Event Planner</span>
+          <span className="font-semibold text-sm">
+            Smart Event Planner
+          </span>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setOpen(!open)} aria-label="Menu de navigation">
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
+
+        <button
+          onClick={() => setOpen(!open)}
+          aria-label="Menu de navigation"
+        >
+          {open ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
+        </button>
       </div>
+
+      {/* MENU */}
       {open && (
-        <nav className="border-b border-border bg-card px-4 py-2">
+        <nav className="border-b border-gray-200 bg-white px-4 py-2">
           <ul className="flex flex-col gap-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/" &&
+                  pathname.startsWith(item.href))
+
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     onClick={() => setOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                       isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
+                        ? "bg-blue-100 text-blue-600"
+                        : "text-gray-500 hover:bg-gray-100 hover:text-black"
+                    }`}
                   >
                     <item.icon className="h-5 w-5" />
                     <span>{item.label}</span>
