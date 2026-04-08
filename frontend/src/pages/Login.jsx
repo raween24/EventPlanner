@@ -146,7 +146,7 @@ export default function Login() {
           </button>
 
           <div className="form-header">
-            <span className="badge">✦ YallaEvents</span>
+            <span className="badge">✦ Event Planner</span>
             <h2>Connexion</h2>
             <p className="subtitle">Connectez-vous pour gérer vos événements.</p>
           </div>
