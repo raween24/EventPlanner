@@ -23,6 +23,7 @@ import { useNavigate } from 'react-router-dom';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, getDay, addMonths, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
+
 // Configuration des caractéristiques par catégorie
 const resourceFields = {
     salle: [
@@ -35,7 +36,7 @@ const resourceFields = {
         { name: "nombreTables", label: "Nombre de tables", type: "number" }
     ],
     materiel: [
-        { name: "quantite", label: "Quantité", type: "number", required: true },
+        { name: "quantite", label: "Quantité par lot", type: "number", required: true },
         { name: "etat", label: "État", type: "text" },
         { name: "couleur", label: "Couleur", type: "text" },
         { name: "matiere", label: "Matière", type: "text" },
@@ -44,7 +45,7 @@ const resourceFields = {
     decoration: [
         { name: "type", label: "Type", type: "text" },
         { name: "couleur", label: "Couleur", type: "text" },
-        { name: "quantite", label: "Quantité", type: "number" },
+        { name: "quantite", label: "Quantité par lot", type: "number" },
         { name: "matiere", label: "Matière", type: "text" }
     ],
     traiteur: [
@@ -53,6 +54,7 @@ const resourceFields = {
         { name: "serveursInclus", label: "Serveurs inclus", type: "boolean" }
     ]
 };
+
 export default function ProfilPres() {
     const [showRequestDetailsModal, setShowRequestDetailsModal] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
@@ -91,10 +93,12 @@ export default function ProfilPres() {
         name: '',
         description: '',
         type: '',
+        category: '',
         price: '',
         location: '',
-        attributes: {},          // contiendra capacity, power, size, color, weight, etc.
-        customAttributes: []     // [{ name, value }]
+        stock: 1,
+        attributes: {},
+        customAttributes: []
     });
     const [editLoading, setEditLoading] = useState(false);
     const [editError, setEditError] = useState('');
@@ -209,9 +213,9 @@ export default function ProfilPres() {
                 resourceName: loc.resource?.name || 'Ressource inconnue',
                 resourceId: loc.resource?._id,
                 clientName: loc.organisateur ? `${loc.organisateur.firstname} ${loc.organisateur.lastname}` : 'Client inconnu',
-                cin: loc.organisateur.passportOrCid,
-                tel: loc.organisateur.numTel,
-                region: loc.organisateur.region,
+                cin: loc.organisateur?.passportOrCid,
+                tel: loc.organisateur?.numTel,
+                region: loc.organisateur?.region,
                 eventName: loc.event?.title || 'Événement inconnu',
                 dateDebut: loc.dateDebut,
                 dateFin: loc.dateFin,
@@ -273,10 +277,11 @@ export default function ProfilPres() {
         setEditFormData({
             name: resource.name || '',
             description: resource.description || '',
-            type: resource.type || 'service',     // ← 'product' ou 'service'
-            category: resource.category || '',    // ← 'salle', 'materiel', 'decoration', 'traiteur'
+            type: resource.type || 'service',
+            category: resource.category || '',
             price: resource.price || '',
             location: resource.location || '',
+            stock: resource.stock || 1,
             attributes: attrs,
             customAttributes: resource.customAttributes || []
         });
@@ -349,7 +354,7 @@ export default function ProfilPres() {
 
     // Gestion des caractéristiques : ouverture de la modale dédiée
     const openAttributesModal = () => {
-        const currentType = editFormData.category; // ← category au lieu de type
+        const currentType = editFormData.category;
         const fields = resourceFields[currentType] || [];
 
         const newTempAttributes = { ...editFormData.attributes };
@@ -366,6 +371,7 @@ export default function ProfilPres() {
         setNewCustomAttrValue('');
         setShowAttributesModal(true);
     };
+
     const addCustomAttribute = () => {
         if (newCustomAttrName.trim() && newCustomAttrValue.trim()) {
             setTempCustomAttributes([
@@ -405,10 +411,11 @@ export default function ProfilPres() {
             const formData = new FormData();
             formData.append('name', editFormData.name);
             formData.append('description', editFormData.description);
-            formData.append('type', editFormData.type);           // 'product' ou 'service'
-            formData.append('category', editFormData.category);   // 'salle', 'materiel', etc.
+            formData.append('type', editFormData.type);
+            formData.append('category', editFormData.category);
             formData.append('price', editFormData.price);
             formData.append('location', editFormData.location || '');
+            formData.append('stock', editFormData.stock || 1);
             formData.append('attributes', JSON.stringify(editFormData.attributes));
             formData.append('customAttributes', JSON.stringify(editFormData.customAttributes));
             const imagesToKeep = editImages.map(img => img._id).filter(id => id);
@@ -704,8 +711,6 @@ export default function ProfilPres() {
                     <span className="xs:hidden">Ress.</span>
                     {resources.length > 0 && <span className="bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">{resources.length}</span>}
                 </button>
-
-
                 <button onClick={() => setActiveTab('documents')} className={`pb-4 px-1 flex items-center gap-2 font-medium text-xs sm:text-sm transition-all relative ${activeTab === 'documents' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
                     <FileText size={16} />
                     <span className="hidden xs:inline">Documents</span>
@@ -794,7 +799,7 @@ export default function ProfilPres() {
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8">
-                {/* Section Profil + Calendrier (inchangée) */}
+                {/* Section Profil + Calendrier */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                     {/* Carte Profil */}
                     <motion.div className="lg:col-span-1">
@@ -874,7 +879,7 @@ export default function ProfilPres() {
                     </motion.div>
                 </div>
 
-                {/* Onglets (resources, requests, documents) - inchangé */}
+                {/* Onglets */}
                 <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-6 border border-gray-100">
                     <Tabs />
                     <AnimatePresence mode="wait">
@@ -908,49 +913,6 @@ export default function ProfilPres() {
                                         ))}
                                     </div>
                                 ) : (<div className="text-center py-12"><Package size={48} className="mx-auto mb-4 text-gray-300" /><p className="text-gray-500 mb-4">Aucune ressource trouvée</p><motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate('/add-resource')} className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl shadow-lg hover:shadow-xl">Ajouter une ressource</motion.button></div>)}
-                            </motion.div>
-                        )}
-                        {activeTab === 'requests' && (
-                            <motion.div key="requests" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-                                <h2 className="text-base sm:text-xl font-bold text-gray-900 flex items-center gap-2 mb-4"><ClockIcon size={20} className="text-yellow-600" /> Demandes de réservation</h2>
-                                {requestsLoading ? (
-                                    <div className="flex justify-center py-12"><motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full" /></div>
-                                ) : requests.length === 0 ? (
-                                    <div className="text-center py-12"><ClockIcon size={48} className="mx-auto mb-4 text-gray-300" /><p className="text-gray-500">Aucune demande de réservation</p></div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {requests.map((request, index) => (
-                                            <motion.div key={request.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }} whileHover={{ scale: 1.01 }} onClick={() => handleRequestClick(request)} className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all cursor-pointer">
-                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                                    <div className="flex items-start gap-3">
-                                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${request.status === 'en_attente' ? 'bg-yellow-100' : request.status === 'confirmé' ? 'bg-green-100' : 'bg-red-100'}`}>
-                                                            {request.status === 'en_attente' ? <Clock size={20} className="text-yellow-600" /> : request.status === 'confirmé' ? <CheckCircle size={20} className="text-green-600" /> : <XCircle size={20} className="text-red-600" />}
-                                                        </div>
-                                                        <div>
-                                                            <h3 className="font-semibold text-gray-900">{request.resourceName}</h3>
-                                                            <p className="text-sm text-gray-600 mt-1">{request.eventName}</p>
-                                                            <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-500">
-                                                                <span className="flex items-center gap-1"><User size={12} />{request.clientName}</span>
-                                                                <span className="flex items-center gap-1"><Calendar size={12} />{formatDate(request.dateDebut)}</span>
-                                                                <span className="flex items-center gap-1"><Clock size={12} />{formatTime(request.dateDebut)} - {formatTime(request.dateFin)}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <StatusBadge status={request.status} />
-                                                        <span className="text-lg font-bold text-blue-600">{formatPrice(request.price)}</span>
-                                                        {request.status === 'en_attente' && (
-                                                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                                                                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleRequestAction(request.id, 'accept')} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"><CheckCircle size={18} /></motion.button>
-                                                                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleRequestAction(request.id, 'reject')} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"><XCircle size={18} /></motion.button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        ))}
-                                    </div>
-                                )}
                             </motion.div>
                         )}
                         {activeTab === 'documents' && (
@@ -991,7 +953,7 @@ export default function ProfilPres() {
                     </AnimatePresence>
                 </div>
 
-                {/* Modale de détails de demande (inchangée) */}
+                {/* Modale de détails de demande */}
                 <AnimatePresence>
                     {showRequestDetailsModal && selectedRequest && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowRequestDetailsModal(false)}>
@@ -1016,13 +978,13 @@ export default function ProfilPres() {
                     )}
                 </AnimatePresence>
 
-                {/* ==================== MODALE DE MODIFICATION DE RESSOURCE ==================== */}
+                {/* ==================== MODALE DE MODIFICATION DE RESSOURCE AVEC SCROLL CORRIGÉ ==================== */}
                 <AnimatePresence>
                     {showEditModal && editingResource && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto" onClick={() => setShowEditModal(false)}>
-                            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden mx-2 sm:mx-4" onClick={(e) => e.stopPropagation()}>
-                                {/* En-tête */}
-                                <div className="p-3 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 sticky top-0 z-10">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowEditModal(false)}>
+                            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col mx-2 sm:mx-4" onClick={(e) => e.stopPropagation()}>
+                                {/* En-tête fixe */}
+                                <div className="p-3 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
                                     <div className="flex justify-between items-center">
                                         <div className="flex items-center gap-2 sm:gap-3">
                                             <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg sm:rounded-xl">
@@ -1037,10 +999,10 @@ export default function ProfilPres() {
                                     <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2 truncate">Modifiez les informations de "{editingResource.name}"</p>
                                 </div>
 
-                                {/* Contenu avec scroll */}
-                                <div className="flex flex-col lg:flex-row h-full overflow-y-auto max-h-[calc(95vh-80px)]">
-                                    {/* Colonne gauche - Formulaire */}
-                                    <div className="w-full lg:w-1/2 p-3 sm:p-6 border-b lg:border-b-0 lg:border-r border-gray-200">
+                                {/* Contenu avec scroll indépendant */}
+                                <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+                                    {/* Colonne gauche - Formulaire (scrollable) */}
+                                    <div className="w-full lg:w-1/2 p-3 sm:p-6 border-b lg:border-b-0 lg:border-r border-gray-200 overflow-y-auto max-h-[60vh] lg:max-h-[70vh]">
                                         <form onSubmit={handleEditSubmit} className="space-y-3 sm:space-y-4">
                                             {editError && (
                                                 <div className="p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-xs sm:text-sm">
@@ -1077,12 +1039,39 @@ export default function ProfilPres() {
                                                     </select>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Localisation</label>
-                                                <input type="text" value={editFormData.location} onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })} className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="Ville, adresse..." />
+
+                                            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                                <div>
+                                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Prix (€) *</label>
+                                                    <input type="number" value={editFormData.price} onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })} className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Localisation</label>
+                                                    <input type="text" value={editFormData.location} onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })} className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="Ville, adresse..." />
+                                                </div>
                                             </div>
 
-                                            {/* Caractéristiques : simple affichage avec bouton pour ouvrir la modale dédiée */}
+                                            {/* Champ STOCK - uniquement pour les produits */}
+                                            {editFormData.type === "product" && (
+                                                <div>
+                                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                                        Stock disponible *
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        value={editFormData.stock || 1}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, stock: parseInt(e.target.value) || 1 })}
+                                                        min="0"
+                                                        className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                                        required
+                                                    />
+                                                    <p className="text-[10px] sm:text-xs text-gray-400 mt-1">
+                                                        Quantité disponible pour les organisateurs
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {/* Caractéristiques */}
                                             <div className="border-t border-gray-200 pt-3">
                                                 <div className="flex items-center justify-between">
                                                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Caractéristiques</label>
@@ -1099,7 +1088,6 @@ export default function ProfilPres() {
                                                         <p className="text-gray-500 text-xs">Aucune caractéristique définie</p>
                                                     ) : (
                                                         <ul className="space-y-1">
-                                                            {/* Attributs standards du type */}
                                                             {resourceFields[editFormData.category]?.map(field => {
                                                                 const value = editFormData.attributes[field.name];
                                                                 if (value === undefined || value === '') return null;
@@ -1112,14 +1100,12 @@ export default function ProfilPres() {
                                                                     </li>
                                                                 );
                                                             })}
-                                                            {/* Attributs personnalisés */}
                                                             {editFormData.customAttributes.map((attr, idx) => (
                                                                 <li key={idx} className="flex items-start gap-2">
                                                                     <span className="text-gray-400">•</span>
                                                                     <span><span className="font-medium">{attr.name}</span> : {attr.value}</span>
                                                                 </li>
                                                             ))}
-                                                            {/* Autres attributs (non standards, au cas où) */}
                                                             {Object.entries(editFormData.attributes)
                                                                 .filter(([key]) => !resourceFields[editFormData.category]?.some(f => f.name === key))
                                                                 .map(([key, value]) => (
@@ -1132,6 +1118,7 @@ export default function ProfilPres() {
                                                     )}
                                                 </div>
                                             </div>
+
                                             <div className="pt-3 sm:pt-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
                                                 <button type="button" onClick={() => setShowEditModal(false)} className="order-2 sm:order-1 flex-1 px-3 sm:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all text-sm">Annuler</button>
                                                 <button type="submit" disabled={editLoading} className="order-1 sm:order-2 flex-1 px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 text-sm">
@@ -1141,8 +1128,8 @@ export default function ProfilPres() {
                                         </form>
                                     </div>
 
-                                    {/* Colonne droite - Images et Disponibilités */}
-                                    <div className="w-full lg:w-1/2 p-3 sm:p-6 overflow-y-auto">
+                                    {/* Colonne droite - Images et Disponibilités (scrollable) */}
+                                    <div className="w-full lg:w-1/2 p-3 sm:p-6 overflow-y-auto max-h-[60vh] lg:max-h-[70vh]">
                                         {/* Section Images */}
                                         <div className="mb-4 sm:mb-6">
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
@@ -1254,11 +1241,10 @@ export default function ProfilPres() {
                                 initial={{ scale: 0.9, y: 20 }}
                                 animate={{ scale: 1, y: 0 }}
                                 exit={{ scale: 0.9, y: 20 }}
-                                className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-hidden"
+                                className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                {/* En-tête */}
-                                <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex justify-between items-center sticky top-0">
+                                <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex justify-between items-center flex-shrink-0">
                                     <div>
                                         <h3 className="text-lg font-bold text-gray-900">Caractéristiques</h3>
                                         <p className="text-xs text-purple-600 mt-0.5">
@@ -1271,10 +1257,7 @@ export default function ProfilPres() {
                                         <X size={20} />
                                     </button>
                                 </div>
-
-                                {/* Corps avec scroll */}
-                                <div className="p-4 overflow-y-auto max-h-[60vh] space-y-5">
-                                    {/* Attributs standards */}
+                                <div className="p-4 overflow-y-auto flex-1 space-y-5">
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-3">
                                             Attributs spécifiques
@@ -1313,8 +1296,6 @@ export default function ProfilPres() {
                                             )}
                                         </div>
                                     </div>
-
-                                    {/* Attributs personnalisés */}
                                     <div className="border-t border-gray-100 pt-4">
                                         <label className="block text-sm font-semibold text-gray-700 mb-3">
                                             Attributs personnalisés
@@ -1371,9 +1352,7 @@ export default function ProfilPres() {
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Pied de page */}
-                                <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 sticky bottom-0">
+                                <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 flex-shrink-0">
                                     <button
                                         onClick={() => setShowAttributesModal(false)}
                                         className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
@@ -1392,9 +1371,7 @@ export default function ProfilPres() {
                     )}
                 </AnimatePresence>
 
-
-
-                {/* Modale de modification du profil prestataire (inchangée) */}
+                {/* Modale de modification du profil prestataire */}
                 <AnimatePresence>
                     {showProfileEditModal && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowProfileEditModal(false)}>
@@ -1429,7 +1406,7 @@ export default function ProfilPres() {
                     )}
                 </AnimatePresence>
 
-                {/* Modale des détails du jour (inchangée) */}
+                {/* Modale des détails du jour */}
                 <AnimatePresence>
                     {showDayDetailsModal && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowDayDetailsModal(false)}>
@@ -1443,9 +1420,9 @@ export default function ProfilPres() {
             </div>
 
             <style>{`
-                    @keyframes shake { 0%, 100% { transform: rotate(0deg); } 10%, 30%, 50%, 70%, 90% { transform: rotate(-5deg); } 20%, 40%, 60%, 80% { transform: rotate(5deg); } }
-                    .animate-shake { animation: shake 0.5s ease-in-out; }
-                `}</style>
+                @keyframes shake { 0%, 100% { transform: rotate(0deg); } 10%, 30%, 50%, 70%, 90% { transform: rotate(-5deg); } 20%, 40%, 60%, 80% { transform: rotate(5deg); } }
+                .animate-shake { animation: shake 0.5s ease-in-out; }
+            `}</style>
         </div>
     );
 }

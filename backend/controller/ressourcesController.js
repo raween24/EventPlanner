@@ -38,6 +38,9 @@ const addResource = async (req, res) => {
             price: Number(req.body.price),
             location: req.body.location,
 
+            // ✅ STOCK (pour les produits)
+            stock: req.body.stock ? Number(req.body.stock) : 1,
+
             // ✅ category simple (string)
             category: req.body.categoryName,
 
@@ -170,6 +173,12 @@ const updateResource = async (req, res) => {
         resource.location = req.body.location || resource.location;
         resource.categoryName = categoryName || resource.categoryName;
         resource.terms = req.body.terms || resource.terms;
+
+        // ✅ NOUVEAU : Mettre à jour le STOCK
+        if (req.body.stock !== undefined) {
+            resource.stock = Number(req.body.stock);
+            console.log(`Stock mis à jour pour ${resource.name}: ${resource.stock}`);
+        }
 
         // ================= MEDIA =================
         let imagesToKeep = [];
