@@ -22,7 +22,7 @@ const resourceSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ["salle", "materiel", "decoration", "traiteur"]
+      enum: ["salle", "materiel", "decoration", "traiteur","dj","photographe","serveur"]
     },
 
     // 🔹 Champs dynamiques
@@ -39,11 +39,7 @@ const resourceSchema = new mongoose.Schema(
           type: String,
           required: true
         },
-        type: {
-          type: String,
-          enum: ["text", "number", "boolean"],
-          required: true
-        },
+        
         value: mongoose.Schema.Types.Mixed
       }
     ],

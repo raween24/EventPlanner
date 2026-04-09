@@ -25,5 +25,22 @@ export const resourceFields = {
         { name: "typeCuisine", label: "Type de cuisine", type: "text", required: true },
         { name: "nombrePersonnes", label: "Nombre de personnes", type: "number", required: true },
         { name: "serveursInclus", label: "Serveurs inclus", type: "boolean" }
+    ],
+    dj: [
+        { name: "styleMusique", type: "text", required: true },
+        { name: "duree", type: "number" },
+        { name: "materielInclus", type: "boolean" }
+    ],
+
+    photographe: [
+        { name: "typePhoto", type: "text" },
+        { name: "nombrePhotos", type: "number" },
+        { name: "videoInclus", type: "boolean" }
+    ],
+    serveur: [
+        { name: "nombreServeurs", type: "number", required: true },
+        { name: "tenue", type: "text" }, // classique, moderne...
+        { name: "experience", type: "number" }, // en années
+        { name: "langues", type: "text" }
     ]
 };

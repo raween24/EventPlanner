@@ -36,6 +36,23 @@ export const resourceFields = {
         { name: "typeCuisine", type: "text", required: true }, // tunisien, italien...
         { name: "nombrePersonnes", type: "number", required: true },
         { name: "serveursInclus", type: "boolean" }
+    ],
+    dj: [
+        { name: "styleMusique", type: "text", required: true },
+        { name: "duree", type: "number" },
+        { name: "materielInclus", type: "boolean" }
+    ],
+
+    photographe: [
+        { name: "typePhoto", type: "text" },
+        { name: "nombrePhotos", type: "number" },
+        { name: "videoInclus", type: "boolean" }
+    ],
+    serveur: [
+        { name: "nombreServeurs", type: "number", required: true },
+        { name: "tenue", type: "text" }, // classique, moderne...
+        { name: "experience", type: "number" }, // en années
+        { name: "langues", type: "text" }
     ]
 
 };
