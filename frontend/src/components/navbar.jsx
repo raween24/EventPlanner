@@ -1,6 +1,6 @@
 import {
   Shield, Menu, X, ChevronDown, LogOut, User,
-  ShoppingCart, LayoutDashboard, PlusCircle
+  LayoutDashboard, PlusCircle, ShoppingCart
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -86,7 +86,6 @@ export default function Navbar() {
     setIsOpen(false);
     setIsProfileMenuOpen(false);
     if (path.startsWith("#")) {
-      // Si on n'est pas sur la home, naviguer d'abord
       if (location.pathname !== "/") {
         navigate("/");
         setTimeout(() => {
@@ -117,7 +116,6 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fermer le menu mobile au changement de route
   useEffect(() => {
     setIsOpen(false);
     setIsProfileMenuOpen(false);
@@ -161,7 +159,6 @@ export default function Navbar() {
             transition={{ duration: 0.2 }}
             className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50"
           >
-            {/* Header du menu */}
             <div className={`px-4 py-3 border-b border-gray-100 ${isAdmin ? "bg-gradient-to-r from-red-50 to-orange-50" : "bg-gradient-to-r from-blue-50 to-purple-50"}`}>
               <div className="flex items-center gap-3">
                 {isAdmin
@@ -181,7 +178,6 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* Items */}
             <div className="py-2">
               {isAdmin && (
                 <motion.button whileHover={{ x: 5 }}
@@ -214,14 +210,14 @@ export default function Navbar() {
                 </motion.button>
               )}
 
+              {/* ✅ Lien vers Mes réservations (ex-panier) */}
               {role === "organisateur" && (
                 <motion.button whileHover={{ x: 5 }}
-                  onClick={() => { navigate("/panier"); setIsProfileMenuOpen(false); }}
+                  onClick={() => { navigate("/mes-reservations"); setIsProfileMenuOpen(false); }}
                   className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors"
                 >
                   <ShoppingCart className="w-5 h-5 text-purple-600" />
-                  <span>Mon Panier</span>
-                  <span className="ml-auto bg-purple-100 text-purple-600 text-xs font-semibold px-2 py-1 rounded-full">0</span>
+                  <span>Mes réservations</span>
                 </motion.button>
               )}
 
@@ -260,7 +256,6 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
 
-        {/* Logo */}
         <motion.div
           whileHover={{ scale: 1.05 }}
           className="flex items-center space-x-2 cursor-pointer"
@@ -271,7 +266,6 @@ export default function Navbar() {
           </span>
         </motion.div>
 
-        {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((item, index) => (
             <motion.button
@@ -315,7 +309,6 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Burger mobile */}
         <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}>
           {isOpen
             ? <X className="w-6 h-6 text-gray-700" />
@@ -335,7 +328,6 @@ export default function Navbar() {
           >
             <div className="px-6 py-4 space-y-3">
 
-              {/* Profil mobile */}
               {user && (
                 <div className={`mb-4 p-4 rounded-xl ${isAdmin ? "bg-gradient-to-r from-red-50 to-orange-50" : "bg-gradient-to-r from-blue-50 to-purple-50"}`}>
                   <div className="flex items-center gap-3">
@@ -356,7 +348,6 @@ export default function Navbar() {
                 </div>
               )}
 
-              {/* Liens */}
               {navLinks.map((item) => (
                 <motion.button
                   key={item.name}
@@ -371,7 +362,6 @@ export default function Navbar() {
                 </motion.button>
               ))}
 
-              {/* Actions utilisateur connecté */}
               {user && (
                 <>
                   <div className="border-t border-gray-100 my-2" />
@@ -407,13 +397,14 @@ export default function Navbar() {
                     </motion.button>
                   )}
 
+                  {/* ✅ Lien mobile vers Mes réservations */}
                   {role === "organisateur" && (
                     <motion.button whileHover={{ x: 10 }}
-                      onClick={() => { navigate("/panier"); setIsOpen(false); }}
+                      onClick={() => { navigate("/mes-reservations"); setIsOpen(false); }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg"
                     >
                       <ShoppingCart className="w-5 h-5 text-purple-600" />
-                      <span>Mon Panier</span>
+                      <span>Mes réservations</span>
                     </motion.button>
                   )}
 
@@ -437,7 +428,6 @@ export default function Navbar() {
                 </>
               )}
 
-              {/* Non connecté */}
               {!user && (
                 <div className="flex flex-col gap-3 pt-2">
                   <motion.button

@@ -74,6 +74,13 @@ const resourceSchema = new mongoose.Schema(
       required: true
     },
 
+    // ✅ NOUVEAU CHAMP STOCK (pour les produits)
+    stock: {
+      type: Number,
+      default: 1,
+      min: 0
+    },
+
     // 🔥 🔥 TERMS amélioré
     terms: {
       text: {
@@ -101,6 +108,7 @@ resourceSchema.pre("save", async function () {
     throw new Error("Terms must have text or file");
   }
 });
+
 const Resource = mongoose.model("Resource", resourceSchema);
 
 export default Resource;

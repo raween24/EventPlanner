@@ -3,17 +3,20 @@ import {
   createLocation,
   getMyLocations,
   getLocationsForProvider,
-  updateLocationStatus,
-  deleteLocation, updateStatusByProvider
+  deleteLocation,
+  updateStatusByProvider
 } from "../controller/locationController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/add", verifyToken, createLocation);
-router.get("/get", verifyToken, getMyLocations);
+// Routes pour organisateur
+router.post("/create", verifyToken, createLocation);
+router.get("/get_my_locations", verifyToken, getMyLocations);
+router.delete("/delete/:id", verifyToken, deleteLocation);
+
+// Routes pour prestataire
 router.get("/get_pres", verifyToken, getLocationsForProvider);
-router.put("/update/:id", verifyToken, updateLocationStatus);
 router.put("/update_pres/:id", verifyToken, updateStatusByProvider);
-router.delete("/del/:id", verifyToken, deleteLocation);
+router.get("/get_my_locations", verifyToken, getMyLocations);
 export default router;

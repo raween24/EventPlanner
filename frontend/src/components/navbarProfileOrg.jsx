@@ -2,7 +2,7 @@
 
 import {
   Menu, X, ChevronDown, LogOut, User,
-  ShoppingCart, Bell, BellRing, CheckCircle, AlertCircle
+  Bell, BellRing, CheckCircle, AlertCircle, ShoppingCart
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -235,12 +235,13 @@ export default function NavbarProfileOrg({
                 <span>Mon Profil</span>
               </motion.button>
 
+              {/* ✅ Lien vers Mes réservations (ex-panier) */}
               <motion.button whileHover={{ x: 5 }}
-                onClick={() => { navigate("/panier"); setIsProfileMenuOpen(false); }}
+                onClick={() => { navigate("/mes-reservations"); setIsProfileMenuOpen(false); }}
                 className="w-full px-4 py-3 flex items-center gap-3 text-gray-700 hover:bg-blue-50 transition-colors"
               >
                 <ShoppingCart className="w-5 h-5 text-purple-600" />
-                <span>Mon Panier</span>
+                <span>Mes réservations</span>
               </motion.button>
 
               <div className="my-2 border-t border-gray-100" />
@@ -385,12 +386,13 @@ export default function NavbarProfileOrg({
                     <span>Mon Profil</span>
                   </motion.button>
 
+                  {/* ✅ Lien mobile vers Mes réservations */}
                   <motion.button whileHover={{ x: 10 }}
-                    onClick={() => { navigate("/panier"); setIsOpen(false); }}
+                    onClick={() => { navigate("/mes-reservations"); setIsOpen(false); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg"
                   >
                     <ShoppingCart className="w-5 h-5 text-purple-600" />
-                    <span>Mon Panier</span>
+                    <span>Mes réservations</span>
                   </motion.button>
 
                   <motion.button whileHover={{ x: 10 }}
