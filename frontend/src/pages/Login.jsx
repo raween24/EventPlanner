@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import "../styles/login.css";
 import { GoogleLogin } from "@react-oauth/google";
 import { motion, AnimatePresence } from "framer-motion";
@@ -59,10 +59,27 @@ const useToast = () => {
 export default function Login() {
   const [showPendingPopup, setShowPendingPopup] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ Ajouté pour récupérer l'état de navigation
   const googleBtnRef = useRef(null);
   const toast = useToast();
 
   const [form, setForm] = useState({ email: "", password: "" });
+
+  // ✅ Fonction pour rediriger après connexion
+  const redirectAfterLogin = () => {
+    // Vérifier s'il y a une URL sauvegardée dans localStorage
+    const savedRedirectUrl = localStorage.getItem("redirectAfterLogin");
+    
+    if (savedRedirectUrl) {
+      // Nettoyer le localStorage
+      localStorage.removeItem("redirectAfterLogin");
+      // Rediriger vers l'URL sauvegardée
+      navigate(savedRedirectUrl);
+    } else {
+      // Redirection par défaut vers l'accueil
+      navigate("/");
+    }
+  };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -87,7 +104,9 @@ export default function Login() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
         toast.success(`Bienvenue ${data.user.firstname} ! 👋`);
-        setTimeout(() => navigate("/"), 800);
+        
+        // ✅ Rediriger après un court délai (pour voir le toast)
+        setTimeout(() => redirectAfterLogin(), 800);
       } else {
         toast.error(data.message || "Email ou mot de passe incorrect");
       }
@@ -99,29 +118,37 @@ export default function Login() {
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
-  try {
-    if (!credentialResponse?.credential) throw new Error("Pas de token reçu de Google");
+    try {
+      if (!credentialResponse?.credential) throw new Error("Pas de token reçu de Google");
 
-    const res = await axios.post("http://localhost:5000/api/auth/google", {
-      token: credentialResponse.credential,
-    });
+      const res = await axios.post("http://localhost:5000/api/auth/google", {
+        token: credentialResponse.credential,
+      });
 
-    localStorage.setItem("token", res.data.token);
-    localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
 
-    toast.success(`Bienvenue ${res.data.user.firstname || "Utilisateur"} ! 👋`);
+      toast.success(`Bienvenue ${res.data.user.firstname || "Utilisateur"} ! 👋`);
 
-    // ← NOUVEAU : vérifier si l'user a déjà un mot de passe app
-    if (res.data.needsPassword) {
-      setTimeout(() => navigate("/create-password"), 800);
-    } else {
-      setTimeout(() => navigate("/"), 800);
+      // Vérifier si l'user a déjà un mot de passe
+      if (res.data.needsPassword) {
+        setTimeout(() => {
+          // ✅ Sauvegarder l'URL de redirection pour après la création du mot de passe
+          const savedUrl = localStorage.getItem("redirectAfterLogin");
+          if (savedUrl) {
+            localStorage.setItem("redirectAfterPassword", savedUrl);
+          }
+          navigate("/create-password");
+        }, 800);
+      } else {
+        // ✅ Redirection après connexion Google
+        setTimeout(() => redirectAfterLogin(), 800);
+      }
+
+    } catch (err) {
+      toast.error("Erreur connexion Google : " + (err.response?.data?.message || err.message || "Inconnue"));
     }
-
-  } catch (err) {
-    toast.error("Erreur connexion Google : " + (err.response?.data?.message || err.message || "Inconnue"));
-  }
-};
+  };
 
   const triggerGoogle = () => {
     const btn = googleBtnRef.current?.querySelector("div[role=button]");

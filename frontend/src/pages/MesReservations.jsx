@@ -515,55 +515,88 @@ export default function MesReservations() {
   };
 
   /* ── envoi de demande ── */
-  const sendRequest = async (cartItem, _info, fd) => {
-    const qty      = parseInt(fd.get("quantity")) || cartItem.quantity;
-    const dateDebut = fd.get("dateDebut");
-    const dateFin   = fd.get("dateFin");
-    setSending(cartItem.resourceId);
-    try {
-      // 1. Récupérer ou créer un événement
-      const evRes = await axios.get(`http://localhost:5000/api/event/user_event/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+// ═══════════════════════════════════════════════════════
+// À coller dans MesReservations.jsx
+// Remplace ta fonction sendRequest existante
+// ═══════════════════════════════════════════════════════
 
-      let eventId;
-      if (!evRes.data.length) {
-        const efd = new FormData();
-        efd.append("title",              `Commande ${cartItem.resourceName}`);
-        efd.append("description",        `${qty} × ${cartItem.resourceName}`);
-        efd.append("lieu",               fd.get("adresse") || "À définir");
-        efd.append("category",           "autre");
-        efd.append("type",               "privé");
-        efd.append("dateDebut",          dateDebut || new Date().toISOString());
-        efd.append("dateFin",            dateFin   || new Date().toISOString());
-        efd.append("nombreParticipants", 0);
-        if (fd.get("cinFile")) efd.append("cinFile", fd.get("cinFile"));
-        const ne = await axios.post("http://localhost:5000/api/event/addEvent", efd, {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
-        });
-        eventId = ne.data._id;
-      } else {
-        eventId = evRes.data[0]._id;
-      }
+const sendRequest = async (cartItem, _info, fd) => {
+  const qty       = parseInt(fd.get("quantity")) || cartItem.quantity;
+  const dateDebut = fd.get("dateDebut");
+  const dateFin   = fd.get("dateFin");
+  const nom       = fd.get("nom");
+  const cin       = fd.get("cin");
+  const adresse   = fd.get("adresse") || "À définir";
 
-      // 2. Créer la location
-      await axios.post("http://localhost:5000/api/location/create", {
-        event:     eventId,
-        resource:  cartItem.resourceId,
+  setSending(cartItem.resourceId);
+
+  try {
+    // ─────────────────────────────────────────────
+    // 1. Chercher un événement existant de l'user
+    // ─────────────────────────────────────────────
+    const evRes = await axios.get(
+      `http://localhost:5000/api/event/user_event/${userId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    let eventId;
+
+    if (evRes.data && evRes.data.length > 0) {
+      // Utiliser le premier événement existant
+      eventId = evRes.data[0]._id;
+    } else {
+      // ─────────────────────────────────────────
+      // 2. Créer un événement automatiquement
+      // ─────────────────────────────────────────
+      const eventPayload = {
+        title:              `Commande — ${cartItem.resourceName}`,
+        description:        `${qty} × ${cartItem.resourceName} — par ${nom}`,
+        lieu:               adresse,
+        category:           "autre",          // ← enum autorisé dans ton modèle
+        type:               "privé",
+        dateDebut:          dateDebut || new Date().toISOString(),
+        dateFin:            dateFin   || new Date(Date.now() + 86400000).toISOString(),
+        nombreParticipants: 0,
+      };
+
+      const newEvent = await axios.post(
+        "http://localhost:5000/api/event/addEvent",
+        eventPayload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      eventId = newEvent.data._id;
+    }
+
+    // ─────────────────────────────────────────────
+    // 3. Créer la demande de location
+    // ─────────────────────────────────────────────
+    await axios.post(
+      "http://localhost:5000/api/location/create",
+      {
+        event:    eventId,
+        resource: cartItem.resourceId,
         dateDebut: dateDebut || new Date().toISOString(),
         dateFin:   dateFin   || new Date(Date.now() + 86400000).toISOString(),
-        message:   `Demande de ${fd.get("nom")} — CIN : ${fd.get("cin")}`,
-      }, { headers: { Authorization: `Bearer ${token}` } });
+        message:  `Demande de ${nom} — CIN : ${cin}`,
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      removeItem(cartItem.resourceId);
-      notify(`${qty} × ${cartItem.resourceName} — demande envoyée !`, "success");
-      fetchReservations();
-    } catch (e) {
-      notify(e.response?.data?.message || "Erreur lors de l'envoi.", "error");
-    } finally {
-      setSending(null);
-    }
-  };
+    // ─────────────────────────────────────────────
+    // 4. Supprimer du panier + notifier
+    // ─────────────────────────────────────────────
+    removeItem(cartItem.resourceId);
+    notify(`Demande envoyée pour "${cartItem.resourceName}" !`, "success");
+    fetchReservations();
+
+  } catch (e) {
+    console.error("Erreur sendRequest:", e);
+    notify(e.response?.data?.message || "Erreur lors de l'envoi.", "error");
+  } finally {
+    setSending(null);
+  }
+};
 
   /* ── données dérivées ── */
   const totalCart     = cartItems.reduce((s, i) => s + i.quantity, 0);

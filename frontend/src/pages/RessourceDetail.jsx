@@ -41,9 +41,21 @@ export default function ResourceDetailsPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsPopup, setShowTermsPopup] = useState(false);
 
+  // ✅ Sauvegarder l'URL actuelle dans localStorage avant la redirection
+  const saveCurrentPage = () => {
+    localStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
+  };
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     setCurrentUser(user);
+    
+    // ✅ Vérifier s'il y a une redirection après connexion
+    const redirectUrl = localStorage.getItem("redirectAfterLogin");
+    if (redirectUrl && !user) {
+      // Ne pas effacer immédiatement, on l'utilisera après connexion
+      console.log("Redirection sauvegardée:", redirectUrl);
+    }
   }, []);
 
   useEffect(() => {
@@ -255,7 +267,12 @@ export default function ResourceDetailsPage() {
   const handleAddComment = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
-    if (!newComment.trim() || !currentUser) { alert("Veuillez vous connecter pour commenter"); return; }
+    if (!newComment.trim() || !currentUser) { alert("Veuillez vous connecter pour commenter"); 
+      // ✅ Sauvegarder la page actuelle avant redirection
+      saveCurrentPage();
+      navigate("/login");
+      return; 
+    }
     if (newComment.length < 10) { alert("Le commentaire doit contenir au moins 10 caractères"); return; }
     setSubmitting(true);
     try {
@@ -296,7 +313,13 @@ export default function ResourceDetailsPage() {
   };
 
   const handleReportComment = (commentId) => {
-    if (!currentUser) { alert("Veuillez vous connecter pour signaler un commentaire"); return; }
+    if (!currentUser) { 
+      alert("Veuillez vous connecter pour signaler un commentaire");
+      // ✅ Sauvegarder la page actuelle avant redirection
+      saveCurrentPage();
+      navigate("/login");
+      return; 
+    }
     if (window.confirm("Voulez-vous signaler ce commentaire à l'administrateur ?")) {
       alert("Commentaire signalé. Merci de votre contribution !");
     }
@@ -512,7 +535,11 @@ export default function ResourceDetailsPage() {
                       <Edit3 className="h-4 w-4" />{showCommentForm ? "Annuler" : "Donner mon avis"}
                     </button>
                   ) : (
-                    <button onClick={() => navigate("/login")} className="flex items-center gap-2 text-sm bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">
+                    <button onClick={() => {
+                      // ✅ Sauvegarder la page actuelle avant redirection
+                      saveCurrentPage();
+                      navigate("/login");
+                    }} className="flex items-center gap-2 text-sm bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">
                       <User className="h-4 w-4" />Connectez-vous
                     </button>
                   )}
@@ -805,7 +832,12 @@ export default function ResourceDetailsPage() {
                   onClick={() => {
                     const token = localStorage.getItem("token");
                     const user  = JSON.parse(localStorage.getItem("user"));
-                    if (!token || !user) { navigate("/login"); return; }
+                    if (!token || !user) { 
+                      // ✅ Sauvegarder la page actuelle avant redirection
+                      saveCurrentPage();
+                      navigate("/login");
+                      return; 
+                    }
                     addToCart();
                   }}
                   disabled={!canAddToCart}
