@@ -1,8 +1,8 @@
-import { MapPin, Users, Heart } from "lucide-react";
+import { MapPin, Users, Heart, ImageOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function ResourceCard({ resource = {} }) {
+export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }) {
   const navigate = useNavigate();
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -10,33 +10,66 @@ export default function ResourceCard({ resource = {} }) {
   const [liked, setLiked] = useState(false);
   const [loadingLike, setLoadingLike] = useState(false);
 
-  // 🔹 Images
-  const images =
-    resource.media?.flatMap((m) =>
-      m.img_vd.map((img) =>
-        img.startsWith("http")
-          ? img
-          : `http://localhost:5000/${img}`
-      )
-    ) || [];
+  // ✅ Extraction sécurisée des images
+  // Supporte plusieurs structures possibles de l'API :
+  // 1. resource.media = [{ img_vd: ["url1", "url2"] }]
+  // 2. resource.media = ["url1", "url2"]  (tableau de strings directement)
+  // 3. resource.images = ["url1"]         (clé alternative)
+  const extractImages = () => {
+    const media = resource.media;
 
+    if (!media || media.length === 0) {
+      // Fallback sur resource.images si media absent
+      return (resource.images || []).map(img =>
+        img?.startsWith("http") ? img : `http://localhost:5000/${img}`
+      );
+    }
+
+    // Cas 1 : media est un tableau d'objets avec img_vd
+    if (typeof media[0] === "object" && media[0] !== null && media[0].img_vd) {
+      return media.flatMap(m =>
+        (m?.img_vd || []).map(img =>
+          img?.startsWith("http") ? img : `http://localhost:5000/${img}`
+        )
+      );
+    }
+
+    // Cas 2 : media est un tableau de strings
+    if (typeof media[0] === "string") {
+      return media.map(img =>
+        img?.startsWith("http") ? img : `http://localhost:5000/${img}`
+      );
+    }
+
+    return [];
+  };
+
+  const images = extractImages();
   const isAvailable = resource.availability?.length > 0;
 
-  // 🔥 Initialiser le like depuis localStorage
+  // ✅ Debug : affiche la structure reçue (à retirer en prod)
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const adore = user?.adore || [];
+  }, [resource]);
 
+  // ✅ Initialiser le like depuis localStorage
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    const adore = user?.adore || [];
     setLiked(adore.includes(resource._id));
   }, [resource._id]);
 
-  // 🔥 Toggle Like
+  // ✅ Sync avec prop isLiked si fournie
+  useEffect(() => {
+    if (isLiked !== undefined) setLiked(isLiked);
+  }, [isLiked]);
+
+  // ✅ Toggle Like
   const toggleLike = async (e) => {
     e.stopPropagation();
     if (loadingLike) return;
 
     const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user"));
+    const user = JSON.parse(localStorage.getItem("user") || "null");
 
     if (!token || !user) {
       alert("Vous devez être connecté !");
@@ -50,19 +83,15 @@ export default function ResourceCard({ resource = {} }) {
         ? "http://localhost:5000/api/users/remove"
         : "http://localhost:5000/api/users/like";
 
-      const method = liked ? "DELETE" : "POST";
-
       const res = await fetch(url, {
-        method,
+        method: liked ? "DELETE" : "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          resourceId: resource._id,
-        }),
+        body: JSON.stringify({ resourceId: resource._id }),
       });
-      console.log("resourceId:", resource._id)
+
       const data = await res.json();
 
       if (!res.ok) {
@@ -73,41 +102,37 @@ export default function ResourceCard({ resource = {} }) {
         throw new Error(data.message);
       }
 
-      // 🔥 Mise à jour locale
-      let updatedAdore;
+      const updatedAdore = liked
+        ? (user.adore || []).filter(id => id !== resource._id)
+        : [...(user.adore || []), resource._id];
 
-      if (liked) {
-        updatedAdore = user.adore.filter(id => id !== resource._id);
-        setLiked(false);
-      } else {
-        updatedAdore = [...(user.adore || []), resource._id];
-        setLiked(true);
-      }
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify({ ...user, adore: updatedAdore })
-      );
+      setLiked(!liked);
+      localStorage.setItem("user", JSON.stringify({ ...user, adore: updatedAdore }));
 
     } catch (err) {
-      alert(err.message); // 🔥 meilleur affichage
+      console.error("Erreur like :", err);
+      alert(err.message);
     } finally {
       setLoadingLike(false);
     }
   };
 
-  // 🔹 Animation carrousel
+  // ✅ Animation carrousel au hover
   useEffect(() => {
-    if (!isHovering || images.length === 0) return;
-
+    if (!isHovering || images.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentIndex((prev) =>
-        prev === images.length - 1 ? 0 : prev + 1
-      );
+      setCurrentIndex(prev => (prev === images.length - 1 ? 0 : prev + 1));
     }, 1500);
-
     return () => clearInterval(interval);
-  }, [isHovering, images]);
+  }, [isHovering, images.length]);
+
+  // ✅ Nom du prestataire — supporte plusieurs clés possibles
+  const prestataireNom =
+    resource.prestataire?.lastname ||
+    resource.prestataire?.name ||
+    resource.provider_name ||
+    resource.provider?.name ||
+    "Inconnu";
 
   return (
     <div
@@ -118,89 +143,109 @@ export default function ResourceCard({ resource = {} }) {
       }}
       className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border cursor-pointer"
     >
-      {/* 🔹 Image */}
-      <div className="relative h-52 overflow-hidden">
+      {/* Image */}
+      <div className="relative h-52 overflow-hidden bg-gray-100">
         {images.length > 0 ? (
           <img
             src={images[currentIndex]}
-            alt={resource.name}
-            className="w-full h-full object-cover"
+            alt={resource.name || "Ressource"}
+            className="w-full h-full object-cover transition-opacity duration-500"
+            onError={(e) => {
+              // Si l'image échoue à charger, on affiche un placeholder
+              e.target.style.display = "none";
+              e.target.nextSibling.style.display = "flex";
+            }}
           />
-        ) : (
-          <div className="flex items-center justify-center h-full bg-gray-200">
-            No Image
+        ) : null}
+
+        {/* Placeholder si pas d'image ou erreur */}
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 bg-gray-100"
+          style={{ display: images.length > 0 ? "none" : "flex" }}
+        >
+          <ImageOff size={36} className="mb-2 text-gray-300" />
+          <span className="text-xs text-gray-400">Pas d'image</span>
+        </div>
+
+        {/* Indicateur de slides */}
+        {images.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+            {images.map((_, i) => (
+              <span
+                key={i}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${i === currentIndex ? "bg-white scale-125" : "bg-white/50"}`}
+              />
+            ))}
           </div>
         )}
 
-        {/* ❤️ Like */}
+        {/* Bouton Like */}
         <div
           onClick={toggleLike}
-          className="absolute top-3 right-3 bg-white/80 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:scale-110 transition"
+          className="absolute top-3 right-3 bg-white/80 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:scale-110 transition z-10"
         >
           <Heart
             size={18}
-            className={`transition-all ${liked
-              ? "fill-red-500 text-red-500"
-              : "text-gray-600"
-              }`}
+            className={`transition-all ${liked ? "fill-red-500 text-red-500" : "text-gray-600"}`}
           />
         </div>
 
-        {/* ❌ Indisponible */}
+        {/* Badge indisponible */}
         {!isAvailable && (
-          <span className="absolute top-3 left-3 px-3 py-1 text-xs text-white bg-red-600 rounded-full">
+          <span className="absolute top-3 left-3 px-3 py-1 text-xs text-white bg-red-600 rounded-full z-10">
             Indisponible
           </span>
         )}
       </div>
 
-      {/* 🔹 Contenu */}
+      {/* Contenu */}
       <div className="p-5">
-        <h3 className="text-lg font-semibold">
-          {resource.name}
+        <h3 className="text-lg font-semibold text-slate-800 truncate">
+          {resource.name || "Sans nom"}
         </h3>
 
-        <p className="text-sm text-gray-500">
-          {resource.description}
+        <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+          {resource.description || "Aucune description"}
         </p>
 
         <div className="mt-4 space-y-2 text-sm text-gray-600">
           {resource.location && (
             <div className="flex items-center gap-2">
-              <MapPin size={16} />
-              {resource.location}
+              <MapPin size={16} className="text-blue-500 shrink-0" />
+              <span className="truncate">{resource.location}</span>
             </div>
           )}
-
           {resource.capacity && (
             <div className="flex items-center gap-2">
-              <Users size={16} />
+              <Users size={16} className="text-blue-500 shrink-0" />
               {resource.capacity} personnes
             </div>
           )}
         </div>
 
         <div className="flex items-center justify-between mt-6">
-          <p className="text-xl font-bold">
-            {resource.price?.toFixed(2)}€
+          <p className="text-xl font-bold text-slate-800">
+            {resource.price != null ? `${resource.price.toFixed(2)} €` : "—"}
           </p>
 
           <button
             disabled={!isAvailable}
-            onClick={() =>
-              navigate(`/RessourceDetail/${resource._id}`)
-            }
-            className={`px-5 py-2 rounded-xl ${isAvailable
-              ? "bg-black text-white"
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/RessourceDetail/${resource._id}`);
+            }}
+            className={`px-5 py-2 rounded-xl text-sm font-medium transition ${
+              isAvailable
+                ? "bg-black text-white hover:bg-slate-800"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            }`}
           >
-            voir plus
+            Voir plus
           </button>
         </div>
 
-        <p className="text-xs mt-3 text-gray-500">
-          Proposé par {resource.prestataire?.lastname || "Inconnu"}
+        <p className="text-xs mt-3 text-gray-400">
+          Proposé par <span className="font-medium text-gray-500">{prestataireNom}</span>
         </p>
       </div>
     </div>
