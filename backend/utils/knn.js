@@ -1,10 +1,10 @@
 export function distance(a, b) {
-    let d = 0;
+  let d = 0;
 
-    d += (a.price - b.price) ** 2;
-    d += (a.capacity - b.capacity) ** 2;
+  d += (a.price - b.price) ** 2;
+  d += (a.capacity - b.capacity) ** 2;
 
-    if (a.category !== b.category) d += 1000;
+  if (a.category !== b.category) d += 1000;
 
-    return Math.sqrt(d);
+  return Math.sqrt(d);
 }

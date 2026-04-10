@@ -5,8 +5,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 import connectDB from "./config/db.js";
+import recommendationRoutes from "./routes/recommendationRoutes.js";
 
-// Routes
 import userRoutes from "./routes/userRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import ressourceRoutes from "./routes/ressourceRoutes.js";
@@ -62,6 +62,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/comment", commentRoutes);
 app.use("/api/location", LocationRoutes);
 app.use("/api/send-mail", mailRoutes);
+app.use("/api/recommendations", recommendationRoutes);
 
 // test API
 app.get("/", (req, res) => {
