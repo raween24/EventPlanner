@@ -7,13 +7,6 @@ des noms pour le site
 ****GoEvent****
 eventplanner315@gmail.com
 pass: event123456
-
-des patisseries == traiteur bissifa 3ama non ? 
-la binome 
-Traiteur:
-Spécialité : préparation de plats salés et sucrés, mais surtout plats cuisinés complets (entrées, plats principaux, accompagnements, desserts).
-
-
 les taches : 
 Admin :
 -Visulaiser les documents(batindaa) 
