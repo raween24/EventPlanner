@@ -7,7 +7,7 @@ import Navbar from "../components/Navbar";
 import RecommendationCard from "../components/RecommendationCard";
 import Footer from "../components/footer";
 import { motion } from "framer-motion";
-import AuthModal from "./AuthModal"; // ← ajuste le chemin si nécessaire
+import AuthModal from "../components/AuthModal"; // ← ajuste le chemin si nécessaire
 
 const categoryGroups = [
   { label: "Salle", value: "salle", subCategories: null },
