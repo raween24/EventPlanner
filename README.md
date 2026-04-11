@@ -8,13 +8,10 @@ des noms pour le site
 eventplanner315@gmail.com
 pass: event123456
 les taches : 
+
 Admin :
 -Visulaiser les documents(batindaa) 
 -les signales
-
-sign up :
--separe l'organisateur et le presatatire (chaqu un a sa propre champs)
--google (lezme nal9oulha solution)
 
 ressources:
 -modifier les champs du creation du ressources
