@@ -148,7 +148,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
     if (!isHovering || images.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentIndex(prev => (prev === images.length - 1 ? 0 : prev + 1));
-    }, 1500);
+    }, 700);
     return () => clearInterval(interval);
   }, [isHovering, images.length]);
 

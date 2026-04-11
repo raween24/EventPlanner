@@ -34,6 +34,7 @@ const sortOptions = [
   { label: "Date ancienne", value: "date_asc" },
 ];
 
+<<<<<<< HEAD
 // ─── Lecture cart depuis localStorage ─────────────────────────────────────────
 const readCart = () => {
   try { return JSON.parse(localStorage.getItem("reservationCart") || "[]"); }
@@ -124,6 +125,8 @@ function CartSidebar({ isOpen, onClose, cartItems, onRemove, onSendClick }) {
 /* ─────────────────────────────────────────────────
    CATEGORY DROPDOWN
 ───────────────────────────────────────────────── */
+=======
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
 function CategoryDropdown({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const [hoveredGroup, setHoveredGroup] = useState(null);
@@ -153,11 +156,27 @@ function CategoryDropdown({ value, onChange }) {
           <div className="px-4 py-2.5 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 cursor-pointer"
             onClick={() => { onChange(""); setOpen(false); }}>Toutes les catégories</div>
           <div className="border-t border-gray-100 my-1" />
+<<<<<<< HEAD
           {categoryGroups.map(group => (
             <div key={group.value} className="relative"
               onMouseEnter={() => setHoveredGroup(group.value)} onMouseLeave={() => setHoveredGroup(null)}>
               <div className="px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 cursor-pointer flex justify-between items-center"
                 onClick={() => { if (!group.subCategories) { onChange(group.value); setOpen(false); } }}>
+=======
+          {categoryGroups.map((group) => (
+            <div
+              key={group.value}
+              className="relative"
+              onMouseEnter={() => setHoveredGroup(group.value)}
+              onMouseLeave={() => setHoveredGroup(null)}
+            >
+              <div
+                className="px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 cursor-pointer flex justify-between items-center transition-colors"
+                onClick={() => {
+                  if (!group.subCategories) { onChange(group.value); setOpen(false); }
+                }}
+              >
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
                 <span>{group.label}</span>
                 {group.subCategories && <ChevronRightIcon className="w-4 h-4 text-gray-400" />}
               </div>
@@ -177,9 +196,12 @@ function CategoryDropdown({ value, onChange }) {
   );
 }
 
+<<<<<<< HEAD
 /* ─────────────────────────────────────────────────
    SORT DROPDOWN
 ───────────────────────────────────────────────── */
+=======
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
 function SortDropdown({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -202,12 +224,24 @@ function SortDropdown({ value, onChange }) {
       </button>
       {open && (
         <div className="absolute top-full mt-1 left-0 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 min-w-[200px] py-1">
+<<<<<<< HEAD
           {sortOptions.map(opt => (
             <div key={opt.value}
               className={`px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between ${value === opt.value ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}
               onClick={() => { onChange(opt.value); setOpen(false); }}>
               {opt.label}
               {value === opt.value && <span className="w-2 h-2 rounded-full bg-blue-600" />}
+=======
+          {sortOptions.map((opt) => (
+            <div
+              key={opt.value}
+              className={`px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center justify-between
+                ${value === opt.value ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+            >
+              {opt.label}
+              {value === opt.value && <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />}
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
             </div>
           ))}
         </div>
@@ -216,9 +250,22 @@ function SortDropdown({ value, onChange }) {
   );
 }
 
+<<<<<<< HEAD
 /* ─────────────────────────────────────────────────
    PAGE PRINCIPALE
 ───────────────────────────────────────────────── */
+=======
+// ─── Spinner réutilisable ──────────────────────────────────────────────────────
+function Spinner({ size = "md", color = "blue" }) {
+  const sizes = { sm: "w-5 h-5 border-2", md: "w-8 h-8 border-3", lg: "w-12 h-12 border-4" };
+  const colors = { blue: "border-blue-600", purple: "border-purple-600", white: "border-white" };
+  return (
+    <div className={`${sizes[size]} ${colors[color]} border-t-transparent rounded-full animate-spin inline-block`} />
+  );
+}
+
+// ─── Page principale ───────────────────────────────────────────────────────────
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
 export default function OrganizerPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -232,9 +279,11 @@ export default function OrganizerPage() {
   const [maxPrice, setMaxPrice] = useState("");
   const [sortBy, setSortBy] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingRecs, setLoadingRecs] = useState(true); // ← spinner recommandations
   const [likedResources, setLikedResources] = useState([]);
   const [recommendedResources, setRecommendedResources] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+<<<<<<< HEAD
   const itemsPerPage = 10;
 
   /* ── Cart state ── */
@@ -263,9 +312,30 @@ export default function OrganizerPage() {
       clearInterval(interval);
       window.removeEventListener("storage", sync);
       window.removeEventListener("focus", sync);
+=======
+  const [showFilter, setShowFilter] = useState(true);
+  const itemsPerPage = 12;
+
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userId = user?._id || user?.id || null;
+
+  // ── Likes depuis localStorage ──
+  useEffect(() => {
+    const adore = JSON.parse(localStorage.getItem("adore")) || [];
+    setLikedResources(adore);
+  }, []);
+
+  // ── Hide/show filter on scroll ──
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    const handleScroll = () => {
+      setShowFilter(window.scrollY <= lastScrollY);
+      lastScrollY = window.scrollY;
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
     };
   }, []);
 
+<<<<<<< HEAD
   useEffect(() => {
     setLikedResources(JSON.parse(localStorage.getItem("adore") || "[]"));
   }, []);
@@ -327,6 +397,92 @@ export default function OrganizerPage() {
 
   const filterAndSort = () => {
     let f = [...resources];
+=======
+  // ── CAS 1 & 2 : Recommandations générales ──
+  useEffect(() => {
+    // Si eventId présent → le CAS 3 prendra le relais
+    if (eventId) return;
+
+    const fetchRecommendations = async () => {
+      setLoadingRecs(true);
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5000/api/recommendations", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        });
+        if (!response.ok) throw new Error("Erreur chargement recommandations");
+        const result = await response.json();
+        setRecommendedResources(result.data || []);
+      } catch (error) {
+        console.error("Erreur recommandations :", error);
+        setRecommendedResources([]);
+      } finally {
+        setLoadingRecs(false);
+      }
+    };
+
+    fetchRecommendations();
+  }, [userId, eventId]);
+
+  // ── CAS 3 : Recommandations selon l'événement ──
+  useEffect(() => {
+    if (!eventId) return;
+
+    const fetchEventRecommendations = async () => {
+      setLoadingRecs(true);
+      try {
+        const token = localStorage.getItem("token");
+        const eventData = location.state?.eventData || { category: location.state?.eventCategory };
+        if (!eventData?.category) return;
+
+        const response = await fetch("http://localhost:5000/api/recommendations/event", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(eventData),
+        });
+
+        if (!response.ok) throw new Error("Erreur recommandations événement");
+        const result = await response.json();
+        setRecommendedResources(result.data?.flat || []);
+      } catch (error) {
+        console.error("Erreur recommandations événement :", error);
+      } finally {
+        setLoadingRecs(false);
+      }
+    };
+
+    fetchEventRecommendations();
+  }, [eventId]);
+
+  // ── Chargement de toutes les ressources ──
+  useEffect(() => {
+    const loadResources = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("http://localhost:5000/api/ressources/get_all_ressources");
+        if (!response.ok) throw new Error("Erreur lors du chargement");
+        const data = await response.json();
+        setResources(data);
+      } catch (error) {
+        console.error("Erreur :", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadResources();
+  }, []);
+
+  // ── Filtrage & tri ──
+  useEffect(() => {
+    let filtered = [...resources];
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
     if (searchTerm) {
       const t = searchTerm.toLowerCase();
       f = f.filter(r =>
@@ -336,6 +492,7 @@ export default function OrganizerPage() {
         r.provider_name?.toLowerCase().includes(t)
       );
     }
+<<<<<<< HEAD
     if (selectedSubCategory) f = f.filter(r => r.category === selectedSubCategory);
     if (maxPrice) f = f.filter(r => r.price <= parseFloat(maxPrice));
     switch (sortBy) {
@@ -349,6 +506,35 @@ export default function OrganizerPage() {
     setFilteredResources(f);
   };
 
+=======
+    if (selectedSubCategory) filtered = filtered.filter((r) => r.category === selectedSubCategory);
+    if (maxPrice) filtered = filtered.filter((r) => r.price <= parseFloat(maxPrice));
+
+    switch (sortBy) {
+      case "price_asc": filtered.sort((a, b) => (a.price || 0) - (b.price || 0)); break;
+      case "price_desc": filtered.sort((a, b) => (b.price || 0) - (a.price || 0)); break;
+      case "name_asc": filtered.sort((a, b) => (a.name || "").localeCompare(b.name || "")); break;
+      case "name_desc": filtered.sort((a, b) => (b.name || "").localeCompare(a.name || "")); break;
+      case "date_desc": filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)); break;
+      case "date_asc": filtered.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)); break;
+      default: break;
+    }
+    setFilteredResources(filtered);
+  }, [resources, searchTerm, selectedSubCategory, maxPrice, sortBy]);
+
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedSubCategory, maxPrice, sortBy]);
+
+  const handleLikeUpdate = (resourceId, isLiked) => {
+    setLikedResources((prev) =>
+      isLiked ? [...prev, resourceId] : prev.filter((id) => id !== resourceId)
+    );
+  };
+
+  // ── Pagination ──
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentResources = filteredResources.slice(indexOfFirstItem, indexOfLastItem);
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
   const totalPages = Math.ceil(filteredResources.length / itemsPerPage);
   const currentResources = filteredResources.slice((currentPage-1)*itemsPerPage, currentPage*itemsPerPage);
   const goToPage = (p) => {
@@ -361,6 +547,7 @@ export default function OrganizerPage() {
     return currentPage-2+i;
   });
 
+<<<<<<< HEAD
   const PaginationControls = () => (
     <div className="flex items-center gap-1.5">
       <button onClick={() => goToPage(currentPage-1)} disabled={currentPage===1}
@@ -375,14 +562,83 @@ export default function OrganizerPage() {
       ))}
       <button onClick={() => goToPage(currentPage+1)} disabled={currentPage===totalPages}
         className={`p-1.5 rounded-lg border transition-all ${currentPage===totalPages ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed" : "bg-white text-gray-600 border-gray-200 hover:bg-blue-50 hover:border-blue-300"}`}>
+=======
+  const getPageNumbers = () => {
+    return Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+      if (totalPages <= 5) return i + 1;
+      if (currentPage <= 3) return i + 1;
+      if (currentPage >= totalPages - 2) return totalPages - 4 + i;
+      return currentPage - 2 + i;
+    });
+  };
+
+  const PaginationControls = () => (
+    <div className="flex items-center gap-1.5">
+      <button
+        onClick={() => goToPage(currentPage - 1)}
+        disabled={currentPage === 1}
+        className={`p-1.5 rounded-lg border transition-all ${currentPage === 1
+          ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
+          : "bg-white text-gray-600 border-gray-200 hover:bg-blue-50 hover:border-blue-300"}`}
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+      {getPageNumbers().map((pageNum) => (
+        <button
+          key={pageNum}
+          onClick={() => goToPage(pageNum)}
+          className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${currentPage === pageNum
+            ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+            : "bg-white text-gray-600 border border-gray-200 hover:bg-blue-50"}`}
+        >
+          {pageNum}
+        </button>
+      ))}
+      <button
+        onClick={() => goToPage(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className={`p-1.5 rounded-lg border transition-all ${currentPage === totalPages
+          ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
+          : "bg-white text-gray-600 border-gray-200 hover:bg-blue-50 hover:border-blue-300"}`}
+      >
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
         <ChevronRight className="w-4 h-4" />
       </button>
     </div>
   );
 
+  // ── Titre & message bannière dynamiques selon le cas ──
+  const getBannerContent = () => {
+    if (eventId) return {
+      title: "🎯 Ressources pour votre événement",
+      subtitle: "Sélection personnalisée selon les caractéristiques de votre événement",
+      gradient: "from-purple-600 to-pink-600",
+    };
+    if (userId) return {
+      title: "✨ Bienvenue, nous sommes toujours là pour vous !",
+      subtitle: "Vos recommandations personnalisées sont prêtes selon vos préférences",
+      gradient: "from-blue-600 to-purple-600",
+    };
+    return {
+      title: "✨ Organisez l'événement inoubliable",
+      subtitle: "Des centaines de ressources à portée de main, filtrées selon vos besoins",
+      gradient: "from-blue-600 to-purple-600",
+    };
+  };
+
+  const banner = getBannerContent();
+
+  // ── Titre section recommandations dynamique ──
+  const getRecsTitle = () => {
+    if (eventId) return "🎯 Ressources pour votre événement";
+    if (userId) return "✨ Nous sommes toujours là pour vous";
+    return "🔥 Les plus populaires";
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <Navbar />
+<<<<<<< HEAD
 
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} pendingItem={null} onAuthSuccess={handleAuthSuccess} />
       <CartSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} cartItems={cartItems} onRemove={removeFromCart} onSendClick={handleSendClick} />
@@ -396,13 +652,31 @@ export default function OrganizerPage() {
             <div className="relative z-10">
               <h2 className="text-2xl font-bold mb-2">✨ Organisez l'événement inoubliable</h2>
               <p className="text-blue-100">Des centaines de ressources à portée de main, filtrées selon vos besoins</p>
+=======
+      <div className="pt-28 pb-10 px-4 max-w-7xl mx-auto">
+
+        {/* ── Bannière dynamique ── */}
+        <div className="mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`relative overflow-hidden rounded-2xl bg-gradient-to-r ${banner.gradient} p-8 text-white shadow-xl`}
+          >
+            <div className="relative z-10">
+              <h2 className="text-2xl font-bold mb-2">{banner.title}</h2>
+              <p className="text-white/80 mb-4">{banner.subtitle}</p>
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
             </div>
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
           </motion.div>
         </div>
 
+<<<<<<< HEAD
         {/* ════ FILTRES + BOUTON PANIER ════ */}
+=======
+        {/* ── Filtres ── */}
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
         <motion.div className="bg-white rounded-2xl shadow-lg p-6 mb-10 border border-gray-100">
 
           <div className="flex items-center justify-between mb-5">
@@ -431,7 +705,10 @@ export default function OrganizerPage() {
               )}
             </button>
           </div>
+<<<<<<< HEAD
 
+=======
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
             <div className="lg:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-2">Rechercher une ressource</label>
@@ -444,6 +721,7 @@ export default function OrganizerPage() {
             </div>
             <div><CategoryDropdown value={selectedSubCategory} onChange={setSelectedSubCategory} /></div>
             <div>
+<<<<<<< HEAD
               <label className="block text-sm font-medium text-slate-700 mb-2">Budget max (€)</label>
               <input type="number" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} min="0" placeholder="Ex: 500"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm hover:border-blue-300 transition-colors" />
@@ -455,12 +733,33 @@ export default function OrganizerPage() {
             <div className="flex justify-end mt-4">
               <button onClick={() => { setSearchTerm(""); setSelectedSubCategory(""); setMaxPrice(""); setSortBy(""); }}
                 className="px-4 py-2 rounded-lg border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors">
+=======
+              <label className="block text-sm font-medium text-slate-700 mb-2">Budget max (DT)</label>
+              <input
+                type="number"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                min="0"
+                placeholder="Ex: 500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm hover:border-blue-300 transition-colors"
+              />
+            </div>
+            <div><SortDropdown value={sortBy} onChange={setSortBy} /></div>
+          </div>
+          {(searchTerm || selectedSubCategory || maxPrice || sortBy) && (
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => { setSearchTerm(""); setSelectedSubCategory(""); setMaxPrice(""); setSortBy(""); }}
+                className="px-4 py-2 rounded-lg border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors"
+              >
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
                 Réinitialiser les filtres
               </button>
             </div>
           )}
         </motion.div>
 
+<<<<<<< HEAD
         {/* Recommandations */}
         {recommendedResources.length > 0 && (
           <div className="mb-12">
@@ -470,11 +769,48 @@ export default function OrganizerPage() {
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {recommendedResources.slice(0, 5).map(r => <RecommendationCard key={r._id} resource={r} />)}
-            </div>
+=======
+        {/* ── Section Recommandations avec spinner ── */}
+        <div className="mb-12">
+          <div className="flex items-center gap-2 mb-6">
+            <Sparkles className="w-6 h-6 text-purple-600" />
+            <h2 className="text-2xl font-bold text-slate-800">{getRecsTitle()}</h2>
+            {/* Spinner inline pendant le chargement */}
+            {loadingRecs && <Spinner size="sm" color="purple" />}
           </div>
-        )}
 
+          {loadingRecs ? (
+            // ── Skeleton cards pendant le chargement ──
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl shadow-md p-4 animate-pulse">
+                  <div className="w-full h-48 bg-gray-200 rounded-xl mb-4" />
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+                  <div className="h-4 bg-gray-200 rounded w-2/3" />
+                </div>
+              ))}
+            </div>
+          ) : recommendedResources.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {recommendedResources.slice(0, 6).map((resource) => (
+                <RecommendationCard key={resource._id} resource={resource} />
+              ))}
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-md p-8 text-center text-gray-400">
+              <Sparkles className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>Aucune recommandation disponible pour le moment.</p>
+            </div>
+          )}
+        </div>
+
+<<<<<<< HEAD
         {/* Liste */}
+=======
+        {/* ── Liste ressources ── */}
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
         <div>
           <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
             <div className="flex items-center gap-3">
@@ -487,7 +823,7 @@ export default function OrganizerPage() {
 
           {loading ? (
             <div className="text-center py-16">
-              <div className="inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <Spinner size="lg" color="blue" />
               <p className="mt-4 text-slate-500">Chargement des ressources...</p>
             </div>
           ) : filteredResources.length === 0 ? (
@@ -504,7 +840,15 @@ export default function OrganizerPage() {
                     onLikeUpdate={handleLikeUpdate} onBook={() => setSelectedResource(r)} />
                 ))}
               </div>
+<<<<<<< HEAD
               {totalPages > 1 && <div className="mt-12 flex justify-center"><PaginationControls /></div>}
+=======
+              {totalPages > 1 && (
+                <div className="mt-12 flex justify-center items-center gap-3">
+                  <PaginationControls />
+                </div>
+              )}
+>>>>>>> af1dc5ccf51fb5f1eec59841b115453607b925ad
             </>
           )}
         </div>
