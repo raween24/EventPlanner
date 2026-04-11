@@ -275,8 +275,8 @@ export default function Navbar() {
               transition={{ delay: index * 0.1 }}
               onClick={() => handleNavClick(item.path)}
               className={`relative font-medium group transition-colors ${isActive(item.path) && !item.path.startsWith("#")
-                  ? "text-blue-600"
-                  : "text-gray-700 hover:text-blue-600"
+                ? "text-blue-600"
+                : "text-gray-700 hover:text-blue-600"
                 }`}
             >
               {item.name}
@@ -354,8 +354,8 @@ export default function Navbar() {
                   whileHover={{ x: 10 }}
                   onClick={() => handleNavClick(item.path)}
                   className={`block w-full text-left py-2 px-4 rounded-lg transition ${isActive(item.path) && !item.path.startsWith("#")
-                      ? "bg-blue-50 text-blue-600 font-semibold"
-                      : "text-gray-700 hover:bg-blue-50"
+                    ? "bg-blue-50 text-blue-600 font-semibold"
+                    : "text-gray-700 hover:bg-blue-50"
                     }`}
                 >
                   {item.name}
@@ -416,7 +416,9 @@ export default function Navbar() {
                       <PlusCircle className="w-5 h-5 text-orange-600" />
                       <span>Publier une ressource</span>
                     </motion.button>
+
                   )}
+               
 
                   <motion.button whileHover={{ x: 10 }}
                     onClick={() => { handleLogout(); setIsOpen(false); }}

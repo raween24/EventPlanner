@@ -25,7 +25,8 @@ router.post(
     { name: "media", maxCount: 10 }
   ]),
   addResource
-);router.get("/get_all_ressources", getAllResources);
+);
+router.get("/get_all_ressources", getAllResources);
 router.get("/get_by_id/:id", getResourceById);
 router.get("/res_user", verifyToken, getResourcesByUser);
 router.put("/modify/:id", verifyToken, upload.array("media"), updateResource);

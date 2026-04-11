@@ -1,8 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from "lucide-react";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import "../styles/signup.css";
+
+// === Correction des icônes Leaflet ===
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+// === Toast ===
+const useToast = () => {
+  const [toasts, setToasts] = useState([]);
+  const add = useCallback((message, type = "info", duration = 4000) => {
+    const id = Date.now();
+    setToasts(p => [...p, { id, message, type }]);
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), duration);
+  }, []);
+  const remove = useCallback((id) => setToasts(p => p.filter(t => t.id !== id)), []);
+  return {
+    toasts, remove,
+    success: useCallback((m) => add(m, "success"), [add]),
+    error: useCallback((m) => add(m, "error"), [add]),
+    info: useCallback((m) => add(m, "info"), [add]),
+    warning: useCallback((m) => add(m, "warning"), [add]),
+  };
+};
 
 const ToastContainer = ({ toasts, removeToast }) => (
   <div style={{ position: "fixed", top: 20, right: 20, zIndex: 9999, display: "flex", flexDirection: "column", gap: 10, pointerEvents: "none" }}>
@@ -10,8 +39,8 @@ const ToastContainer = ({ toasts, removeToast }) => (
       {toasts.map(t => {
         const cfg = {
           success: { bg: "#f0fdf4", border: "#86efac", color: "#16a34a", icon: <CheckCircle size={18} /> },
-          error:   { bg: "#fef2f2", border: "#fca5a5", color: "#dc2626", icon: <XCircle size={18} /> },
-          info:    { bg: "#eff6ff", border: "#93c5fd", color: "#2563eb", icon: <Info size={18} /> },
+          error: { bg: "#fef2f2", border: "#fca5a5", color: "#dc2626", icon: <XCircle size={18} /> },
+          info: { bg: "#eff6ff", border: "#93c5fd", color: "#2563eb", icon: <Info size={18} /> },
           warning: { bg: "#fffbeb", border: "#fcd34d", color: "#d97706", icon: <AlertTriangle size={18} /> },
         }[t.type] || {};
         return (
@@ -21,11 +50,17 @@ const ToastContainer = ({ toasts, removeToast }) => (
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 60 }}
             transition={{ duration: 0.3 }}
-            style={{ display: "flex", alignItems: "center", gap: 10, background: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 14, padding: "13px 16px", minWidth: 300, maxWidth: 380, boxShadow: "0 4px 24px rgba(0,0,0,.1)", pointerEvents: "all" }}
+            style={{
+              display: "flex", alignItems: "center", gap: 10,
+              background: cfg.bg, border: `1px solid ${cfg.border}`,
+              borderRadius: 14, padding: "13px 16px",
+              minWidth: 300, maxWidth: 380,
+              boxShadow: "0 4px 24px rgba(0,0,0,.1)", pointerEvents: "all",
+            }}
           >
             <span style={{ color: cfg.color, flexShrink: 0 }}>{cfg.icon}</span>
             <span style={{ fontSize: 13, color: "#1e293b", fontWeight: 500, flex: 1, lineHeight: 1.4 }}>{t.message}</span>
-            <button onClick={() => removeToast(t.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, pointerEvents: "all" }}>
+            <button onClick={() => removeToast(t.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2 }}>
               <X size={14} />
             </button>
           </motion.div>
@@ -35,51 +70,101 @@ const ToastContainer = ({ toasts, removeToast }) => (
   </div>
 );
 
-const useToast = () => {
-  const [toasts, setToasts] = useState([]);
-  const add = (message, type = "info", duration = 4000) => {
-    const id = Date.now();
-    setToasts(p => [...p, { id, message, type }]);
-    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), duration);
+// === Carte — FIX boucle infinie ===
+// On passe uniquement les coordonnées primitives et un callback stable
+const LocationPicker = ({ centerLat, centerLng, onLocationChange }) => {
+  const [markerPos, setMarkerPos] = useState(
+    centerLat && centerLng ? { lat: centerLat, lng: centerLng } : null
+  );
+  // Sync externe → marqueur (seulement quand les coords changent réellement)
+  const prevCenter = useRef({ lat: centerLat, lng: centerLng });
+  useEffect(() => {
+    if (
+      centerLat && centerLng &&
+      (prevCenter.current.lat !== centerLat || prevCenter.current.lng !== centerLng)
+    ) {
+      prevCenter.current = { lat: centerLat, lng: centerLng };
+      setMarkerPos({ lat: centerLat, lng: centerLng });
+    }
+  }, [centerLat, centerLng]);
+
+  const handleMove = useCallback((lat, lng) => {
+    setMarkerPos({ lat, lng });
+    onLocationChange(lat, lng);
+  }, [onLocationChange]);
+
+  const MapClickHandler = () => {
+    useMapEvents({
+      click(e) { handleMove(e.latlng.lat, e.latlng.lng); },
+    });
+    return null;
   };
-  const remove = (id) => setToasts(p => p.filter(t => t.id !== id));
-  return {
-    toasts, remove,
-    success: m => add(m, "success"),
-    error:   m => add(m, "error"),
-    info:    m => add(m, "info"),
-    warning: m => add(m, "warning"),
-  };
+
+  const mapCenter = centerLat && centerLng ? [centerLat, centerLng] : [36.8065, 10.1815];
+
+  return (
+    <MapContainer
+      center={mapCenter}
+      zoom={13}
+      style={{ height: "300px", width: "100%", borderRadius: "16px", zIndex: 0 }}
+    >
+      <TileLayer
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        attribution='&copy; OSM &copy; CartoDB'
+      />
+      <MapClickHandler />
+      {markerPos && (
+        <Marker
+          position={[markerPos.lat, markerPos.lng]}
+          draggable
+          eventHandlers={{
+            dragend: (e) => {
+              const { lat, lng } = e.target.getLatLng();
+              handleMove(lat, lng);
+            },
+          }}
+        />
+      )}
+    </MapContainer>
+  );
 };
 
+// === Page Signup ===
 export default function Signup() {
   const navigate = useNavigate();
   const toast = useToast();
 
   const [role, setRole] = useState("organisateur");
   const [showPendingPopup, setShowPendingPopup] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [form, setForm] = useState({
     firstname: "", lastname: "",
-    nomSociete: "",           // ← NOUVEAU
+    nomSociete: "",
     email: "", password: "",
     numPatente: "", numTel: "",
-    patenteFile: null, image: "",
+    patenteFile: null, image: null,
+    locationLat: null, locationLng: null,
   });
   const [preview, setPreview] = useState(null);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  // Coordonnées de la carte stockées séparément pour éviter les re-renders en cascade
+  const [mapLat, setMapLat] = useState(36.8065);
+  const [mapLng, setMapLng] = useState(10.1815);
+
+  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setPreview(URL.createObjectURL(file));
-    setForm({ ...form, image: file });
+    setForm(f => ({ ...f, image: file }));
   };
 
   const handlePatenteChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setForm({ ...form, patenteFile: file });
+    setForm(f => ({ ...f, patenteFile: file }));
   };
 
   const handleRoleChange = (newRole) => {
@@ -87,12 +172,44 @@ export default function Signup() {
     setForm(f => ({ ...f, numPatente: "", numTel: "", patenteFile: null, nomSociete: "" }));
   };
 
+  // Callback stable pour la carte
+  const handleLocationChange = useCallback((lat, lng) => {
+    setMapLat(lat);
+    setMapLng(lng);
+    setForm(f => ({ ...f, locationLat: lat, locationLng: lng }));
+  }, []);
+
+  // Détection auto au premier chargement — appelée UNE seule fois
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        handleLocationChange(coords.latitude, coords.longitude);
+        toast.success("Position détectée 📍");
+      },
+      () => toast.warning("Position non détectée automatiquement")
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // tableau vide intentionnel — une seule fois au mount
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) { toast.warning("Géolocalisation non supportée"); return; }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        handleLocationChange(coords.latitude, coords.longitude);
+        toast.success("Position mise à jour 📍");
+      },
+      () => toast.warning("Impossible de récupérer votre position")
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+
     const formData = new FormData();
 
     if (role === "prestataire") {
-      // Pour prestataire : nom de société → stocké dans firstname
       formData.append("firstname", form.nomSociete);
       formData.append("lastname", "");
       formData.append("nomSociete", form.nomSociete);
@@ -100,6 +217,20 @@ export default function Signup() {
       formData.append("firstname", form.firstname);
       formData.append("lastname", form.lastname);
     }
+
+    if (form.locationLat && form.locationLng) {
+      formData.append("location", JSON.stringify({
+        type: "Point",
+        coordinates: [form.locationLng, form.locationLat], // [lng, lat] — ordre MongoDB
+      }));
+    } else {
+      // Valeur par défaut : Tunis
+      formData.append("location", JSON.stringify({
+        type: "Point",
+        coordinates: [10.1815, 36.8065],
+      }));
+    }
+
 
     formData.append("email", form.email);
     formData.append("password", form.password);
@@ -118,18 +249,23 @@ export default function Signup() {
         body: formData,
       });
       const data = await res.json();
+
       if (res.ok) {
         if (role === "prestataire") {
+          // Affiche la popup — la navigation se fait depuis le bouton "J'ai compris"
           setShowPendingPopup(true);
         } else {
+          // Organisateur → login directement
           toast.success("Compte créé avec succès ! 🎉");
-          setTimeout(() => navigate("/login"), 1200);
+          setTimeout(() => navigate("/login"), 1000);
         }
       } else {
         toast.error(data.message || "Erreur lors de la création du compte");
       }
-    } catch (err) {
+    } catch {
       toast.error("Erreur serveur — veuillez réessayer");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -148,7 +284,6 @@ export default function Signup() {
 
       <div className="auth-left">
         <div className="form-wrapper">
-
           <div className="auth-card-header">
             <span className="auth-badge">✦ YallaEvents</span>
             <h2>Créer un compte</h2>
@@ -159,31 +294,28 @@ export default function Signup() {
             </p>
           </div>
 
-          {/* ── Toggle rôle ── */}
+          {/* Toggle rôle */}
           <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 12, padding: 4, gap: 4, marginBottom: 28 }}>
-            <button type="button" onClick={() => handleRoleChange("organisateur")} style={{
-              flex: 1, padding: "10px 0", borderRadius: 9, border: "none", cursor: "pointer",
-              fontWeight: 600, fontSize: 14, transition: "all 0.2s",
-              background: !isPrestataire ? "#fff" : "transparent",
-              color: !isPrestataire ? "#2563eb" : "#64748b",
-              boxShadow: !isPrestataire ? "0 1px 6px rgba(0,0,0,0.1)" : "none",
-            }}>
-              Organisateur
-            </button>
-            <button type="button" onClick={() => handleRoleChange("prestataire")} style={{
-              flex: 1, padding: "10px 0", borderRadius: 9, border: "none", cursor: "pointer",
-              fontWeight: 600, fontSize: 14, transition: "all 0.2s",
-              background: isPrestataire ? "#fff" : "transparent",
-              color: isPrestataire ? "#7c3aed" : "#64748b",
-              boxShadow: isPrestataire ? "0 1px 6px rgba(0,0,0,0.1)" : "none",
-            }}>
-              Prestataire
-            </button>
+            {["organisateur", "prestataire"].map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => handleRoleChange(r)}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 9, border: "none", cursor: "pointer",
+                  fontWeight: 600, fontSize: 14, transition: "all 0.2s",
+                  background: role === r ? "#fff" : "transparent",
+                  color: role === r ? (r === "prestataire" ? "#7c3aed" : "#2563eb") : "#64748b",
+                  boxShadow: role === r ? "0 1px 6px rgba(0,0,0,0.1)" : "none",
+                }}
+              >
+                {r.charAt(0).toUpperCase() + r.slice(1)}
+              </button>
+            ))}
           </div>
 
           <form className="signup-form" onSubmit={handleSubmit}>
-
-            {/* ── Champs selon le rôle ── */}
+            {/* Nom / prénom ou société */}
             {!isPrestataire ? (
               <>
                 <div className="field-wrap">
@@ -196,16 +328,9 @@ export default function Signup() {
                 </div>
               </>
             ) : (
-              // ← NOUVEAU : Nom de société pour prestataire
               <div className="field-wrap span-2">
                 <label>Nom de société</label>
-                <input
-                  name="nomSociete"
-                  placeholder="Ex: Traiteur El Amal, Studio Photo Lumière..."
-                  value={form.nomSociete}
-                  onChange={handleChange}
-                  required
-                />
+                <input name="nomSociete" placeholder="Ex: Traiteur El Amal, Studio Photo Lumière..." value={form.nomSociete} onChange={handleChange} required />
               </div>
             )}
 
@@ -219,7 +344,32 @@ export default function Signup() {
               <input type="password" name="password" placeholder="••••••••" value={form.password} onChange={handleChange} required />
             </div>
 
-            {/* ── Champs spécifiques prestataire ── */}
+            {/* Carte interactive */}
+            <div className="field-wrap span-2" style={{ marginTop: 8 }}>
+              <label>📍 Votre position sur la carte</label>
+              <LocationPicker
+                centerLat={mapLat}
+                centerLng={mapLng}
+                onLocationChange={handleLocationChange}
+              />
+              <button
+                type="button"
+                onClick={handleUseMyLocation}
+                style={{
+                  marginTop: 12, padding: "10px 16px", borderRadius: 12,
+                  border: "1px solid #cbd5e1", background: "#f8fafc",
+                  cursor: "pointer", fontWeight: 500, fontSize: 13,
+                  display: "inline-flex", alignItems: "center", gap: 8, color: "#1e293b",
+                }}
+              >
+                📍 Utiliser ma position actuelle
+              </button>
+              <p style={{ fontSize: 12, color: "#64748b", marginTop: 8 }}>
+                Cliquez sur la carte ou déplacez le marqueur pour choisir votre position.
+              </p>
+            </div>
+
+            {/* Champs prestataire */}
             <AnimatePresence>
               {isPrestataire && (
                 <motion.div
@@ -234,19 +384,20 @@ export default function Signup() {
                     <label>Numéro de téléphone</label>
                     <input name="numTel" type="tel" placeholder="Ex: +216 12 345 678" value={form.numTel} onChange={handleChange} required />
                   </div>
-
                   <div className="field-wrap span-2">
                     <label>Numéro de patente</label>
                     <input name="numPatente" placeholder="Ex: TU-123456" value={form.numPatente} onChange={handleChange} required />
                   </div>
-
                   <div className="field-wrap span-2">
                     <label>Document patente (PDF)</label>
-                    <label htmlFor="patenteInput" style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      border: "1.5px dashed #a78bfa", borderRadius: 10, padding: "14px 16px",
-                      background: "#faf5ff", cursor: "pointer"
-                    }}>
+                    <label
+                      htmlFor="patenteInput"
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        border: "1.5px dashed #a78bfa", borderRadius: 10, padding: "14px 16px",
+                        background: "#faf5ff", cursor: "pointer",
+                      }}
+                    >
                       <div>
                         <strong style={{ fontSize: 13, color: "#5b21b6", display: "block" }}>
                           {form.patenteFile ? form.patenteFile.name : "Ajouter le document patente"}
@@ -255,7 +406,7 @@ export default function Signup() {
                           {form.patenteFile ? "✅ Fichier sélectionné" : "PDF uniquement — max 5 MB"}
                         </span>
                       </div>
-                      <div style={{ background: "#7c3aed", color: "#fff", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
+                      <div style={{ background: "#7c3aed", color: "#fff", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600 }}>
                         Parcourir
                       </div>
                     </label>
@@ -265,7 +416,7 @@ export default function Signup() {
               )}
             </AnimatePresence>
 
-            {/* ── Photo de profil ── */}
+            {/* Photo de profil / logo */}
             <div className="photo-upload-wrap">
               <label className="field-label">
                 {isPrestataire ? "Logo de la société" : "Photo de profil"}
@@ -302,10 +453,16 @@ export default function Signup() {
               <input id="imageInput" type="file" accept="image/*" onChange={handleImageChange} style={{ display: "none" }} />
             </div>
 
-            <button type="submit" className="auth-btn span-2">
-              {isPrestataire ? "Envoyer ma demande" : "Créer mon compte"}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="auth-btn span-2"
+              style={{ opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? "not-allowed" : "pointer" }}
+            >
+              {isSubmitting
+                ? "En cours..."
+                : isPrestataire ? "Envoyer ma demande" : "Créer mon compte"}
             </button>
-
           </form>
 
           <p className="auth-link">
@@ -315,7 +472,7 @@ export default function Signup() {
         </div>
       </div>
 
-      {/* ── Partie droite ── */}
+      {/* Partie droite décorative */}
       <div className="split-right">
         <div className="image-overlay">
           <div className="overlay-content">
@@ -329,45 +486,69 @@ export default function Signup() {
         </div>
       </div>
 
-      {/* ── Popup en attente ── */}
-      {showPendingPopup && (
-        <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 50, padding: 16 }}>
+      {/* Popup prestataire en attente */}
+      <AnimatePresence>
+        {showPendingPopup && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            style={{ background: "#fff", borderRadius: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", width: "100%", maxWidth: 420, overflow: "hidden", position: "relative" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: "fixed", inset: 0, display: "flex", alignItems: "center",
+              justifyContent: "center", background: "rgba(0,0,0,0.5)",
+              backdropFilter: "blur(4px)", zIndex: 50, padding: 16,
+            }}
           >
-            <button
-              onClick={() => { setShowPendingPopup(false); navigate("/login"); }}
-              style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              style={{
+                background: "#fff", borderRadius: 24,
+                boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+                width: "100%", maxWidth: 420, overflow: "hidden", position: "relative",
+              }}
             >
-              <X size={20} />
-            </button>
-            <div style={{ padding: 32, textAlign: "center" }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
-              <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, color: "#0f172a" }}>Demande envoyée !</h3>
-              <p style={{ color: "#64748b", marginBottom: 24, lineHeight: 1.6 }}>
-                Votre compte prestataire est en cours de validation par l'administrateur.
-              </p>
-              <div style={{ background: "#f8fafc", borderRadius: 12, padding: "12px 16px", marginBottom: 24 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "#64748b" }}>Temps estimé</span>
-                  <span style={{ fontWeight: 600, color: "#6366f1" }}>24-48 heures</span>
-                </div>
+              {/* Header coloré */}
+              <div style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)", padding: "28px 32px 24px", textAlign: "center" }}>
+                <div style={{ fontSize: 52, marginBottom: 8 }}>⏳</div>
+                <h3 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: 0 }}>Demande envoyée !</h3>
               </div>
-              <button
-                onClick={() => { setShowPendingPopup(false); navigate("/login"); }}
-                style={{ width: "100%", background: "#4f46e5", color: "#fff", fontWeight: 600, padding: "14px 0", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 15 }}
-              >
-                J'ai compris
-              </button>
-              <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 16 }}>
-                Vous recevrez une confirmation une fois votre demande approuvée
-              </p>
-            </div>
+
+              <div style={{ padding: "24px 32px 32px", textAlign: "center" }}>
+                <p style={{ color: "#475569", marginBottom: 20, lineHeight: 1.7, fontSize: 14 }}>
+                  Votre compte prestataire est en cours de validation par l'administrateur. Vous serez notifié dès que votre demande sera traitée.
+                </p>
+
+                <div style={{ background: "#f8fafc", borderRadius: 12, padding: "14px 18px", marginBottom: 24, border: "1px solid #e2e8f0" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
+                    <span style={{ color: "#64748b" }}>⏱ Temps estimé</span>
+                    <span style={{ fontWeight: 700, color: "#6366f1" }}>24 – 48 heures</span>
+                  </div>
+                </div>
+
+                {/* Bouton → redirige vers /login */}
+                <button
+                  onClick={() => { setShowPendingPopup(false); navigate("/login"); }}
+                  style={{
+                    width: "100%", background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+                    color: "#fff", fontWeight: 700, padding: "14px 0",
+                    borderRadius: 12, border: "none", cursor: "pointer",
+                    fontSize: 15, letterSpacing: 0.3,
+                    boxShadow: "0 4px 14px rgba(99,102,241,0.4)",
+                  }}
+                >
+                  J'ai compris →
+                </button>
+                <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 14, lineHeight: 1.5 }}>
+                  Vous recevrez une confirmation par email une fois votre demande approuvée.
+                </p>
+              </div>
+            </motion.div>
           </motion.div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

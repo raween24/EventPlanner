@@ -15,6 +15,25 @@ import {
 ───────────────────────────────────────────────── */
 function CartSidebar({ isOpen, onClose, cartItems, onRemove, onNavigate }) {
   const total = cartItems.reduce((s, i) => s + (i.totalPrice || i.price), 0);
+  const getCoordinates = async (address) => {
+    const apiKey = "YOUR_API_KEY";
+
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`
+    );
+
+    const data = await res.json();
+
+    if (data.results.length > 0) {
+      const location = data.results[0].geometry.location;
+      return {
+        lat: location.lat,
+        lng: location.lng,
+      };
+    }
+
+    return null;
+  };
 
   return (
     <>
@@ -204,21 +223,21 @@ export default function ResourceDetailsPage() {
     }
 
     const cartItem = {
-      resourceId:   resource._id,
+      resourceId: resource._id,
       resourceName: resource.name,
-      price:        resource.price,
-      type:         resource.type,
-      category:     resource.category,
-      quantity:     1,
-      totalPrice:   resource.type === "service"
+      price: resource.price,
+      type: resource.type,
+      category: resource.category,
+      quantity: 1,
+      totalPrice: resource.type === "service"
         ? calculateTotalPrice() || resource.price
         : resource.price,
-      stock:        resource.stock ?? 999,
+      stock: resource.stock ?? 999,
       selectedTimes: selectedTimes.map(s => ({
         display: s.display,
-        start:   s.start.toISOString(),
-        end:     s.end.toISOString(),
-        price:   s.price,
+        start: s.start.toISOString(),
+        end: s.end.toISOString(),
+        price: s.price,
       })),
       selectedDate: selectedDate ? selectedDate.toISOString() : null,
     };
@@ -262,7 +281,7 @@ export default function ResourceDetailsPage() {
       const base = new Date(date); base.setHours(0, 0, 0, 0);
       for (let h = 0; h < 24; h++) {
         const start = new Date(base); start.setHours(h);
-        const end   = new Date(base); end.setHours(h + 1);
+        const end = new Date(base); end.setHours(h + 1);
         const unavail = unavailableSlots.some(s => start < new Date(s.end) && end > new Date(s.start));
         if (!unavail) slots.push({ id: `${start.toISOString()}-${end.toISOString()}`, start, end, display: `${h}:00 - ${h + 1}:00`, price: resource?.price || 0 });
       }
@@ -319,6 +338,29 @@ export default function ResourceDetailsPage() {
     if (!startDate || !endDate) return 0;
     return Math.ceil(Math.abs(endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
   };
+  const getAddressFromCoords = async (lat, lng) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+      );
+
+      const data = await res.json();
+
+      return data.display_name; // adresse complète
+    } catch (err) {
+      console.error("Erreur geocoding:", err);
+      return "Adresse inconnue";
+    }
+  };
+  const [address, setAddress] = useState("");
+
+  useEffect(() => {
+  if (!resource) return;  // ← cette ligne suffit
+  if (resource.location?.coordinates) {
+    const [lng, lat] = resource.location.coordinates;
+    getAddressFromCoords(lat, lng).then(setAddress);
+  }
+}, [resource]);
 
   /* ── commentaires ── */
   const fetchComments = async () => {
@@ -326,9 +368,9 @@ export default function ResourceDetailsPage() {
       const res = await fetch(`http://localhost:5000/api/comment/ressource/${id}`);
       const data = await res.json();
       let sorted = [...data];
-      if (commentFilter === "recent")  sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      if (commentFilter === "recent") sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       if (commentFilter === "highest") sorted.sort((a, b) => b.nbr_stars - a.nbr_stars);
-      if (commentFilter === "lowest")  sorted.sort((a, b) => a.nbr_stars - b.nbr_stars);
+      if (commentFilter === "lowest") sorted.sort((a, b) => a.nbr_stars - b.nbr_stars);
       setComments(sorted);
     } catch (e) { console.error(e); }
   };
@@ -377,7 +419,7 @@ export default function ResourceDetailsPage() {
     const diff = Math.ceil(Math.abs(new Date() - new Date(d)) / (1000 * 60 * 60 * 24));
     if (diff === 0) return "Aujourd'hui";
     if (diff === 1) return "Hier";
-    if (diff < 7)  return `Il y a ${diff} jours`;
+    if (diff < 7) return `Il y a ${diff} jours`;
     if (diff < 30) return `Il y a ${Math.floor(diff / 7)} semaine(s)`;
     return new Date(d).toLocaleDateString("fr-FR", { year: "numeric", month: "long", day: "numeric" });
   };
@@ -398,8 +440,8 @@ export default function ResourceDetailsPage() {
 
   const averageRating = comments.reduce((acc, c) => acc + c.nbr_stars, 0) / comments.length || 0;
   const days = getDaysInMonth(currentMonth);
-  const monthNames = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-  const weekDays = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+  const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+  const weekDays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
   const images = resource?.media?.flatMap(m => m.img_vd.map(img => img.startsWith("http") ? img : `http://localhost:5000/${img}`)) || [];
   const nextImage = () => setCurrentImageIndex(p => (p + 1) % images.length);
   const prevImage = () => setCurrentImageIndex(p => (p - 1 + images.length) % images.length);
@@ -521,13 +563,13 @@ export default function ResourceDetailsPage() {
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">{resource.name}</h1>
                   <div className="flex items-center gap-2 mt-2">
-                    <div className="flex">{[1,2,3,4,5].map(s => <Star key={s} className={`h-5 w-5 ${s <= Math.round(averageRating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />)}</div>
+                    <div className="flex">{[1, 2, 3, 4, 5].map(s => <Star key={s} className={`h-5 w-5 ${s <= Math.round(averageRating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />)}</div>
                     <span className="text-sm text-gray-600">{averageRating.toFixed(1)} ({comments.length} avis)</span>
                   </div>
                 </div>
                 <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium capitalize">{resource.type}</span>
               </div>
-              <div className="flex items-center gap-2 text-gray-500"><MapPin className="h-4 w-4" /><span>{resource.location}</span></div>
+              <div className="flex items-center gap-2 text-gray-500"><MapPin className="h-4 w-4" /><span>{address}</span></div>
               <div className="border-t border-gray-100 pt-4">
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">Description</h2>
                 <p className="text-gray-600 leading-relaxed">{resource.description}</p>
@@ -542,8 +584,8 @@ export default function ResourceDetailsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
                   { icon: <Building className="h-4 w-4 text-indigo-500" />, label: "Fournisseur", value: resource?.prestataire?.lastname },
-                  { icon: <Mail className="h-4 w-4 text-sky-500" />,        label: "Email",       value: resource?.prestataire?.email },
-                  { icon: <Phone className="h-4 w-4 text-emerald-500" />,   label: "Téléphone",   value: resource?.prestataire?.numTel },
+                  { icon: <Mail className="h-4 w-4 text-sky-500" />, label: "Email", value: resource?.prestataire?.email },
+                  { icon: <Phone className="h-4 w-4 text-emerald-500" />, label: "Téléphone", value: resource?.prestataire?.numTel },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                     {item.icon}
@@ -615,7 +657,7 @@ export default function ResourceDetailsPage() {
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Votre note</label>
                     <div className="flex items-center gap-2">
-                      {[1,2,3,4,5].map(s => (
+                      {[1, 2, 3, 4, 5].map(s => (
                         <button key={s} type="button" onClick={() => setNewRating(s)} className="focus:outline-none transition transform hover:scale-110">
                           <Star className={`h-8 w-8 ${s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
                         </button>
@@ -649,7 +691,7 @@ export default function ResourceDetailsPage() {
                     {editingCommentId === comment._id ? (
                       <div className="space-y-4">
                         <div className="flex gap-2">
-                          {[1,2,3,4,5].map(s => <button key={s} type="button" onClick={() => setEditingRating(s)}><Star className={`h-6 w-6 ${s <= editingRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} /></button>)}
+                          {[1, 2, 3, 4, 5].map(s => <button key={s} type="button" onClick={() => setEditingRating(s)}><Star className={`h-6 w-6 ${s <= editingRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} /></button>)}
                         </div>
                         <textarea value={editingContent} onChange={e => setEditingContent(e.target.value)}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black" rows="3" />
@@ -682,7 +724,7 @@ export default function ResourceDetailsPage() {
                               <button onClick={() => handleReportComment(comment._id)} className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-full"><Flag className="h-4 w-4" /></button>
                             </div>
                           </div>
-                          <div className="flex mb-2">{[1,2,3,4,5].map(s => <Star key={s} className={`h-4 w-4 ${s <= comment.nbr_stars ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />)}</div>
+                          <div className="flex mb-2">{[1, 2, 3, 4, 5].map(s => <Star key={s} className={`h-4 w-4 ${s <= comment.nbr_stars ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />)}</div>
                           <p className="text-gray-700 leading-relaxed">{comment.contenue}</p>
                           <div className="flex gap-4 mt-3">
                             <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"><ThumbsUp className="h-3 w-3" />Utile</button>
@@ -699,10 +741,10 @@ export default function ResourceDetailsPage() {
             {/* Localisation */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4"><Map className="h-5 w-5" />Localisation</h2>
-              <div className="flex items-start gap-3 text-gray-600 mb-4"><MapPin className="h-5 w-5 text-gray-400 flex-shrink-0" /><div><p className="font-medium text-gray-900">Adresse</p><p>{resource.location}</p></div></div>
+              <div className="flex items-start gap-3 text-gray-600 mb-4"><MapPin className="h-5 w-5 text-gray-400 flex-shrink-0" /><div><p className="font-medium text-gray-900">Adresse</p><p>  {address}</p></div></div>
               <div className="relative h-[300px] rounded-xl overflow-hidden">
                 <iframe width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen
-                  src={`https://www.google.com/maps?q=${encodeURIComponent(resource.location)}&output=embed`} />
+                  src={`https://www.google.com/maps?q=${address}&output=embed`} />
               </div>
             </div>
           </div>
@@ -730,22 +772,22 @@ export default function ResourceDetailsPage() {
                   const isAvail = status === true, isPartial = status === "partial", isUnavail = status === false;
                   const inRange = isDateInRange(date);
                   const isStart = startDate?.toDateString() === date.toDateString();
-                  const isEnd   = endDate?.toDateString()   === date.toDateString();
+                  const isEnd = endDate?.toDateString() === date.toDateString();
                   const isToday = date.toDateString() === new Date().toDateString();
                   const isSelected = selectedDate?.toDateString() === date.toDateString();
                   let bg = "";
-                  if (!cm)         bg = "text-gray-300";
+                  if (!cm) bg = "text-gray-300";
                   else if (inRange) bg = isStart || isEnd ? "bg-blue-600 text-white" : "bg-blue-100 text-blue-700";
                   else if (isSelected) bg = "bg-purple-600 text-white";
-                  else if (isUnavail)  bg = "text-red-400 cursor-not-allowed opacity-60 bg-red-50";
-                  else if (isPartial)  bg = "bg-yellow-50 text-yellow-700 border border-yellow-300";
-                  else if (isAvail)    bg = "hover:bg-green-50 text-gray-700";
+                  else if (isUnavail) bg = "text-red-400 cursor-not-allowed opacity-60 bg-red-50";
+                  else if (isPartial) bg = "bg-yellow-50 text-yellow-700 border border-yellow-300";
+                  else if (isAvail) bg = "hover:bg-green-50 text-gray-700";
                   return (
                     <button key={i} onClick={() => cm && handleDateClick(date)} disabled={!cm || isUnavail}
                       className={`aspect-square p-1 rounded-lg text-sm transition-all relative ${bg} ${isToday && cm && isAvail ? "font-bold border-2 border-gray-300" : ""}`}>
                       <div className="flex flex-col items-center">
                         <span>{date.getDate()}</span>
-                        {isAvail   && cm && !inRange && !isSelected && <span className="text-[8px] text-green-600">●</span>}
+                        {isAvail && cm && !inRange && !isSelected && <span className="text-[8px] text-green-600">●</span>}
                         {isPartial && cm && !inRange && !isSelected && <span className="text-[8px] text-yellow-500">●</span>}
                       </div>
                     </button>
@@ -753,8 +795,8 @@ export default function ResourceDetailsPage() {
                 })}
               </div>
               <div className="mt-4 flex flex-wrap gap-3">
-                {[["bg-green-500","Disponible"],["bg-yellow-400","Partiel"],["bg-red-400","Indisponible"]].map(([c,l]) => (
-                  <div key={l} className="flex items-center gap-1.5"><div className={`w-3 h-3 rounded-full ${c}`}/><span className="text-xs text-gray-600">{l}</span></div>
+                {[["bg-green-500", "Disponible"], ["bg-yellow-400", "Partiel"], ["bg-red-400", "Indisponible"]].map(([c, l]) => (
+                  <div key={l} className="flex items-center gap-1.5"><div className={`w-3 h-3 rounded-full ${c}`} /><span className="text-xs text-gray-600">{l}</span></div>
                 ))}
               </div>
             </div>
@@ -770,7 +812,7 @@ export default function ResourceDetailsPage() {
                   <p className="text-sm font-medium text-purple-700 flex items-center gap-2"><Calendar className="h-4 w-4" />{selectedDate.toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
                 </div>
                 <div className="mb-4 flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                  {["single","multiple"].map(mode => (
+                  {["single", "multiple"].map(mode => (
                     <button key={mode} onClick={() => setSelectionMode(mode)}
                       className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${selectionMode === mode ? "bg-purple-600 text-white" : "text-gray-600 hover:bg-gray-200"}`}>
                       {mode === "single" ? "Simple" : "Multiple"}
@@ -882,7 +924,7 @@ export default function ResourceDetailsPage() {
                   <ShoppingCart className="h-5 w-5" />
                   {!selectedDate ? "Sélectionnez une date"
                     : selectedTimes.length === 0 && !endDate ? "Choisissez des créneaux"
-                    : `Ajouter au panier${selectedTimes.length > 0 ? ` (${calculateTotalPrice()}€)` : ""}`}
+                      : `Ajouter au panier${selectedTimes.length > 0 ? ` (${calculateTotalPrice()}€)` : ""}`}
                 </button>
               )}
 
@@ -895,48 +937,52 @@ export default function ResourceDetailsPage() {
       </div>
 
       {/* Lightbox */}
-      {showLightbox && (
-        <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center" onClick={() => setShowLightbox(false)}>
-          <button onClick={() => setShowLightbox(false)} className="absolute top-6 right-6 text-white/70 hover:text-white p-2 hover:bg-white/10 rounded-full"><X className="h-8 w-8" /></button>
-          <div className="relative max-w-7xl mx-auto px-4" onClick={e => e.stopPropagation()}>
-            <img src={images[currentImageIndex]} alt="" className="max-h-[85vh] w-auto mx-auto rounded-lg shadow-2xl" />
-            {images.length > 1 && (<>
-              <button onClick={e => { e.stopPropagation(); prevImage(); }} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white p-3 rounded-full"><ChevronLeft className="h-6 w-6" /></button>
-              <button onClick={e => { e.stopPropagation(); nextImage(); }} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white p-3 rounded-full"><ChevronRight className="h-6 w-6" /></button>
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">{currentImageIndex + 1} / {images.length}</div>
-            </>)}
+      {
+        showLightbox && (
+          <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center" onClick={() => setShowLightbox(false)}>
+            <button onClick={() => setShowLightbox(false)} className="absolute top-6 right-6 text-white/70 hover:text-white p-2 hover:bg-white/10 rounded-full"><X className="h-8 w-8" /></button>
+            <div className="relative max-w-7xl mx-auto px-4" onClick={e => e.stopPropagation()}>
+              <img src={images[currentImageIndex]} alt="" className="max-h-[85vh] w-auto mx-auto rounded-lg shadow-2xl" />
+              {images.length > 1 && (<>
+                <button onClick={e => { e.stopPropagation(); prevImage(); }} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white p-3 rounded-full"><ChevronLeft className="h-6 w-6" /></button>
+                <button onClick={e => { e.stopPropagation(); nextImage(); }} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white p-3 rounded-full"><ChevronRight className="h-6 w-6" /></button>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">{currentImageIndex + 1} / {images.length}</div>
+              </>)}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Conditions popup */}
-      {showTermsPopup && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowTermsPopup(false)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Conditions Générales</h2>
-              <button onClick={() => setShowTermsPopup(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="h-5 w-5" /></button>
-            </div>
-            <div className="p-6 space-y-4 text-gray-700">
-              {[["1. Objet","Les présentes conditions générales régissent l'utilisation de la plateforme de réservation."],
-                ["2. Réservation","La réservation devient définitive après validation du prestataire."],
-                ["3. Annulation","Les annulations plus de 48h avant donnent droit à un remboursement intégral."],
-                ["4. Utilisation","L'utilisateur s'engage à utiliser la ressource conformément à sa destination."],
-                ["5. Responsabilité","L'utilisateur est responsable de tout dommage causé pendant la réservation."],
-              ].map(([title, text]) => <div key={title}><p className="font-semibold text-gray-900 mb-1">{title}</p><p>{text}</p></div>)}
-              <p className="text-sm text-gray-500 mt-6">Dernière mise à jour : 29 mars 2026</p>
-            </div>
-            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t flex justify-end">
-              <button onClick={() => setShowTermsPopup(false)} className="px-4 py-2 bg-black text-white rounded-lg">Fermer</button>
+      {
+        showTermsPopup && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowTermsPopup(false)}>
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h2 className="text-xl font-bold">Conditions Générales</h2>
+                <button onClick={() => setShowTermsPopup(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="h-5 w-5" /></button>
+              </div>
+              <div className="p-6 space-y-4 text-gray-700">
+                {[["1. Objet", "Les présentes conditions générales régissent l'utilisation de la plateforme de réservation."],
+                ["2. Réservation", "La réservation devient définitive après validation du prestataire."],
+                ["3. Annulation", "Les annulations plus de 48h avant donnent droit à un remboursement intégral."],
+                ["4. Utilisation", "L'utilisateur s'engage à utiliser la ressource conformément à sa destination."],
+                ["5. Responsabilité", "L'utilisateur est responsable de tout dommage causé pendant la réservation."],
+                ].map(([title, text]) => <div key={title}><p className="font-semibold text-gray-900 mb-1">{title}</p><p>{text}</p></div>)}
+                <p className="text-sm text-gray-500 mt-6">Dernière mise à jour : 29 mars 2026</p>
+              </div>
+              <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t flex justify-end">
+                <button onClick={() => setShowTermsPopup(false)} className="px-4 py-2 bg-black text-white rounded-lg">Fermer</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       <style>{`
         @keyframes fade-in { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
         .animate-fade-in { animation: fade-in .3s ease-out; }
       `}</style>
-    </div>
+    </div >
   );
 }

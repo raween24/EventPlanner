@@ -6,48 +6,61 @@ import axios from "axios";
 /* ================= REGISTER ================= */
 const registerUser = async (req, res) => {
   try {
-    const { lastname, firstname, email, password, role, numPatente, numTel } = req.body;
+    const {
+      lastname,
+      firstname,
+      email,
+      password,
+      role,
+      numPatente,
+      numTel,
+      location
+    } = req.body;
 
-    // vérifier email existant
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email déjà utilisé" });
     }
 
-    // hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // définir le status automatiquement
     let status = "en_attente";
     if (role === "organisateur") status = "valide";
-    if (role === "prestataire")  status = "en_attente";
+
+    // ✅ FIX LOCATION
+    let userLocation = undefined;
+
+    if (location) {
+      const parsedLocation =
+        typeof location === "string" ? JSON.parse(location) : location;
+
+      if (
+        parsedLocation?.coordinates &&
+        parsedLocation.coordinates.length === 2
+      ) {
+        userLocation = {
+          type: "Point",
+          coordinates: parsedLocation.coordinates
+        };
+      }
+    }
 
     const user = new User({
       lastname,
       firstname,
       email,
       password: hashedPassword,
-      image:      req.files?.image?.[0]?.path   || null,
-      patente:    req.files?.patente?.[0]?.path  || null, // ✅ chemin PDF
-      numPatente: role === "prestataire" ? numPatente : undefined, // ✅ numéro texte
-      numTel:     role === "prestataire" ? numTel     : undefined, // ✅ téléphone
       role,
       status,
+      numPatente,
+      numTel,
+      location: userLocation, // ✅ important
+      image: req.files?.image?.[0]?.path || null,
+      patente: req.files?.patente?.[0]?.path || null,
     });
 
     await user.save();
-
-    if (role === "prestataire") {
-      try {
-        await axios.post("http://localhost:5678/webhook/signup-provider", {
-          email: user.email,
-          name: user.firstname
-        });
-      } catch (err) {
-        console.log("Erreur envoi email n8n:", err.message);
-      }
-    }
 
     res.status(201).json({ message: "Utilisateur créé", user });
 
@@ -56,7 +69,6 @@ const registerUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 /* ================= LOGIN ================= */
 const loginUser = async (req, res) => {
   try {
@@ -90,13 +102,13 @@ const loginUser = async (req, res) => {
       message: "Login réussi",
       token,
       user: {
-        id:        user._id,
+        id: user._id,
         firstname: user.firstname,
-        lastname:  user.lastname,
-        email:     user.email,
-        role:      user.role,
-        image:     user.image,
-        status:    user.status
+        lastname: user.lastname,
+        email: user.email,
+        role: user.role,
+        image: user.image,
+        status: user.status
       }
     });
 
@@ -134,18 +146,30 @@ const getUserById = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
+
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
-    const { password, image, ...otherFields } = req.body;
+    const { password, image, location, ...otherFields } = req.body;
+
     Object.assign(user, otherFields);
 
+    // 🔐 password
     if (password) {
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(password, salt);
     }
 
+    // 📍 update location
+    if (location && location.coordinates) {
+      user.location = {
+        type: "Point",
+        coordinates: location.coordinates
+      };
+    }
+
+    // 🖼️ image
     if (req.file) {
       user.image = `/uploads/${req.file.filename}`;
     } else if (image) {
@@ -153,13 +177,13 @@ const updateUser = async (req, res) => {
     }
 
     await user.save();
+
     res.status(200).json(user);
 
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 /* ================= ADORE (FAVORIS) ================= */
 const addToAdore = async (req, res) => {
   try {

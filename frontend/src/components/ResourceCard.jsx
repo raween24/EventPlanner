@@ -3,6 +3,32 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }) {
+
+
+
+  const getAddressFromCoords = async (lat, lng) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+      );
+
+      const data = await res.json();
+
+      return data.display_name; // adresse complète
+    } catch (err) {
+      console.error("Erreur geocoding:", err);
+      return "Adresse inconnue";
+    }
+  };
+  const [address, setAddress] = useState("");
+
+  useEffect(() => {
+    if (resource.location?.coordinates) {
+      const [lng, lat] = resource.location.coordinates;
+
+      getAddressFromCoords(lat, lng).then(setAddress);
+    }
+  }, [resource]);
   const navigate = useNavigate();
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -212,7 +238,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
           {resource.location && (
             <div className="flex items-center gap-2">
               <MapPin size={16} className="text-blue-500 shrink-0" />
-              <span className="truncate">{resource.location}</span>
+              <span className="truncate">{address || "Chargement..."}</span>
             </div>
           )}
           {resource.capacity && (
@@ -234,11 +260,10 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
               e.stopPropagation();
               navigate(`/RessourceDetail/${resource._id}`);
             }}
-            className={`px-5 py-2 rounded-xl text-sm font-medium transition ${
-              isAvailable
-                ? "bg-black text-white hover:bg-slate-800"
-                : "bg-gray-200 text-gray-400 cursor-not-allowed"
-            }`}
+            className={`px-5 py-2 rounded-xl text-sm font-medium transition ${isAvailable
+              ? "bg-black text-white hover:bg-slate-800"
+              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              }`}
           >
             Voir plus
           </button>

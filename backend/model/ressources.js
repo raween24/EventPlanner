@@ -22,7 +22,7 @@ const resourceSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ["salle", "materiel", "decoration", "traiteur","dj","photographe","serveur"]
+      enum: ["salle", "materiel", "decoration", "traiteur", "dj", "photographe", "serveur"]
     },
 
     // 🔹 Champs dynamiques
@@ -39,7 +39,7 @@ const resourceSchema = new mongoose.Schema(
           type: String,
           required: true
         },
-        
+
         value: mongoose.Schema.Types.Mixed
       }
     ],
@@ -51,7 +51,15 @@ const resourceSchema = new mongoose.Schema(
     },
 
     location: {
-      type: String,
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point"
+      },
+      coordinates: {
+        type: [Number], // [lng, lat]
+        required: true
+      }
     },
 
     media: [
@@ -109,6 +117,7 @@ resourceSchema.pre("save", async function () {
   }
 });
 
+resourceSchema.index({ location: "2dsphere" });
 const Resource = mongoose.model("Resource", resourceSchema);
 
 export default Resource;

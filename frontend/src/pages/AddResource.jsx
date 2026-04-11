@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -9,13 +9,77 @@ import {
   FiChevronLeft, FiChevronRight, FiSun, FiMoon, FiCloud, FiStar, FiHeart,
   FiGift, FiArrowLeft, FiPlus, FiTrash2, FiFileText, FiEye, FiChevronDown
 } from 'react-icons/fi';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import Navbar from "../components/Navbar";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
 
 const localizer = momentLocalizer(moment);
 
-// ================= Composants UI (complets) =================
+// === Correction des icônes Leaflet ===
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+// ================= Composant Carte (réutilisable) =================
+const LocationPicker = ({ centerLat, centerLng, onLocationChange }) => {
+  const [markerPos, setMarkerPos] = useState(
+    centerLat && centerLng ? { lat: centerLat, lng: centerLng } : null
+  );
+  const prevRef = useRef({ lat: centerLat, lng: centerLng });
+
+  useEffect(() => {
+    if (
+      centerLat && centerLng &&
+      (prevRef.current.lat !== centerLat || prevRef.current.lng !== centerLng)
+    ) {
+      prevRef.current = { lat: centerLat, lng: centerLng };
+      setMarkerPos({ lat: centerLat, lng: centerLng });
+    }
+  }, [centerLat, centerLng]);
+
+  const handleMove = useCallback((lat, lng) => {
+    setMarkerPos({ lat, lng });
+    onLocationChange(lat, lng);
+  }, [onLocationChange]);
+
+  const MapClickHandler = () => {
+    useMapEvents({
+      click(e) { handleMove(e.latlng.lat, e.latlng.lng); },
+    });
+    return null;
+  };
+
+  const mapCenter = centerLat && centerLng ? [centerLat, centerLng] : [36.8065, 10.1815];
+
+  return (
+    <MapContainer center={mapCenter} zoom={13}
+      style={{ height: "280px", width: "100%", borderRadius: "16px", zIndex: 0 }}>
+      <TileLayer
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        attribution='&copy; OSM &copy; CartoDB'
+      />
+      <MapClickHandler />
+      {markerPos && (
+        <Marker position={[markerPos.lat, markerPos.lng]} draggable
+          eventHandlers={{
+            dragend: (e) => {
+              const { lat, lng } = e.target.getLatLng();
+              handleMove(lat, lng);
+            },
+          }}
+        />
+      )}
+    </MapContainer>
+  );
+};
+
+// ================= Composants UI (inchangés) =================
 const Tooltip = ({ children, text }) => (
   <div className="relative group">
     {children}
@@ -175,7 +239,7 @@ const DateCellWrapper = ({ children }) => {
   );
 };
 
-// ================= Définition des champs par catégorie =================
+// ================= Définition des champs par catégorie (inchangé) =================
 const resourceFields = {
   salle: [
     { name: "capacity", label: "Capacité (personnes)", type: "number", required: true, icon: FiUsers },
@@ -222,7 +286,7 @@ const resourceFields = {
   ]
 };
 
-// ================= Composant principal =================
+// ================= Composant principal modifié =================
 const AddResourceForm = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
@@ -234,13 +298,11 @@ const AddResourceForm = () => {
     type: "service",
     category: "salle",
     price: "",
-    location: "",
     termsText: "",
     termsFile: null
   });
 
   const [selectedServiceCat, setSelectedServiceCat] = useState("");
-
   const [attributes, setAttributes] = useState({});
   const [customAttributes, setCustomAttributes] = useState([]);
   const [newCustomAttr, setNewCustomAttr] = useState({ name: "", type: "text", value: "" });
@@ -261,6 +323,12 @@ const AddResourceForm = () => {
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   const [selectedEventType, setSelectedEventType] = useState(null);
 
+  // Nouveau : état pour la localisation géographique
+  const [resourceLocation, setResourceLocation] = useState(null); // { lat, lng }
+  const [mapLat, setMapLat] = useState(36.8065);
+  const [mapLng, setMapLng] = useState(10.1815);
+  // Tunis
+
   // Animations / thème
   const [backgroundTheme, setBackgroundTheme] = useState('gradient');
   const [showConfetti, setShowConfetti] = useState(false);
@@ -273,20 +341,21 @@ const AddResourceForm = () => {
   // Calcul progression
   useEffect(() => {
     let filled = 0;
-    let total = 6;
+    let total = 5; // name, description, price, type, category (terms optionnel)
     if (formData.name) filled++;
     if (formData.description) filled++;
     if (formData.price) filled++;
     if (formData.type) filled++;
     if (formData.category) filled++;
-    if (formData.termsText) filled++;
+    if (formData.termsText || formData.termsFile) filled++;
+    if (resourceLocation) filled++; // +1 pour la localisation
     const requiredFields = resourceFields[formData.category]?.filter(f => f.required) || [];
     requiredFields.forEach(field => {
       total++;
       if (attributes[field.name] !== undefined && attributes[field.name] !== "") filled++;
     });
     setFormProgress((filled / total) * 100);
-  }, [formData, attributes]);
+  }, [formData, attributes, resourceLocation]);
 
   // Icônes flottantes
   useEffect(() => {
@@ -305,7 +374,23 @@ const AddResourceForm = () => {
     }
     setFloatingIcons(newFloatingIcons);
   }, []);
-
+  const handleLocationChange = useCallback((lat, lng) => {
+    setMapLat(lat);
+    setMapLng(lng);
+    setResourceLocation({ lat, lng });
+  }, []); // stable — ne change jamais
+  // Géolocalisation automatique au chargement
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setMapLat(coords.latitude);
+        setMapLng(coords.longitude);
+        setResourceLocation({ lat: coords.latitude, lng: coords.longitude });
+      },
+      () => console.log("Géolocalisation refusée")
+    );
+  }, []); // tableau vide — une seule fois
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -418,19 +503,16 @@ const AddResourceForm = () => {
   };
 
   const handleNavigate = (newDate) => setCurrentDate(newDate);
+
   const resetForm = () => {
-    // Révoquer les URLs des prévisualisations pour éviter les fuites mémoire
     mediaPreviews.forEach(item => URL.revokeObjectURL(item.preview));
     if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
-
-    // Réinitialiser les états principaux
     setFormData({
       name: "",
       description: "",
       type: "service",
       category: "salle",
       price: "",
-      location: "",
       termsText: "",
       termsFile: null
     });
@@ -446,10 +528,28 @@ const AddResourceForm = () => {
     setSelectedRange(null);
     setShowSelectionTooltip(false);
     setPdfPreviewUrl(null);
-    // Optionnel : remettre le calendrier à la vue par défaut et date courante
+    setResourceLocation(null);
+    setMapLat(36.8065);
+    setMapLng(10.1815);
     setCalendarView('week');
     setCurrentDate(new Date());
   };
+
+  // Utilisation de la position actuelle (bouton)
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) { setMessage("Géolocalisation non supportée"); return; }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setMapLat(coords.latitude);
+        setMapLng(coords.longitude);
+        setResourceLocation({ lat: coords.latitude, lng: coords.longitude });
+        setMessage("📍 Position mise à jour");
+        setTimeout(() => setMessage(""), 3000);
+      },
+      () => setMessage("Impossible de récupérer votre position")
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!token) {
@@ -481,8 +581,16 @@ const AddResourceForm = () => {
       resourceData.append("description", formData.description);
       resourceData.append("type", formData.type);
       resourceData.append("price", formData.price);
-      resourceData.append("location", formData.location || "");
       resourceData.append("categoryName", formData.category);
+
+      // Ajout de la localisation si disponible
+      if (resourceLocation) {
+        const geoJson = {
+          type: "Point",
+          coordinates: [resourceLocation.lng, resourceLocation.lat]
+        };
+        resourceData.append("location", JSON.stringify(geoJson));
+      }
 
       if (formData.termsFile) {
         resourceData.append("termsFile", formData.termsFile);
@@ -573,7 +681,6 @@ const AddResourceForm = () => {
 
   const renderCustomAttributes = () => (
     <div className="space-y-4 border-t pt-4 mt-4">
-
       <h3 className="text-md font-semibold text-gray-800 flex items-center gap-2">
         <FiPlus className="text-purple-500" /> Caractéristiques personnalisées
       </h3>
@@ -655,7 +762,6 @@ const AddResourceForm = () => {
     <>
       <Navbar />
       <div className={`min-h-screen ${getBackgroundClass()} pt-20 relative overflow-hidden transition-colors duration-1000`}>
-
         {floatingIcons.map(({ id, Icon, x, y, duration, delay, size }) => (
           <motion.div
             key={id}
@@ -721,7 +827,6 @@ const AddResourceForm = () => {
                       <option value="product">Produit</option>
                     </select>
                   </div>
-
                 </div>
 
                 <div>
@@ -783,7 +888,7 @@ const AddResourceForm = () => {
                           }}
                           className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all bg-white appearance-none cursor-pointer"
                         >
-                          <option value="" disabled>Choisir un prestataire</option>
+                          <option value="" disabled>Personnel</option>
                           <option value="traiteur">🍽️ Traiteur</option>
                           <option value="dj">🎧 DJ</option>
                           <option value="photographe">📸 Photographe</option>
@@ -809,11 +914,35 @@ const AddResourceForm = () => {
 
                 {renderDynamicFields()}
 
+                {/* ========== NOUVELLE SECTION : CARTE POUR LOCALISATION ========== */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Localisation</label>
-                  <div className="relative">
-                    <FiMapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <input type="text" name="location" value={formData.location} onChange={handleChange} className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200" />
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <FiMapPin className="text-purple-500" /> Localisation géographique *
+                  </label>
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
+                    <LocationPicker
+                      centerLat={mapLat}
+                      centerLng={mapLng}
+                      onLocationChange={handleLocationChange}
+                    />
+
+                    <div className="flex justify-between items-center mt-3">
+                      <button
+                        type="button"
+                        onClick={handleUseMyLocation}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition"
+                      >
+                        📍 Utiliser ma position actuelle
+                      </button>
+                      {resourceLocation && (
+                        <span className="text-xs text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                          ✓ Coordonnées sélectionnées
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      Cliquez sur la carte ou déplacez le marqueur pour définir l'emplacement exact de la ressource.
+                    </p>
                   </div>
                 </div>
 
@@ -953,7 +1082,8 @@ const AddResourceForm = () => {
           </div>
         </motion.div>
       </div>
-    </>);
+    </>
+  );
 };
 
 export default AddResourceForm;
