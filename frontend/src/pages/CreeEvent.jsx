@@ -815,15 +815,25 @@ export default function CreerEvenement() {
                 Suivant →
               </motion.button>
             ) : (
-              <motion.button
-                type="submit"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium text-sm sm:text-base hover:shadow-lg transition-all flex items-center justify-center gap-2"
+              <button
+                onClick={() =>
+                  navigate("/ressources", {
+                    state: {
+                      eventId: "test-event-123",
+                      eventData: {
+                        category: "Mariage",
+                        nombreParticipants: 100,
+                        dateDebut: "2025-06-01",
+                        dateFin: "2025-06-02",
+                        lieu: null,
+                      },
+                    },
+                  })
+                }
+                className="bg-purple-600 text-white px-4 py-2 rounded"
               >
-                <FiCheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Créer</span>
-              </motion.button>
+                Tester CAS 3 (Mariage)
+              </button>
             )}
           </div>
 

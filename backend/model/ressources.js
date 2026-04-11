@@ -81,7 +81,9 @@ const resourceSchema = new mongoose.Schema(
       ref: "User",
       required: true
     },
-
+    averageRating: { type: Number, default: 0, min: 0, max: 5 },
+totalRatings:  { type: Number, default: 0 },
+likesCount:    { type: Number, default: 0 },
     // ✅ NOUVEAU CHAMP STOCK (pour les produits)
     stock: {
       type: Number,
@@ -102,6 +104,7 @@ const resourceSchema = new mongoose.Schema(
     }
 
   },
+  
   {
     timestamps: true,
   }
