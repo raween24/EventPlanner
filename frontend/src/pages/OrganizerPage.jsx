@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Filter, Sparkles, ChevronLeft, ChevronRight, ChevronDown, ChevronRight as ChevronRightIcon, ArrowUpDown, ShoppingCart, X, Send } from "lucide-react";
+import {
+  Search, Filter, Sparkles, ChevronLeft, ChevronRight, ChevronDown,
+  ChevronRight as ChevronRightIcon, ArrowUpDown, ShoppingCart, X, Send
+} from "lucide-react";
 import ResourceCard from "../components/ResourceCard";
 import BookingModal from "../components/BookingModal";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -7,8 +10,11 @@ import Navbar from "../components/Navbar";
 import RecommendationCard from "../components/RecommendationCard";
 import Footer from "../components/footer";
 import { motion } from "framer-motion";
-import AuthModal from "../components/AuthModal"; // ← ajuste le chemin si nécessaire
+import AuthModal from "../components/AuthModal";
 
+/* ─────────────────────────────────────────────────
+   CONSTANTS
+───────────────────────────────────────────────── */
 const categoryGroups = [
   { label: "Salle", value: "salle", subCategories: null },
   { label: "Décoration", value: "decoration", subCategories: null },
@@ -34,11 +40,24 @@ const sortOptions = [
   { label: "Date ancienne", value: "date_asc" },
 ];
 
-// ─── Lecture cart depuis localStorage ─────────────────────────────────────────
+/* ─────────────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────────────── */
 const readCart = () => {
   try { return JSON.parse(localStorage.getItem("reservationCart") || "[]"); }
   catch { return []; }
 };
+
+/* ─────────────────────────────────────────────────
+   SPINNER
+───────────────────────────────────────────────── */
+function Spinner({ size = "md", color = "blue" }) {
+  const sizes = { sm: "w-5 h-5 border-2", md: "w-8 h-8 border-3", lg: "w-12 h-12 border-4" };
+  const colors = { blue: "border-blue-600", purple: "border-purple-600", white: "border-white" };
+  return (
+    <div className={`${sizes[size]} ${colors[color]} border-t-transparent rounded-full animate-spin inline-block`} />
+  );
+}
 
 /* ─────────────────────────────────────────────────
    CART SIDEBAR
@@ -51,7 +70,8 @@ function CartSidebar({ isOpen, onClose, cartItems, onRemove, onSendClick }) {
       <div
         className="fixed top-0 right-0 h-full z-50 flex flex-col shadow-2xl"
         style={{
-          width: 340, background: "#fff",
+          width: 340,
+          background: "#fff",
           transform: isOpen ? "translateX(0)" : "translateX(100%)",
           transition: "transform 0.3s cubic-bezier(.4,0,.2,1)",
           borderLeft: "0.5px solid #e5e7eb",
@@ -62,7 +82,9 @@ function CartSidebar({ isOpen, onClose, cartItems, onRemove, onSendClick }) {
             <ShoppingCart size={18} className="text-indigo-600" />
             <span className="font-bold text-gray-900">Mon panier</span>
             {cartItems.length > 0 && (
-              <span className="bg-indigo-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{cartItems.length}</span>
+              <span className="bg-indigo-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                {cartItems.length}
+              </span>
             )}
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full transition">
@@ -81,8 +103,12 @@ function CartSidebar({ isOpen, onClose, cartItems, onRemove, onSendClick }) {
             <div key={item.resourceId} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                    style={item.type === "product" ? { background: "#DCFCE7", color: "#166534" } : { background: "#EDE9FE", color: "#5B21B6" }}>
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                    style={item.type === "product"
+                      ? { background: "#DCFCE7", color: "#166534" }
+                      : { background: "#EDE9FE", color: "#5B21B6" }}
+                  >
                     {item.type === "product" ? "Produit" : "Service"}
                   </span>
                   <span className="text-xs font-semibold text-gray-800 truncate">{item.resourceName}</span>
@@ -95,7 +121,10 @@ function CartSidebar({ isOpen, onClose, cartItems, onRemove, onSendClick }) {
                 )}
                 <p className="text-xs font-bold text-indigo-600 mt-1">{item.totalPrice || item.price}€</p>
               </div>
-              <button onClick={() => onRemove(item.resourceId)} className="p-1 text-gray-300 hover:text-rose-500 transition flex-shrink-0">
+              <button
+                onClick={() => onRemove(item.resourceId)}
+                className="p-1 text-gray-300 hover:text-rose-500 transition flex-shrink-0"
+              >
                 <X size={13} />
               </button>
             </div>
@@ -108,9 +137,11 @@ function CartSidebar({ isOpen, onClose, cartItems, onRemove, onSendClick }) {
               <span>Total estimé</span>
               <span className="text-indigo-600">{total}€</span>
             </div>
-            <button onClick={onSendClick}
+            <button
+              onClick={onSendClick}
               className="w-full py-3 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 hover:opacity-90 transition"
-              style={{ background: "linear-gradient(135deg,#4338CA,#6366F1)" }}>
+              style={{ background: "linear-gradient(135deg,#4338CA,#6366F1)" }}
+            >
               <Send size={14} /> Envoyer les demandes
             </button>
             <p className="text-[10px] text-gray-400 text-center">Connexion requise pour envoyer</p>
@@ -128,44 +159,68 @@ function CategoryDropdown({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const [hoveredGroup, setHoveredGroup] = useState(null);
   const ref = useRef(null);
+
   useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
+
   const getLabel = () => {
     for (const g of categoryGroups) {
       if (!g.subCategories && g.value === value) return g.label;
-      if (g.subCategories) { const sub = g.subCategories.find(s => s.value === value); if (sub) return `${g.label} › ${sub.label}`; }
+      if (g.subCategories) {
+        const sub = g.subCategories.find((s) => s.value === value);
+        if (sub) return `${g.label} › ${sub.label}`;
+      }
     }
     return "Toutes les catégories";
   };
+
   return (
     <div ref={ref} className="relative">
       <label className="block text-sm font-medium text-slate-700 mb-2">Catégorie</label>
-      <button onClick={() => setOpen(o => !o)}
-        className="w-full flex justify-between items-center px-4 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 outline-none text-left text-sm hover:border-blue-300 transition-colors">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex justify-between items-center px-4 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 outline-none text-left text-sm hover:border-blue-300 transition-colors"
+      >
         <span className={value ? "text-blue-600 font-medium" : "text-gray-500"}>{getLabel()}</span>
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
+
       {open && (
-        <div className="absolute top-full mt-1 left-0 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 min-w-[210px] py-1">
-          <div className="px-4 py-2.5 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 cursor-pointer"
-            onClick={() => { onChange(""); setOpen(false); }}>Toutes les catégories</div>
+        <div className="absolute top-full mt-1 left-0 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 min-w-[210px] py-1 overflow-visible">
+          <div
+            className="px-4 py-2.5 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 cursor-pointer transition-colors"
+            onClick={() => { onChange(""); setOpen(false); }}
+          >
+            Toutes les catégories
+          </div>
           <div className="border-t border-gray-100 my-1" />
-          {categoryGroups.map(group => (
-            <div key={group.value} className="relative"
-              onMouseEnter={() => setHoveredGroup(group.value)} onMouseLeave={() => setHoveredGroup(null)}>
-              <div className="px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 cursor-pointer flex justify-between items-center"
-                onClick={() => { if (!group.subCategories) { onChange(group.value); setOpen(false); } }}>
+          {categoryGroups.map((group) => (
+            <div
+              key={group.value}
+              className="relative"
+              onMouseEnter={() => setHoveredGroup(group.value)}
+              onMouseLeave={() => setHoveredGroup(null)}
+            >
+              <div
+                className="px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 cursor-pointer flex justify-between items-center transition-colors"
+                onClick={() => { if (!group.subCategories) { onChange(group.value); setOpen(false); } }}
+              >
                 <span>{group.label}</span>
                 {group.subCategories && <ChevronRightIcon className="w-4 h-4 text-gray-400" />}
               </div>
               {group.subCategories && hoveredGroup === group.value && (
                 <div className="absolute left-full top-0 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 min-w-[180px] py-1">
-                  {group.subCategories.map(sub => (
-                    <div key={sub.value} className="px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 cursor-pointer"
-                      onClick={() => { onChange(sub.value); setOpen(false); }}>{sub.label}</div>
+                  {group.subCategories.map((sub) => (
+                    <div
+                      key={sub.value}
+                      className="px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 cursor-pointer transition-colors"
+                      onClick={() => { onChange(sub.value); setOpen(false); }}
+                    >
+                      {sub.label}
+                    </div>
                   ))}
                 </div>
               )}
@@ -183,31 +238,39 @@ function CategoryDropdown({ value, onChange }) {
 function SortDropdown({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+
   useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
-  const currentLabel = sortOptions.find(o => o.value === value)?.label || "Trier par";
+
+  const currentLabel = sortOptions.find((o) => o.value === value)?.label || "Trier par";
+
   return (
     <div ref={ref} className="relative">
       <label className="block text-sm font-medium text-slate-700 mb-2">Trier par</label>
-      <button onClick={() => setOpen(o => !o)}
-        className="w-full flex justify-between items-center px-4 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 outline-none text-left text-sm hover:border-blue-300 transition-colors">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex justify-between items-center px-4 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 outline-none text-left text-sm hover:border-blue-300 transition-colors"
+      >
         <div className="flex items-center gap-2">
           <ArrowUpDown className="w-4 h-4 text-gray-400" />
           <span className={value ? "text-blue-600 font-medium" : "text-gray-500"}>{currentLabel}</span>
         </div>
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <div className="absolute top-full mt-1 left-0 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 min-w-[200px] py-1">
-          {sortOptions.map(opt => (
-            <div key={opt.value}
-              className={`px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between ${value === opt.value ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}
-              onClick={() => { onChange(opt.value); setOpen(false); }}>
+          {sortOptions.map((opt) => (
+            <div
+              key={opt.value}
+              className={`px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center justify-between
+                ${value === opt.value ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+            >
               {opt.label}
-              {value === opt.value && <span className="w-2 h-2 rounded-full bg-blue-600" />}
+              {value === opt.value && <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />}
             </div>
           ))}
         </div>
@@ -232,33 +295,31 @@ export default function OrganizerPage() {
   const [maxPrice, setMaxPrice] = useState("");
   const [sortBy, setSortBy] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingRecs, setLoadingRecs] = useState(true);
   const [likedResources, setLikedResources] = useState([]);
   const [recommendedResources, setRecommendedResources] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 12;
 
   /* ── Cart state ── */
-  const [cartItems, setCartItems] = useState(() => readCart()); // ← init immédiate!
+  const [cartItems, setCartItems] = useState(() => readCart());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
-  /* ══════════════════════════════════════════════════════
-     SYNC CART — poll toutes les 600ms + focus + storage
-     Garantit que le bouton reflète toujours localStorage
-     même quand ResourceCard écrit sans passer par ce state
-  ══════════════════════════════════════════════════════ */
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const userId = user?._id || user?.id || null;
+
+  /* ── Sync cart (poll + storage + focus) ── */
   useEffect(() => {
     const sync = () => {
       const fresh = readCart();
-      setCartItems(prev =>
+      setCartItems((prev) =>
         JSON.stringify(prev) === JSON.stringify(fresh) ? prev : fresh
       );
     };
-
     const interval = setInterval(sync, 600);
-    window.addEventListener("storage", sync);  // autre onglet
-    window.addEventListener("focus", sync);    // retour depuis autre page
-
+    window.addEventListener("storage", sync);
+    window.addEventListener("focus", sync);
     return () => {
       clearInterval(interval);
       window.removeEventListener("storage", sync);
@@ -266,12 +327,14 @@ export default function OrganizerPage() {
     };
   }, []);
 
+  /* ── Likes ── */
   useEffect(() => {
     setLikedResources(JSON.parse(localStorage.getItem("adore") || "[]"));
   }, []);
 
+  /* ── Cart actions ── */
   const removeFromCart = (resourceId) => {
-    const updated = cartItems.filter(i => i.resourceId !== resourceId);
+    const updated = cartItems.filter((i) => i.resourceId !== resourceId);
     localStorage.setItem("reservationCart", JSON.stringify(updated));
     setCartItems(updated);
   };
@@ -291,127 +354,234 @@ export default function OrganizerPage() {
     navigate("/mes-reservations");
   };
 
-  /* ── Données ── */
-  const user = JSON.parse(localStorage.getItem("user") || "null");
-  const userId = user?._id || user?.id || null;
+  /* ── CAS 1 & 2 : Recommandations générales ── */
+  useEffect(() => {
+    if (eventId) return;
+    const fetchRecommendations = async () => {
+      setLoadingRecs(true);
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5000/api/recommendations", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        });
+        if (!response.ok) throw new Error();
+        const result = await response.json();
+        setRecommendedResources(result.data || []);
+      } catch {
+        setRecommendedResources([]);
+      } finally {
+        setLoadingRecs(false);
+      }
+    };
+    fetchRecommendations();
+  }, [userId, eventId]);
 
+  /* ── CAS 3 : Recommandations par événement ── */
+  useEffect(() => {
+    if (!eventId) return;
+    const fetchEventRecommendations = async () => {
+      setLoadingRecs(true);
+      try {
+        const token = localStorage.getItem("token");
+        const eventData = location.state?.eventData || { category: location.state?.eventCategory };
+        if (!eventData?.category) return;
+        const response = await fetch("http://localhost:5000/api/recommendations/event", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(eventData),
+        });
+        if (!response.ok) throw new Error();
+        const result = await response.json();
+        setRecommendedResources(result.data?.flat || []);
+      } catch {
+        setRecommendedResources([]);
+      } finally {
+        setLoadingRecs(false);
+      }
+    };
+    fetchEventRecommendations();
+  }, [eventId]);
+
+  /* ── Chargement ressources ── */
   useEffect(() => {
     (async () => {
       try {
-        let url = "http://localhost:5000/api/recommendations";
-        if (userId && eventId) url += `/${userId}/${eventId}`;
-        else if (userId) url += `/${userId}`;
-        const r = await fetch(url);
+        setLoading(true);
+        const r = await fetch("http://localhost:5000/api/ressources/get_all_ressources");
         if (!r.ok) throw new Error();
-        const result = await r.json();
-        setRecommendedResources(result.data || []);
-      } catch { setRecommendedResources([]); }
+        setResources(await r.json());
+      } catch { } finally {
+        setLoading(false);
+      }
     })();
-  }, [userId, eventId]);
+  }, []);
 
-  useEffect(() => { loadResources(); }, []);
-  useEffect(() => { filterAndSort(); }, [resources, searchTerm, selectedSubCategory, maxPrice, sortBy]);
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedSubCategory, maxPrice, sortBy]);
-
-  const loadResources = async () => {
-    try {
-      setLoading(true);
-      const r = await fetch("http://localhost:5000/api/ressources/get_all_ressources");
-      if (!r.ok) throw new Error();
-      setResources(await r.json());
-    } catch { } finally { setLoading(false); }
-  };
-
-  const handleLikeUpdate = (id, liked) =>
-    setLikedResources(p => liked ? [...p, id] : p.filter(x => x !== id));
-
-  const filterAndSort = () => {
+  /* ── Filtrage & tri ── */
+  useEffect(() => {
     let f = [...resources];
     if (searchTerm) {
       const t = searchTerm.toLowerCase();
-      f = f.filter(r =>
+      f = f.filter((r) =>
         r.name?.toLowerCase().includes(t) ||
         r.description?.toLowerCase().includes(t) ||
         r.location?.toLowerCase().includes(t) ||
         r.provider_name?.toLowerCase().includes(t)
       );
     }
-    if (selectedSubCategory) f = f.filter(r => r.category === selectedSubCategory);
-    if (maxPrice) f = f.filter(r => r.price <= parseFloat(maxPrice));
+    if (selectedSubCategory) f = f.filter((r) => r.category === selectedSubCategory);
+    if (maxPrice) f = f.filter((r) => r.price <= parseFloat(maxPrice));
     switch (sortBy) {
-      case "price_asc":  f.sort((a, b) => (a.price||0)-(b.price||0)); break;
-      case "price_desc": f.sort((a, b) => (b.price||0)-(a.price||0)); break;
-      case "name_asc":   f.sort((a, b) => (a.name||"").localeCompare(b.name||"")); break;
-      case "name_desc":  f.sort((a, b) => (b.name||"").localeCompare(a.name||"")); break;
-      case "date_desc":  f.sort((a, b) => new Date(b.createdAt||0)-new Date(a.createdAt||0)); break;
-      case "date_asc":   f.sort((a, b) => new Date(a.createdAt||0)-new Date(b.createdAt||0)); break;
+      case "price_asc": f.sort((a, b) => (a.price || 0) - (b.price || 0)); break;
+      case "price_desc": f.sort((a, b) => (b.price || 0) - (a.price || 0)); break;
+      case "name_asc": f.sort((a, b) => (a.name || "").localeCompare(b.name || "")); break;
+      case "name_desc": f.sort((a, b) => (b.name || "").localeCompare(a.name || "")); break;
+      case "date_desc": f.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)); break;
+      case "date_asc": f.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)); break;
+      default: break;
     }
     setFilteredResources(f);
+  }, [resources, searchTerm, selectedSubCategory, maxPrice, sortBy]);
+
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedSubCategory, maxPrice, sortBy]);
+
+  const handleLikeUpdate = (id, liked) =>
+    setLikedResources((p) => liked ? [...p, id] : p.filter((x) => x !== id));
+
+  /* ── Pagination ── */
+  const totalPages = Math.ceil(filteredResources.length / itemsPerPage);
+  const currentResources = filteredResources.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const goToPage = (p) => {
+    if (p >= 1 && p <= totalPages) {
+      setCurrentPage(p);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
-  const totalPages = Math.ceil(filteredResources.length / itemsPerPage);
-  const currentResources = filteredResources.slice((currentPage-1)*itemsPerPage, currentPage*itemsPerPage);
-  const goToPage = (p) => {
-    if (p >= 1 && p <= totalPages) { setCurrentPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  };
-  const getPageNums = () => Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-    if (totalPages <= 5) return i+1;
-    if (currentPage <= 3) return i+1;
-    if (currentPage >= totalPages-2) return totalPages-4+i;
-    return currentPage-2+i;
-  });
+  const getPageNums = () =>
+    Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+      if (totalPages <= 5) return i + 1;
+      if (currentPage <= 3) return i + 1;
+      if (currentPage >= totalPages - 2) return totalPages - 4 + i;
+      return currentPage - 2 + i;
+    });
 
   const PaginationControls = () => (
     <div className="flex items-center gap-1.5">
-      <button onClick={() => goToPage(currentPage-1)} disabled={currentPage===1}
-        className={`p-1.5 rounded-lg border transition-all ${currentPage===1 ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed" : "bg-white text-gray-600 border-gray-200 hover:bg-blue-50 hover:border-blue-300"}`}>
+      <button
+        onClick={() => goToPage(currentPage - 1)}
+        disabled={currentPage === 1}
+        className={`p-1.5 rounded-lg border transition-all ${currentPage === 1
+          ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
+          : "bg-white text-gray-600 border-gray-200 hover:bg-blue-50 hover:border-blue-300"}`}
+      >
         <ChevronLeft className="w-4 h-4" />
       </button>
-      {getPageNums().map(n => (
-        <button key={n} onClick={() => goToPage(n)}
-          className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${currentPage===n ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "bg-white text-gray-600 border border-gray-200 hover:bg-blue-50"}`}>
+      {getPageNums().map((n) => (
+        <button
+          key={n}
+          onClick={() => goToPage(n)}
+          className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${currentPage === n
+            ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+            : "bg-white text-gray-600 border border-gray-200 hover:bg-blue-50"}`}
+        >
           {n}
         </button>
       ))}
-      <button onClick={() => goToPage(currentPage+1)} disabled={currentPage===totalPages}
-        className={`p-1.5 rounded-lg border transition-all ${currentPage===totalPages ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed" : "bg-white text-gray-600 border-gray-200 hover:bg-blue-50 hover:border-blue-300"}`}>
+      <button
+        onClick={() => goToPage(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className={`p-1.5 rounded-lg border transition-all ${currentPage === totalPages
+          ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
+          : "bg-white text-gray-600 border-gray-200 hover:bg-blue-50 hover:border-blue-300"}`}
+      >
         <ChevronRight className="w-4 h-4" />
       </button>
     </div>
   );
 
+  /* ── Contenu bannière dynamique ── */
+  const getBannerContent = () => {
+    if (eventId) return {
+      title: "🎯 Ressources pour votre événement",
+      subtitle: "Sélection personnalisée selon les caractéristiques de votre événement",
+      gradient: "from-purple-600 to-pink-600",
+    };
+    if (userId) return {
+      title: "✨ Bienvenue, nous sommes toujours là pour vous !",
+      subtitle: "Vos recommandations personnalisées sont prêtes selon vos préférences",
+      gradient: "from-blue-600 to-purple-600",
+    };
+    return {
+      title: "✨ Organisez l'événement inoubliable",
+      subtitle: "Des centaines de ressources à portée de main, filtrées selon vos besoins",
+      gradient: "from-blue-600 to-purple-600",
+    };
+  };
+
+  const getRecsTitle = () => {
+    if (eventId) return "🎯 Ressources pour votre événement";
+    if (userId) return "✨ Nous sommes toujours là pour vous";
+    return "🔥 Les plus populaires";
+  };
+
+  const banner = getBannerContent();
+
+  /* ─────────────────────────────────────────────────
+     RENDER
+  ───────────────────────────────────────────────── */
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <Navbar />
 
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} pendingItem={null} onAuthSuccess={handleAuthSuccess} />
-      <CartSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} cartItems={cartItems} onRemove={removeFromCart} onSendClick={handleSendClick} />
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        pendingItem={null}
+        onAuthSuccess={handleAuthSuccess}
+      />
+      <CartSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        cartItems={cartItems}
+        onRemove={removeFromCart}
+        onSendClick={handleSendClick}
+      />
 
       <div className="pt-28 pb-10 px-4 max-w-7xl mx-auto">
 
-        {/* Bannière */}
+        {/* ── Bannière dynamique ── */}
         <div className="mb-8">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white shadow-xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`relative overflow-hidden rounded-2xl bg-gradient-to-r ${banner.gradient} p-8 text-white shadow-xl`}
+          >
             <div className="relative z-10">
-              <h2 className="text-2xl font-bold mb-2">✨ Organisez l'événement inoubliable</h2>
-              <p className="text-blue-100">Des centaines de ressources à portée de main, filtrées selon vos besoins</p>
+              <h2 className="text-2xl font-bold mb-2">{banner.title}</h2>
+              <p className="text-white/80">{banner.subtitle}</p>
             </div>
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
           </motion.div>
         </div>
 
-        {/* ════ FILTRES + BOUTON PANIER ════ */}
+        {/* ── Filtres + bouton panier ── */}
         <motion.div className="bg-white rounded-2xl shadow-lg p-6 mb-10 border border-gray-100">
-
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Filter className="w-5 h-5 text-blue-600" />
               <h2 className="text-xl font-semibold text-slate-800">Recherche & Filtres</h2>
             </div>
 
-            {/* ══ BOUTON PANIER — TOUJOURS VISIBLE ══ */}
+            {/* Bouton panier — toujours visible */}
             <button
               onClick={() => setSidebarOpen(true)}
               className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:shadow-sm transition-all text-sm font-medium text-gray-800"
@@ -437,57 +607,92 @@ export default function OrganizerPage() {
               <label className="block text-sm font-medium text-slate-700 mb-2">Rechercher une ressource</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Nom, lieu, prestataire..."
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm hover:border-blue-300 transition-colors" />
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm hover:border-blue-300 transition-colors"
+                />
               </div>
             </div>
             <div><CategoryDropdown value={selectedSubCategory} onChange={setSelectedSubCategory} /></div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Budget max (€)</label>
-              <input type="number" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} min="0" placeholder="Ex: 500"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm hover:border-blue-300 transition-colors" />
+              <label className="block text-sm font-medium text-slate-700 mb-2">Budget max (DT)</label>
+              <input
+                type="number"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                min="0"
+                placeholder="Ex: 500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm hover:border-blue-300 transition-colors"
+              />
             </div>
             <div><SortDropdown value={sortBy} onChange={setSortBy} /></div>
           </div>
 
           {(searchTerm || selectedSubCategory || maxPrice || sortBy) && (
             <div className="flex justify-end mt-4">
-              <button onClick={() => { setSearchTerm(""); setSelectedSubCategory(""); setMaxPrice(""); setSortBy(""); }}
-                className="px-4 py-2 rounded-lg border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors">
+              <button
+                onClick={() => { setSearchTerm(""); setSelectedSubCategory(""); setMaxPrice(""); setSortBy(""); }}
+                className="px-4 py-2 rounded-lg border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors"
+              >
                 Réinitialiser les filtres
               </button>
             </div>
           )}
         </motion.div>
 
-        {/* Recommandations */}
-        {recommendedResources.length > 0 && (
-          <div className="mb-12">
-            <div className="flex items-center gap-2 mb-6">
-              <Sparkles className="w-6 h-6 text-purple-600" />
-              <h2 className="text-2xl font-bold text-slate-800">Nos recommandations pour vous</h2>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {recommendedResources.slice(0, 5).map(r => <RecommendationCard key={r._id} resource={r} />)}
-            </div>
+        {/* ── Section Recommandations avec skeleton ── */}
+        <div className="mb-12">
+          <div className="flex items-center gap-2 mb-6">
+            <Sparkles className="w-6 h-6 text-purple-600" />
+            <h2 className="text-2xl font-bold text-slate-800">{getRecsTitle()}</h2>
+            {loadingRecs && <Spinner size="sm" color="purple" />}
           </div>
-        )}
 
-        {/* Liste */}
+          {loadingRecs ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl shadow-md p-4 animate-pulse">
+                  <div className="w-full h-48 bg-gray-200 rounded-xl mb-4" />
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+                  <div className="h-4 bg-gray-200 rounded w-2/3" />
+                </div>
+              ))}
+            </div>
+          ) : recommendedResources.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {recommendedResources.slice(0, 6).map((resource) => (
+                <RecommendationCard key={resource._id} resource={resource} />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-md p-8 text-center text-gray-400">
+              <Sparkles className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>Aucune recommandation disponible pour le moment.</p>
+            </div>
+          )}
+        </div>
+
+        {/* ── Liste ressources ── */}
         <div>
           <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <Sparkles className="w-6 h-6 text-blue-600" />
               <h2 className="text-2xl font-bold text-slate-800">Nos ressources</h2>
-              {!loading && <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-600 text-sm font-medium">{filteredResources.length}</span>}
+              {!loading && (
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-600 text-sm font-medium">
+                  {filteredResources.length}
+                </span>
+              )}
             </div>
-            {totalPages > 1 && <PaginationControls />}
           </div>
 
           {loading ? (
             <div className="text-center py-16">
-              <div className="inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <Spinner size="lg" color="blue" />
               <p className="mt-4 text-slate-500">Chargement des ressources...</p>
             </div>
           ) : filteredResources.length === 0 ? (
@@ -499,19 +704,34 @@ export default function OrganizerPage() {
           ) : (
             <>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {currentResources.map(r => (
-                  <ResourceCard key={r._id} resource={r} isLiked={likedResources.includes(r._id)}
-                    onLikeUpdate={handleLikeUpdate} onBook={() => setSelectedResource(r)} />
+                {currentResources.map((resource) => (
+                  <ResourceCard
+                    key={resource._id}
+                    resource={resource}
+                    isLiked={likedResources.includes(resource._id)}
+                    onLikeUpdate={handleLikeUpdate}
+                    onBook={() => setSelectedResource(resource)}
+                  />
                 ))}
               </div>
-              {totalPages > 1 && <div className="mt-12 flex justify-center"><PaginationControls /></div>}
+              {totalPages > 1 && (
+                <div className="mt-12 flex justify-center">
+                  <PaginationControls />
+                </div>
+              )}
             </>
           )}
         </div>
       </div>
 
       <Footer />
-      {selectedResource && <BookingModal resource={selectedResource} onClose={() => setSelectedResource(null)} />}
+
+      {selectedResource && (
+        <BookingModal
+          resource={selectedResource}
+          onClose={() => setSelectedResource(null)}
+        />
+      )}
     </div>
   );
 }

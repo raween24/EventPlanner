@@ -11,6 +11,7 @@ import {
     Search, Filter, ArrowUpDown, ChevronDown, ArrowLeft,
     Package
 } from 'lucide-react';
+import Navbar from "../components/Navbar";
 
 const StatusBadge = ({ status }) => {
     const config = {
@@ -161,6 +162,7 @@ export default function MesDemandes() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 sm:p-6 lg:p-8">
+            <Navbar />
             <div className="max-w-7xl mx-auto">
 
                 {/* En-tête */}
@@ -217,7 +219,7 @@ export default function MesDemandes() {
                             <Filter size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                             <ChevronDown size={14} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         </div>
-                    
+
                         <button
                             onClick={fetchRequests}
                             className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
@@ -261,10 +263,9 @@ export default function MesDemandes() {
                                 >
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <div className="flex items-start gap-3">
-                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                                request.status === 'en_attente' ? 'bg-yellow-100'
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${request.status === 'en_attente' ? 'bg-yellow-100'
                                                 : request.status === 'confirmé' ? 'bg-green-100' : 'bg-red-100'
-                                            }`}>
+                                                }`}>
                                                 {request.status === 'en_attente' ? (
                                                     <Clock size={20} className="text-yellow-600" />
                                                 ) : request.status === 'confirmé' ? (
