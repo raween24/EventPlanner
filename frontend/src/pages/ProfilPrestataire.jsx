@@ -55,6 +55,17 @@ const resourceFields = {
     ]
 };
 
+// ─── Utilitaire : affiche les coordonnées GeoJSON lisiblement ───
+const formatLocation = (location) => {
+    if (!location) return 'Lieu non défini';
+    if (location?.coordinates?.length === 2) {
+        const [lng, lat] = location.coordinates;
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+    if (typeof location === 'string' && location.trim()) return location;
+    return 'Lieu non défini';
+};
+
 export default function ProfilPres() {
     const [showRequestDetailsModal, setShowRequestDetailsModal] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
@@ -95,7 +106,7 @@ export default function ProfilPres() {
         type: '',
         category: '',
         price: '',
-        location: '',
+        location: null,   // ← objet GeoJSON ou null
         stock: 1,
         attributes: {},
         customAttributes: []
@@ -280,7 +291,8 @@ export default function ProfilPres() {
             type: resource.type || 'service',
             category: resource.category || '',
             price: resource.price || '',
-            location: resource.location || '',
+            // ← Conserver l'objet GeoJSON complet
+            location: resource.location || null,
             stock: resource.stock || 1,
             attributes: attrs,
             customAttributes: resource.customAttributes || []
@@ -352,11 +364,10 @@ export default function ProfilPres() {
         setEditAvailabilities(prev => prev.filter((_, i) => i !== index));
     };
 
-    // Gestion des caractéristiques : ouverture de la modale dédiée
+    // Gestion des caractéristiques
     const openAttributesModal = () => {
         const currentType = editFormData.category;
         const fields = resourceFields[currentType] || [];
-
         const newTempAttributes = { ...editFormData.attributes };
         fields.forEach(field => {
             if (!(field.name in newTempAttributes)) {
@@ -364,7 +375,6 @@ export default function ProfilPres() {
                 else newTempAttributes[field.name] = '';
             }
         });
-
         setTempAttributes(newTempAttributes);
         setTempCustomAttributes(editFormData.customAttributes.map(attr => ({ ...attr })));
         setNewCustomAttrName('');
@@ -414,10 +424,17 @@ export default function ProfilPres() {
             formData.append('type', editFormData.type);
             formData.append('category', editFormData.category);
             formData.append('price', editFormData.price);
-            formData.append('location', editFormData.location || '');
             formData.append('stock', editFormData.stock || 1);
             formData.append('attributes', JSON.stringify(editFormData.attributes));
             formData.append('customAttributes', JSON.stringify(editFormData.customAttributes));
+
+            // ← Envoyer location comme JSON si c'est un objet GeoJSON
+            if (editFormData.location?.coordinates) {
+                formData.append('location', JSON.stringify(editFormData.location));
+            } else if (typeof editFormData.location === 'string' && editFormData.location.trim()) {
+                formData.append('location', editFormData.location);
+            }
+
             const imagesToKeep = editImages.map(img => img._id).filter(id => id);
             formData.append('imagesToKeep', JSON.stringify(imagesToKeep));
             editNewImages.forEach(image => {
@@ -429,6 +446,7 @@ export default function ProfilPres() {
                 status: avail.status
             }));
             formData.append('availability', JSON.stringify(availabilityData));
+
             const response = await api.put(`/ressources/modify/${editingResource._id}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
@@ -903,7 +921,14 @@ export default function ProfilPres() {
                                                 </div>
                                                 <div className="p-4">
                                                     <h3 className="font-semibold text-gray-900 mb-2 truncate">{resource.name}</h3>
-                                                    <div className="flex items-center justify-between mb-3"><span className="text-lg font-bold text-blue-600">{formatPrice(resource.price)}</span><span className="text-sm text-gray-500">{resource.location || 'Lieu non défini'}</span></div>
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <span className="text-lg font-bold text-blue-600">{formatPrice(resource.price)}</span>
+                                                        {/* ← Affichage correct de la localisation GeoJSON */}
+                                                        <span className="text-sm text-gray-500 flex items-center gap-1">
+                                                            <MapPin size={12} className="text-gray-400" />
+                                                            {formatLocation(resource.location)}
+                                                        </span>
+                                                    </div>
                                                     <div className="flex gap-2">
                                                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleEditResource(resource)} className="flex-1 flex items-center justify-center gap-1 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-all"><Edit2 size={14} /> Modifier</motion.button>
                                                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleDeleteResource(resource._id)} className="flex-1 flex items-center justify-center gap-1 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-all"><Trash2 size={14} /> Supprimer</motion.button>
@@ -978,7 +1003,7 @@ export default function ProfilPres() {
                     )}
                 </AnimatePresence>
 
-                {/* ==================== MODALE DE MODIFICATION DE RESSOURCE AVEC SCROLL CORRIGÉ ==================== */}
+                {/* MODALE DE MODIFICATION DE RESSOURCE */}
                 <AnimatePresence>
                     {showEditModal && editingResource && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowEditModal(false)}>
@@ -999,9 +1024,9 @@ export default function ProfilPres() {
                                     <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2 truncate">Modifiez les informations de "{editingResource.name}"</p>
                                 </div>
 
-                                {/* Contenu avec scroll indépendant */}
+                                {/* Contenu avec scroll */}
                                 <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
-                                    {/* Colonne gauche - Formulaire (scrollable) */}
+                                    {/* Colonne gauche - Formulaire */}
                                     <div className="w-full lg:w-1/2 p-3 sm:p-6 border-b lg:border-b-0 lg:border-r border-gray-200 overflow-y-auto max-h-[60vh] lg:max-h-[70vh]">
                                         <form onSubmit={handleEditSubmit} className="space-y-3 sm:space-y-4">
                                             {editError && (
@@ -1045,29 +1070,33 @@ export default function ProfilPres() {
                                                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Prix (€) *</label>
                                                     <input type="number" value={editFormData.price} onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })} className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required />
                                                 </div>
+                                                {/* ← Localisation en lecture seule (GeoJSON) */}
                                                 <div>
                                                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Localisation</label>
-                                                    <input type="text" value={editFormData.location} onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })} className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="Ville, adresse..." />
+                                                    {editFormData.location?.coordinates ? (
+                                                        <div className="px-3 py-1.5 sm:py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-500 flex items-center gap-1">
+                                                            <MapPin size={12} className="text-gray-400 flex-shrink-0" />
+                                                            <span className="font-mono truncate">
+                                                                {editFormData.location.coordinates[1].toFixed(4)}, {editFormData.location.coordinates[0].toFixed(4)}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <input
+                                                            type="text"
+                                                            value={editFormData.location || ''}
+                                                            onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                                                            className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                                                            placeholder="Ville, adresse..."
+                                                        />
+                                                    )}
                                                 </div>
                                             </div>
 
-                                            {/* Champ STOCK - uniquement pour les produits */}
                                             {editFormData.type === "product" && (
                                                 <div>
-                                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                                                        Stock disponible *
-                                                    </label>
-                                                    <input
-                                                        type="number"
-                                                        value={editFormData.stock || 1}
-                                                        onChange={(e) => setEditFormData({ ...editFormData, stock: parseInt(e.target.value) || 1 })}
-                                                        min="0"
-                                                        className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                                                        required
-                                                    />
-                                                    <p className="text-[10px] sm:text-xs text-gray-400 mt-1">
-                                                        Quantité disponible pour les organisateurs
-                                                    </p>
+                                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Stock disponible *</label>
+                                                    <input type="number" value={editFormData.stock || 1} onChange={(e) => setEditFormData({ ...editFormData, stock: parseInt(e.target.value) || 1 })} min="0" className="w-full px-3 sm:px-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" required />
+                                                    <p className="text-[10px] sm:text-xs text-gray-400 mt-1">Quantité disponible pour les organisateurs</p>
                                                 </div>
                                             )}
 
@@ -1075,11 +1104,7 @@ export default function ProfilPres() {
                                             <div className="border-t border-gray-200 pt-3">
                                                 <div className="flex items-center justify-between">
                                                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Caractéristiques</label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={openAttributesModal}
-                                                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                                                    >
+                                                    <button type="button" onClick={openAttributesModal} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
                                                         <Edit2 size={12} /> Ajouter / Modifier
                                                     </button>
                                                 </div>
@@ -1094,9 +1119,7 @@ export default function ProfilPres() {
                                                                 return (
                                                                     <li key={field.name} className="flex items-start gap-2">
                                                                         <span className="text-gray-400">•</span>
-                                                                        <span>
-                                                                            <span className="font-medium">{field.label || field.name}</span> : {typeof value === 'boolean' ? (value ? 'Oui' : 'Non') : value}
-                                                                        </span>
+                                                                        <span><span className="font-medium">{field.label || field.name}</span> : {typeof value === 'boolean' ? (value ? 'Oui' : 'Non') : value}</span>
                                                                     </li>
                                                                 );
                                                             })}
@@ -1128,7 +1151,7 @@ export default function ProfilPres() {
                                         </form>
                                     </div>
 
-                                    {/* Colonne droite - Images et Disponibilités (scrollable) */}
+                                    {/* Colonne droite - Images et Disponibilités */}
                                     <div className="w-full lg:w-1/2 p-3 sm:p-6 overflow-y-auto max-h-[60vh] lg:max-h-[70vh]">
                                         {/* Section Images */}
                                         <div className="mb-4 sm:mb-6">
@@ -1230,66 +1253,34 @@ export default function ProfilPres() {
                 {/* MODALE D'ÉDITION DES CARACTÉRISTIQUES */}
                 <AnimatePresence>
                     {showAttributesModal && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/50 backdrop-blur-sm"
-                            onClick={() => setShowAttributesModal(false)}
-                        >
-                            <motion.div
-                                initial={{ scale: 0.9, y: 20 }}
-                                animate={{ scale: 1, y: 0 }}
-                                exit={{ scale: 0.9, y: 20 }}
-                                className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col"
-                                onClick={(e) => e.stopPropagation()}
-                            >
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowAttributesModal(false)}>
+                            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                                 <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex justify-between items-center flex-shrink-0">
                                     <div>
                                         <h3 className="text-lg font-bold text-gray-900">Caractéristiques</h3>
                                         <p className="text-xs text-purple-600 mt-0.5">
-                                            {editFormData.category === 'salle' ? 'Salle' :
-                                                editFormData.category === 'materiel' ? 'Matériel' :
-                                                    editFormData.category === 'decoration' ? 'Décoration' : 'Traiteur'}
+                                            {editFormData.category === 'salle' ? 'Salle' : editFormData.category === 'materiel' ? 'Matériel' : editFormData.category === 'decoration' ? 'Décoration' : 'Traiteur'}
                                         </p>
                                     </div>
-                                    <button onClick={() => setShowAttributesModal(false)} className="p-1 hover:bg-white rounded-lg transition">
-                                        <X size={20} />
-                                    </button>
+                                    <button onClick={() => setShowAttributesModal(false)} className="p-1 hover:bg-white rounded-lg transition"><X size={20} /></button>
                                 </div>
                                 <div className="p-4 overflow-y-auto flex-1 space-y-5">
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                            Attributs spécifiques
-                                        </label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-3">Attributs spécifiques</label>
                                         <div className="space-y-3">
                                             {(resourceFields[editFormData.category] || []).length === 0 ? (
                                                 <p className="text-sm text-gray-400 italic">Aucun attribut standard pour cette catégorie.</p>
                                             ) : (
                                                 resourceFields[editFormData.category].map(field => (
                                                     <div key={field.name} className="flex flex-col sm:flex-row sm:items-center gap-2">
-                                                        <span className="text-sm text-gray-600 w-36 flex-shrink-0">
-                                                            {field.label}
-                                                            {field.required && <span className="text-red-500 ml-1">*</span>}
-                                                        </span>
+                                                        <span className="text-sm text-gray-600 w-36 flex-shrink-0">{field.label}{field.required && <span className="text-red-500 ml-1">*</span>}</span>
                                                         {field.type === 'boolean' ? (
-                                                            <select
-                                                                value={tempAttributes[field.name] === true ? 'true' : 'false'}
-                                                                onChange={(e) => setTempAttributes({ ...tempAttributes, [field.name]: e.target.value === 'true' })}
-                                                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
-                                                            >
+                                                            <select value={tempAttributes[field.name] === true ? 'true' : 'false'} onChange={(e) => setTempAttributes({ ...tempAttributes, [field.name]: e.target.value === 'true' })} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-400">
                                                                 <option value="true">Oui</option>
                                                                 <option value="false">Non</option>
                                                             </select>
                                                         ) : (
-                                                            <input
-                                                                type={field.type === 'number' ? 'number' : 'text'}
-                                                                value={tempAttributes[field.name] ?? ''}
-                                                                onChange={(e) => setTempAttributes({ ...tempAttributes, [field.name]: e.target.value })}
-                                                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
-                                                                placeholder={field.label}
-                                                                required={field.required}
-                                                            />
+                                                            <input type={field.type === 'number' ? 'number' : 'text'} value={tempAttributes[field.name] ?? ''} onChange={(e) => setTempAttributes({ ...tempAttributes, [field.name]: e.target.value })} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-400" placeholder={field.label} required={field.required} />
                                                         )}
                                                     </div>
                                                 ))
@@ -1297,74 +1288,28 @@ export default function ProfilPres() {
                                         </div>
                                     </div>
                                     <div className="border-t border-gray-100 pt-4">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                            Attributs personnalisés
-                                        </label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-3">Attributs personnalisés</label>
                                         {tempCustomAttributes.length > 0 && (
                                             <div className="space-y-2 mb-3">
                                                 {tempCustomAttributes.map((attr, idx) => (
                                                     <div key={idx} className="flex items-center gap-2">
-                                                        <input
-                                                            type="text"
-                                                            value={attr.name}
-                                                            onChange={(e) => updateCustomAttribute(idx, 'name', e.target.value)}
-                                                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                                                            placeholder="Nom"
-                                                        />
-                                                        <input
-                                                            type="text"
-                                                            value={attr.value}
-                                                            onChange={(e) => updateCustomAttribute(idx, 'value', e.target.value)}
-                                                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                                                            placeholder="Valeur"
-                                                        />
-                                                        <button
-                                                            onClick={() => removeCustomAttribute(idx)}
-                                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
+                                                        <input type="text" value={attr.name} onChange={(e) => updateCustomAttribute(idx, 'name', e.target.value)} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Nom" />
+                                                        <input type="text" value={attr.value} onChange={(e) => updateCustomAttribute(idx, 'value', e.target.value)} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Valeur" />
+                                                        <button onClick={() => removeCustomAttribute(idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 size={16} /></button>
                                                     </div>
                                                 ))}
                                             </div>
                                         )}
                                         <div className="flex items-center gap-2">
-                                            <input
-                                                type="text"
-                                                value={newCustomAttrName}
-                                                onChange={(e) => setNewCustomAttrName(e.target.value)}
-                                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                                                placeholder="Nom (ex: Matière)"
-                                            />
-                                            <input
-                                                type="text"
-                                                value={newCustomAttrValue}
-                                                onChange={(e) => setNewCustomAttrValue(e.target.value)}
-                                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                                                placeholder="Valeur (ex: Bois)"
-                                            />
-                                            <button
-                                                onClick={addCustomAttribute}
-                                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
-                                            >
-                                                <PlusCircle size={20} />
-                                            </button>
+                                            <input type="text" value={newCustomAttrName} onChange={(e) => setNewCustomAttrName(e.target.value)} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Nom (ex: Matière)" />
+                                            <input type="text" value={newCustomAttrValue} onChange={(e) => setNewCustomAttrValue(e.target.value)} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Valeur (ex: Bois)" />
+                                            <button onClick={addCustomAttribute} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"><PlusCircle size={20} /></button>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 flex-shrink-0">
-                                    <button
-                                        onClick={() => setShowAttributesModal(false)}
-                                        className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
-                                    >
-                                        Annuler
-                                    </button>
-                                    <button
-                                        onClick={saveAttributes}
-                                        className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition shadow-sm"
-                                    >
-                                        Enregistrer
-                                    </button>
+                                    <button onClick={() => setShowAttributesModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition">Annuler</button>
+                                    <button onClick={saveAttributes} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition shadow-sm">Enregistrer</button>
                                 </div>
                             </motion.div>
                         </motion.div>
@@ -1377,7 +1322,10 @@ export default function ProfilPres() {
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowProfileEditModal(false)}>
                             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden mx-3 sm:mx-4" onClick={(e) => e.stopPropagation()}>
                                 <div className="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50"><div className="flex justify-between items-center"><div className="flex items-center gap-3"><div className="p-2 bg-blue-100 rounded-xl"><User size={20} className="text-blue-600" /></div><h3 className="text-lg sm:text-xl font-bold text-gray-900">Modifier mon profil</h3></div><motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowProfileEditModal(false)} className="p-1.5 sm:p-2 hover:bg-white rounded-lg sm:rounded-xl transition-all"><X size={18} className="sm:w-5 sm:h-5 text-gray-500" /></motion.button></div><p className="text-xs sm:text-sm text-gray-500 mt-2">Modifiez vos informations personnelles</p></div>
-                                <div className="flex border-b border-gray-200 px-4 sm:px-6"><button onClick={() => setProfileActiveTab('info')} className={`py-3 px-4 text-sm font-medium transition-all relative ${profileActiveTab === 'info' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}><User size={16} className="mr-2" /> Informations</button><button onClick={() => setProfileActiveTab('password')} className={`py-3 px-4 text-sm font-medium transition-all relative ${profileActiveTab === 'password' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}><Lock size={16} className="mr-2" /> Sécurité</button></div>
+                                <div className="flex border-b border-gray-200 px-4 sm:px-6">
+                                    <button onClick={() => setProfileActiveTab('info')} className={`py-3 px-4 text-sm font-medium transition-all relative flex items-center gap-2 ${profileActiveTab === 'info' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}><User size={16} /> Informations</button>
+                                    <button onClick={() => setProfileActiveTab('password')} className={`py-3 px-4 text-sm font-medium transition-all relative flex items-center gap-2 ${profileActiveTab === 'password' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}><Lock size={16} /> Sécurité</button>
+                                </div>
                                 <form onSubmit={handleProfileSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto max-h-[60vh]">
                                     {profileError && (<div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-sm"><AlertCircle size={16} /> {profileError}</div>)}
                                     {profileSuccess && (<div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-600 text-sm"><CheckCircle size={16} /> {profileSuccess}</div>)}
@@ -1386,8 +1334,8 @@ export default function ProfilPres() {
                                             <div className="flex flex-col items-center mb-4"><div className="relative"><div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-blue-100 shadow-lg bg-gray-100">{profileImagePreview ? (<img src={profileImagePreview} alt="Aperçu" className="w-full h-full object-cover" />) : provider?.image ? (<img src={`http://localhost:5000${provider.image}`} alt={provider.firstname} className="w-full h-full object-cover" />) : (<div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center"><User size={32} className="text-white" /></div>)}</div><label className="absolute bottom-0 right-0 p-1 bg-blue-600 rounded-full cursor-pointer hover:bg-blue-700"><Camera size={16} className="text-white" /><input type="file" accept="image/*" onChange={handleProfileImageChange} className="hidden" /></label>{profileImagePreview && (<button type="button" onClick={handleRemoveProfileImage} className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600"><X size={12} /></button>)}</div><p className="text-xs text-gray-500 mt-2">Cliquez sur l'icône caméra pour changer la photo</p></div>
                                             <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label><input type="text" value={profileFormData.firstname} onChange={(e) => setProfileFormData({ ...profileFormData, firstname: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" value={profileFormData.lastname} onChange={(e) => setProfileFormData({ ...profileFormData, lastname: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required /></div></div>
                                             <div><label className="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" value={profileFormData.email} onChange={(e) => setProfileFormData({ ...profileFormData, email: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required /></div>
-                                            <div><label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label><input type="tel" value={profileFormData.numTel} onChange={(e) => setProfileFormData({ ...profileFormData, numTel: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="+33 6 12 34 56 78" /></div>
-                                            <div><label className="block text-sm font-medium text-gray-700 mb-1">Région</label><input type="text" value={profileFormData.region} onChange={(e) => setProfileFormData({ ...profileFormData, region: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="Île-de-France, Provence-Alpes-Côte d'Azur..." /></div>
+                                            <div><label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label><input type="tel" value={profileFormData.numTel} onChange={(e) => setProfileFormData({ ...profileFormData, numTel: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="+216 XX XXX XXX" /></div>
+                                            <div><label className="block text-sm font-medium text-gray-700 mb-1">Région</label><input type="text" value={profileFormData.region} onChange={(e) => setProfileFormData({ ...profileFormData, region: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="Tunis, Sfax, Sousse..." /></div>
                                         </>
                                     )}
                                     {profileActiveTab === 'password' && (
