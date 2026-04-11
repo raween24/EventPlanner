@@ -28,4 +28,11 @@ sur le panier on a dit que :
 2->si veux envoier une demmande le site doit verife que le user est connecter sinon  naviget(sign in ) 
 3->si oragnisateur n'avait pas aucun evenement ->une pop up qui montre et lui dit de cree un evemenet qui marche avec le date de location du ressources 
 4-> si oragnisateur a des evenement on dois verifier la correspandances entre les dates de ressources et le date d'evenement pour continer au payement
+
+
+sorted by fi page mes reservation ( date )
+supprimer les champs from modal informations personnelles 
+dans modal info personnelle afficher liste des events et ajout ysir ghadi 
+notification : en cas dacceptation des demandes pour org , recevoir des demande pour prestataire , prestataire recoit commentaire sur post , 
+
  
