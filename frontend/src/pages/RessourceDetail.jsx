@@ -125,6 +125,8 @@ function CartSidebar({ isOpen, onClose, cartItems, onRemove, onNavigate }) {
    PAGE PRINCIPALE
 ───────────────────────────────────────────────── */
 export default function ResourceDetailsPage() {
+
+
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -136,6 +138,8 @@ export default function ResourceDetailsPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showLightbox, setShowLightbox] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+
+
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
@@ -168,6 +172,7 @@ export default function ResourceDetailsPage() {
     setCurrentUser(JSON.parse(localStorage.getItem("user")));
     loadCartFromStorage();
   }, []);
+  const isPrestataire = currentUser?.role === "prestataire";
 
   const loadCartFromStorage = () => {
     const raw = localStorage.getItem("reservationCart");
@@ -355,12 +360,12 @@ export default function ResourceDetailsPage() {
   const [address, setAddress] = useState("");
 
   useEffect(() => {
-  if (!resource) return;  // ← cette ligne suffit
-  if (resource.location?.coordinates) {
-    const [lng, lat] = resource.location.coordinates;
-    getAddressFromCoords(lat, lng).then(setAddress);
-  }
-}, [resource]);
+    if (!resource) return;  // ← cette ligne suffit
+    if (resource.location?.coordinates) {
+      const [lng, lat] = resource.location.coordinates;
+      getAddressFromCoords(lat, lng).then(setAddress);
+    }
+  }, [resource]);
 
   /* ── commentaires ── */
   const fetchComments = async () => {
@@ -903,6 +908,7 @@ export default function ResourceDetailsPage() {
               </div>
 
               {/* ════ BOUTON AJOUTER AU PANIER ════ */}
+              {/* ════ BOUTON AJOUTER AU PANIER ════ */}
               {alreadyInCart ? (
                 <div className="bg-indigo-50 p-4 rounded-xl text-center">
                   <CheckCircle2 className="h-8 w-8 text-indigo-600 mx-auto mb-2" />
@@ -916,18 +922,32 @@ export default function ResourceDetailsPage() {
                   <button onClick={() => setSidebarOpen(true)} className="mt-2 text-xs underline text-green-600">Voir le panier →</button>
                 </div>
               ) : (
-                <button
-                  onClick={addToCart}
-                  disabled={!canAddToCart}
-                  className={`w-full py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2
-                    ${canAddToCart ? "bg-black text-white hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98]" : "bg-gray-200 text-gray-500 cursor-not-allowed"}`}>
-                  <ShoppingCart className="h-5 w-5" />
-                  {!selectedDate ? "Sélectionnez une date"
-                    : selectedTimes.length === 0 && !endDate ? "Choisissez des créneaux"
-                      : `Ajouter au panier${selectedTimes.length > 0 ? ` (${calculateTotalPrice()}€)` : ""}`}
-                </button>
+                <>
+                  <button
+                    onClick={addToCart}
+                    disabled={!canAddToCart || currentUser?.role === "prestataire"}
+                    className={`w-full py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2
+        ${(!canAddToCart || currentUser?.role === "prestataire")
+                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                        : "bg-black text-white hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98]"}`}
+                  >
+                    <ShoppingCart className="h-5 w-5" />
+                    {currentUser?.role === "prestataire"
+                      ? "Action non autorisée pour un prestataire"
+                      : !selectedDate
+                        ? "Sélectionnez une date"
+                        : selectedTimes.length === 0 && !endDate
+                          ? "Choisissez des créneaux"
+                          : `Ajouter au panier${selectedTimes.length > 0 ? ` (${calculateTotalPrice()}€)` : ""}`
+                    }
+                  </button>
+                  {currentUser?.role === "prestataire" && (
+                    <p className="text-xs text-amber-600 text-center mt-2">
+                      ⚠️ Les prestataires ne peuvent pas réserver de ressources.
+                    </p>
+                  )}
+                </>
               )}
-
               <p className="text-xs text-gray-400 text-center mt-3">
                 Connexion requise uniquement pour envoyer la demande
               </p>
