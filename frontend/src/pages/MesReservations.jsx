@@ -4,7 +4,7 @@ import axios from "axios";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import NavbarProfileOrg from "../components/navbarProfileOrg";
-import AuthModal from "../components/AuthModal"; // ← import depuis le fichier séparé
+import AuthModal from "../components/AuthModal"; 
 
 /* ═══════════════════════════════════════════
    SVG ICONS

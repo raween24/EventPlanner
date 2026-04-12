@@ -35,4 +35,5 @@ router.delete("/events/:id",deleteEvent);
 router.get("/resources",getAllResources);
 router.delete("/resources/:id",deleteResource);
 router.get("/resources/:id/commentaires", getResourceComments);
+
 export default router;

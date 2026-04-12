@@ -12,7 +12,7 @@ import reunionImg from "../assets/reunion.jpg";
 import festivalImg from "../assets/festival.jpg";
 import Footer from "../components/footer";
 import DomeGallery from "../components/DomeGallery";
-import Navbar from "../components/Navbar"; // ← Import du Navbar partagé
+import Navbar from "../components/Navbar"; 
 import axios from "axios";
 
 const events = [

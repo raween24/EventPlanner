@@ -109,3 +109,24 @@ export const deleteDocument = async (req, res) => {
         });
     }
 };
+/* ================= GET ALL DOCUMENTS (ADMIN) ================= */
+export const getAllDocuments = async (req, res) => {
+    try {
+        const documents = await Document.find()
+            .populate("user", "firstname lastname email role")
+            .populate("resource")
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            count: documents.length,
+            data: documents
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

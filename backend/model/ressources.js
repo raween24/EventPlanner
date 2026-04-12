@@ -110,7 +110,7 @@ likesCount:    { type: Number, default: 0 },
   }
 );
 
-// 🔐 validation
+//  validation
 resourceSchema.pre("save", async function () {
   const hasText = this.terms?.text && this.terms.text.trim() !== "";
   const hasFile = this.terms?.file && this.terms.file !== "";

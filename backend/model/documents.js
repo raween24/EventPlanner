@@ -14,7 +14,7 @@ const docSchema = new mongoose.Schema({
 
     documentType: {
         type: String,
-        enum: ["CIN", "Passport", "Contract", "Other"],
+        enum: ["CIN", "Passport", "Contract", "patente"],
         required: true
     },
 

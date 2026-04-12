@@ -3,24 +3,18 @@ import {
     createDocument,
     getUserDocuments,
     getDocumentById,
-    deleteDocument
+    deleteDocument,
+    getAllDocuments
 } from "../controller/documentController.js";
 
-import upload from "../middleware/upload_doc.js"; // Multer
+import upload from "../middleware/upload_doc.js";
 
 const router = express.Router();
 
-/* ================= CREATE DOCUMENT ================= */
-// Upload fichier (single file nommé "file")
 router.post("/", upload.single("file"), createDocument);
-
-/* ================= GET USER DOCUMENTS ================= */
+router.get("/admin/all", getAllDocuments);   // ← nouvelle route admin
 router.get("/", getUserDocuments);
-
-/* ================= GET SINGLE DOCUMENT ================= */
 router.get("/:id", getDocumentById);
-
-/* ================= DELETE DOCUMENT ================= */
 router.delete("/:id", deleteDocument);
 
 export default router;
