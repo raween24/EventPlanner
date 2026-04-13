@@ -4,7 +4,8 @@ import axios from "axios";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import NavbarProfileOrg from "../components/navbarProfileOrg";
-import AuthModal from "../components/AuthModal"; 
+import AuthModal from "../components/AuthModal";
+import SelectEventModal from "../components/SelectEventModal";
 
 /* ═══════════════════════════════════════════
    SVG ICONS
@@ -26,7 +27,6 @@ const Ic = {
   upload:  (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
   user:    (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
   calendar:(p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-  event:   (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
   search:  (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
   lock:    (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>,
 };
@@ -59,9 +59,9 @@ function Toast({ toast, onClose }) {
 ═══════════════════════════════════════════ */
 function StatusPill({ status }) {
   const cfg = {
-    "en attente": { bg: "#FEF3C7", fg: "#92400E", Icon: Ic.clock, label: "En attente" },
-    "acceptée":   { bg: "#D1FAE5", fg: "#065F46", Icon: Ic.check, label: "Acceptée"   },
-    "refusée":    { bg: "#FEE2E2", fg: "#991B1B", Icon: Ic.xmark, label: "Refusée"    },
+    "en attente": { bg: "#FEF3C7", fg: "#92400E", Icon: Ic.clock,  label: "En attente" },
+    "acceptée":   { bg: "#D1FAE5", fg: "#065F46", Icon: Ic.check,  label: "Acceptée"   },
+    "refusée":    { bg: "#FEE2E2", fg: "#991B1B", Icon: Ic.xmark,  label: "Refusée"    },
   };
   const c = cfg[status] || cfg["en attente"];
   return (
@@ -86,274 +86,6 @@ function TypeBadge({ type }) {
       style={{ background: "#EDE9FE", color: "#5B21B6" }}>
       <Ic.service width={11} height={11} /> Service
     </span>
-  );
-}
-
-/* ═══════════════════════════════════════════
-   FIELD HELPER
-═══════════════════════════════════════════ */
-const fieldCls = (err) => cx(
-  "w-full px-3 py-2.5 text-sm rounded-xl border outline-none transition",
-  err ? "border-rose-400 bg-rose-50 focus:ring-2 focus:ring-rose-100"
-      : "border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-);
-function Field({ label, required, error, children }) {
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-        {label}{required && <span className="text-rose-400 ml-0.5">*</span>}
-      </label>
-      {children}
-      {error && <p className="text-rose-500 text-[10px] mt-1">{error}</p>}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   INFO MODAL — Infos personnelles + Création event
-═══════════════════════════════════════════════════════════════ */
-function InfoModal({ isOpen, onClose, onConfirm, item, stockMax }) {
-  const isService = item?.type === "service";
-
-  const [form, setForm]           = useState({ nom: "", email: "", tel: "", adresse: "", cin: "" });
-  const [qty, setQty]             = useState(1);
-  const [file, setFile]           = useState(null);
-  const [preview, setPreview]     = useState(null);
-  const [loading, setLoading]     = useState(false);
-  const [errors, setErrors]       = useState({});
-  const [eventName, setEventName] = useState("");
-  const [eventType, setEventType] = useState("");
-
-  useEffect(() => {
-    if (isOpen) {
-      setQty(isService ? 1 : (item?.quantity || 1));
-      setForm({ nom: "", email: "", tel: "", adresse: "", cin: "" });
-      setFile(null); setPreview(null); setErrors({});
-      setEventName(""); setEventType("");
-    }
-  }, [isOpen, item]);
-
-  const bump = (d) => {
-    if (isService) return;
-    const n = qty + d;
-    if (n < 1 || n > stockMax) return;
-    setQty(n);
-  };
-
-  const pickFile = (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    if (f.size > 5e6) { setErrors(p => ({ ...p, file: "Fichier trop lourd (max 5 Mo)" })); return; }
-    setFile(f); setErrors(p => ({ ...p, file: null }));
-    const r = new FileReader();
-    r.onloadend = () => setPreview(r.result);
-    r.readAsDataURL(f);
-  };
-
-  const validate = () => {
-    const e = {};
-    if (!form.nom.trim())   e.nom       = "Champ requis";
-    if (!form.email.trim()) e.email     = "Champ requis";
-    if (!form.tel.trim())   e.tel       = "Champ requis";
-    if (!form.cin.trim())   e.cin       = "Champ requis";
-    if (!eventName.trim())  e.eventName = "Nom de l'événement requis";
-    if (!eventType)         e.eventType = "Type requis";
-    if (!file)              e.file      = "Veuillez uploader votre CIN";
-    return e;
-  };
-
-  const submit = async (e) => {
-    e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
-    setLoading(true);
-
-    const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-    fd.append("quantity",  isService ? 1 : qty);
-    fd.append("cinFile",   file);
-    fd.append("eventName", eventName);
-    fd.append("eventType", eventType);
-    const dateStr = item?.selectedDate || new Date().toISOString();
-    fd.append("dateDebut", dateStr);
-    fd.append("dateFin",   dateStr);
-
-    await onConfirm({ ...item, quantity: isService ? 1 : qty }, form, fd);
-    setLoading(false);
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
-  const total       = isService ? (item?.totalPrice || item?.price || 0) : qty * (item?.price || 0);
-  const displayDate = item?.selectedDate
-    ? new Date(item.selectedDate).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-    : "Date non définie";
-  const displaySlots = item?.selectedTimes?.map(s => s.display).join(", ") || "";
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(10,10,30,.7)", backdropFilter: "blur(8px)" }}>
-      <div className="w-full max-w-[460px] rounded-3xl bg-white overflow-hidden shadow-2xl"
-        style={{ animation: "modalIn .24s cubic-bezier(.34,1.56,.64,1)" }}>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4"
-          style={{ background: "linear-gradient(135deg,#1e1b4b,#4338CA)" }}>
-          <div className="flex items-center gap-2 text-white">
-            <Ic.user width={17} height={17} className="opacity-80" />
-            <span className="font-bold text-sm tracking-wide">Envoyer une demande</span>
-          </div>
-          <button onClick={onClose}
-            className="text-white/50 hover:text-white hover:bg-white/10 rounded-full p-1.5 transition">
-            <Ic.close width={15} height={15} />
-          </button>
-        </div>
-
-        {/* Info banners */}
-        <div className="mx-5 mt-4 space-y-2">
-          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold"
-            style={{ background: "#EEF2FF", color: "#3730A3" }}>
-            <Ic.info width={13} height={13} />
-            <span>Demande pour&nbsp;: <strong>{item?.resourceName}</strong></span>
-            <TypeBadge type={item?.type || "service"} />
-          </div>
-          {item?.selectedDate && (
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs"
-              style={{ background: "#F0FDF4", color: "#166534" }}>
-              <Ic.calendar width={12} height={12} />
-              <span>{displayDate}{displaySlots && ` · ${displaySlots}`}</span>
-            </div>
-          )}
-        </div>
-
-        <form onSubmit={submit} className="px-5 py-4 space-y-4 overflow-y-auto" style={{ maxHeight: "70vh" }}>
-
-          {/* Qty + total */}
-          <div className="flex items-end justify-between">
-            <div>
-              {!isService ? (
-                <>
-                  <p className="text-xs text-gray-400 mb-2">Quantité</p>
-                  <div className="flex items-center rounded-xl border border-gray-200 overflow-hidden w-fit">
-                    <button type="button" onClick={() => bump(-1)} disabled={qty <= 1}
-                      className="px-3 py-2.5 hover:bg-gray-50 disabled:opacity-30 transition border-r border-gray-200 text-gray-500">
-                      <Ic.minus width={13} height={13} />
-                    </button>
-                    <span className="px-5 py-2.5 text-sm font-black text-gray-900 tabular-nums">{qty}</span>
-                    <button type="button" onClick={() => bump(1)} disabled={qty >= stockMax}
-                      className="px-3 py-2.5 hover:bg-gray-50 disabled:opacity-30 transition border-l border-gray-200 text-gray-500">
-                      <Ic.plus width={13} height={13} />
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-gray-300 mt-1">Stock dispo : {stockMax}</p>
-                </>
-              ) : (
-                <div>
-                  <p className="text-xs text-gray-400 mb-1">Prestation</p>
-                  <span className="text-sm font-semibold text-gray-700">1 × {item?.resourceName}</span>
-                </div>
-              )}
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-400 mb-1">Total estimé</p>
-              <p className="text-2xl font-black" style={{ color: "#4338CA" }}>{total}€</p>
-            </div>
-          </div>
-
-          <hr className="border-gray-100" />
-
-          {/* Event section */}
-          <div className="rounded-2xl border border-indigo-100 p-4 space-y-3" style={{ background: "#FAFBFF" }}>
-            <p className="text-xs font-black text-indigo-700 uppercase tracking-wider flex items-center gap-1.5">
-              <Ic.event width={13} height={13} /> Votre événement
-            </p>
-            <Field label="Nom de l'événement" required error={errors.eventName}>
-              <input type="text" placeholder="Ex : Mariage de Sophie et Thomas"
-                value={eventName}
-                onChange={e => { setEventName(e.target.value); setErrors(p => ({ ...p, eventName: null })); }}
-                className={fieldCls(errors.eventName)} />
-            </Field>
-            <Field label="Type d'événement" required error={errors.eventType}>
-              <select value={eventType}
-                onChange={e => { setEventType(e.target.value); setErrors(p => ({ ...p, eventType: null })); }}
-                className={fieldCls(errors.eventType)}>
-                <option value="">Sélectionner un type</option>
-                {["Mariage","Soirée privée","Anniversaire","Corporate","Séminaire","Conférence","Gala","Autre"].map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </Field>
-            <p className="text-[10px] text-indigo-400 bg-indigo-50 rounded-lg px-3 py-2">
-              Les ressources avec la même date seront regroupées sous cet événement.
-            </p>
-          </div>
-
-          <hr className="border-gray-100" />
-
-          {/* Personal info */}
-          <Field label="Nom complet" required error={errors.nom}>
-            <input type="text" placeholder="Sophie Martin" value={form.nom}
-              onChange={e => { setForm(p => ({ ...p, nom: e.target.value })); setErrors(p => ({ ...p, nom: null })); }}
-              className={fieldCls(errors.nom)} />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Email" required error={errors.email}>
-              <input type="email" placeholder="sophie@email.com" value={form.email}
-                onChange={e => { setForm(p => ({ ...p, email: e.target.value })); setErrors(p => ({ ...p, email: null })); }}
-                className={fieldCls(errors.email)} />
-            </Field>
-            <Field label="Téléphone" required error={errors.tel}>
-              <input type="tel" placeholder="06 12 34 56 78" value={form.tel}
-                onChange={e => { setForm(p => ({ ...p, tel: e.target.value })); setErrors(p => ({ ...p, tel: null })); }}
-                className={fieldCls(errors.tel)} />
-            </Field>
-          </div>
-          <Field label="Adresse">
-            <textarea rows={2} placeholder="Votre adresse..." value={form.adresse}
-              onChange={e => setForm(p => ({ ...p, adresse: e.target.value }))}
-              className={cx(fieldCls(null), "resize-none")} />
-          </Field>
-
-          <hr className="border-gray-100" />
-
-          <Field label="Numéro CIN" required error={errors.cin}>
-            <input type="text" placeholder="12345678" value={form.cin}
-              onChange={e => { setForm(p => ({ ...p, cin: e.target.value })); setErrors(p => ({ ...p, cin: null })); }}
-              className={fieldCls(errors.cin)} />
-          </Field>
-          <Field label="Photo de la CIN" required error={errors.file}>
-            {preview ? (
-              <div className="relative inline-block">
-                <img src={preview} alt="CIN" className="h-24 rounded-xl border border-gray-200 object-cover" />
-                <button type="button" onClick={() => { setFile(null); setPreview(null); }}
-                  className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 shadow-md">
-                  <Ic.close width={12} height={12} />
-                </button>
-              </div>
-            ) : (
-              <label className={cx(
-                "flex flex-col items-center gap-2 py-6 rounded-2xl border-2 border-dashed cursor-pointer transition",
-                errors.file ? "border-rose-300 bg-rose-50" : "border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/30"
-              )}>
-                <Ic.upload width={26} height={26} className="text-gray-300" />
-                <span className="text-xs text-gray-400">Cliquez pour uploader votre CIN</span>
-                <span className="text-[10px] text-gray-300">JPG · PNG · PDF — max 5 Mo</span>
-                <input type="file" accept="image/*,.pdf" className="hidden" onChange={pickFile} />
-              </label>
-            )}
-          </Field>
-
-          <button type="submit" disabled={loading}
-            className="w-full py-3.5 rounded-2xl text-sm font-black text-white flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-60"
-            style={{ background: "linear-gradient(135deg,#4338CA,#6366F1)" }}>
-            {loading
-              ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Envoi en cours...</>
-              : <><Ic.check width={14} height={14} />Confirmer et envoyer la demande</>}
-          </button>
-        </form>
-      </div>
-    </div>
   );
 }
 
@@ -477,20 +209,21 @@ export default function MesReservations() {
   const navigate = useNavigate();
 
   const [reservations, setReservations] = useState([]);
-  const [cartItems, setCartItems]       = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [sending, setSending]           = useState(null);
+  const [cartItems,    setCartItems]    = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [sending,      setSending]      = useState(null);
+  const [userEvents,   setUserEvents]   = useState([]);
 
-  /* Modal state */
-  const [authModal, setAuthModal] = useState({ open: false, item: null });
-  const [infoModal, setInfoModal] = useState({ open: false, item: null, stock: 0 });
+  /* Modals */
+  const [authModal,   setAuthModal]   = useState({ open: false, item: null });
+  const [selectModal, setSelectModal] = useState({ open: false, item: null });
 
-  const [toast, setToast]             = useState(null);
+  const [toast,       setToast]       = useState(null);
   const [stockLimits, setStockLimits] = useState({});
 
   const notify = (message, type = "info") => setToast({ message, type });
 
-  /* Auth state — read fresh from localStorage on mount */
+  /* Auth state */
   const [authToken, setAuthToken] = useState(() => localStorage.getItem("token"));
   const [authUser,  setAuthUser]  = useState(() => {
     try { return JSON.parse(localStorage.getItem("user") || "null"); }
@@ -501,8 +234,12 @@ export default function MesReservations() {
 
   useEffect(() => {
     loadCart();
-    if (authToken) fetchReservations(authToken);
-    else setLoading(false);
+    if (authToken) {
+      fetchReservations(authToken);
+      fetchUserEvents(authToken);
+    } else {
+      setLoading(false);
+    }
   }, [authToken]);
 
   /* ── PANIER ── */
@@ -538,50 +275,42 @@ export default function MesReservations() {
     ));
   };
 
-  /* ────────────────────────────────────────────────────────────
-     openSendModal :
-     1. Non connecté → AuthModal (stocke l'item en attente)
-     2. Connecté     → InfoModal directement
-  ──────────────────────────────────────────────────────────── */
+  /* ── EVENTS UTILISATEUR ── */
+  const fetchUserEvents = async (tok) => {
+    const t = tok || authToken;
+    const currentUser = authUser || JSON.parse(localStorage.getItem("user") || "null");
+    const uid = currentUser?._id || currentUser?.id;
+    if (!t || !uid) return;
+    try {
+      const res = await axios.get(
+        `http://localhost:5000/api/event/user_event/${uid}`,
+        { headers: { Authorization: `Bearer ${t}` } }
+      );
+      setUserEvents(res.data || []);
+    } catch (e) { console.error(e); }
+  };
+
+  /* ── OUVRIR LE MODAL D'ENVOI ── */
   const openSendModal = (item) => {
-    // Always re-read from localStorage to catch tokens set by other tabs/flows
     const tok = localStorage.getItem("token");
     if (!tok) {
       setAuthModal({ open: true, item });
       return;
     }
-    const max = stockLimits[item.resourceId] ?? 999;
-    setInfoModal({ open: true, item, stock: max });
+    setSelectModal({ open: true, item });
   };
 
-  /* ────────────────────────────────────────────────────────────
-     handleAuthSuccess — appelé par AuthModal après auth réussie.
-     Pas de navigation — on reste sur /mes-reservations et on
-     enchaîne directement avec l'InfoModal.
-  ──────────────────────────────────────────────────────────── */
+  /* ── AUTH SUCCESS ── */
   const handleAuthSuccess = (token, user) => {
-    /* 1. Mettre à jour le state React */
     setAuthToken(token);
     setAuthUser(user);
-
-    /* 2. Sauvegarder l'item avant de fermer l'AuthModal */
     const pendingItem = authModal.item;
-
-    /* 3. Fermer l'AuthModal */
     setAuthModal({ open: false, item: null });
-
-    /* 4. Toast de bienvenue */
     notify(`Bienvenue ${user.firstname || ""} !`, "success");
-
-    /* 5. Charger les réservations */
     fetchReservations(token);
-
-    /* 6. Ouvrir InfoModal (léger délai pour laisser AuthModal se fermer) */
+    fetchUserEvents(token);
     if (pendingItem) {
-      const max = stockLimits[pendingItem.resourceId] ?? 999;
-      setTimeout(() => {
-        setInfoModal({ open: true, item: pendingItem, stock: max });
-      }, 280);
+      setTimeout(() => setSelectModal({ open: true, item: pendingItem }), 280);
     }
   };
 
@@ -607,68 +336,50 @@ export default function MesReservations() {
     finally { setLoading(false); }
   };
 
-  /* ── ENVOI DEMANDE ── */
-  const sendRequest = async (cartItem, _info, fd) => {
-    const tok           = authToken || localStorage.getItem("token");
-    const currentUser   = authUser  || JSON.parse(localStorage.getItem("user") || "null");
-    const currentUserId = currentUser?._id || currentUser?.id;
+  /* ── ENVOI DEMANDE (appelé depuis SelectEventModal) ── */
+  const sendRequest = async (eventId, cinFile) => {
+    const cartItem = selectModal.item;
+    if (!cartItem) return;
 
-    const qty       = parseInt(fd.get("quantity")) || 1;
-    const eventName = fd.get("eventName");
-    const eventType = fd.get("eventType");
-    const adresse   = fd.get("adresse") || "À définir";
-    const nom       = fd.get("nom");
-    const itemDate  = cartItem.selectedDate || new Date().toISOString();
-    const dateKey   = new Date(itemDate).toDateString();
+    const tok         = authToken || localStorage.getItem("token");
+    const currentUser = authUser  || JSON.parse(localStorage.getItem("user") || "null");
+    const itemDate    = cartItem.selectedDate || new Date().toISOString();
 
     setSending(cartItem.resourceId);
+    setSelectModal(m => ({ ...m, open: false }));
+
     try {
-      /* Chercher event existant (même titre + même date) */
-      const evRes = await axios.get(
-        `http://localhost:5000/api/event/user_event/${currentUserId}`,
-        { headers: { Authorization: `Bearer ${tok}` } }
-      );
+      let finalEventId = eventId;
 
-      let eventId;
-      const existing = evRes.data?.find(ev =>
-        new Date(ev.dateDebut).toDateString() === dateKey && ev.title === eventName
-      );
-
-      if (existing) {
-        eventId = existing._id;
-      } else {
-        const newEv = await axios.post(
-          "http://localhost:5000/api/event/addEvent",
-          {
-            title: eventName,
-            description: `Organisé par ${nom}`,
-            lieu: adresse,
-            category: eventType,
-            type: "privé",
-            dateDebut: itemDate,
-            dateFin: itemDate,
-            nombreParticipants: 0,
-          },
-          { headers: { Authorization: `Bearer ${tok}` } }
-        );
-        eventId = newEv.data._id;
+      /* Si pas d'event sélectionné → ne devrait pas arriver, mais sécurité */
+      if (!finalEventId) {
+        notify("Veuillez sélectionner un événement.", "error");
+        setSending(null);
+        return;
       }
 
-      /* Créer location pour chaque créneau */
+      /* Créer une location par créneau */
       const slots = cartItem.selectedTimes?.length > 0
         ? cartItem.selectedTimes
         : [{ start: itemDate, end: itemDate }];
 
       for (const slot of slots) {
+        const fd = new FormData();
+        fd.append("event",     finalEventId);
+        fd.append("resource",  cartItem.resourceId);
+        fd.append("dateDebut", slot.start || itemDate);
+        fd.append("dateFin",   slot.end   || itemDate);
+        if (cinFile) fd.append("cinFile", cinFile);
+
         await axios.post(
           "http://localhost:5000/api/location/create",
+          fd,
           {
-            event: eventId,
-            resource: cartItem.resourceId,
-            dateDebut: slot.start || itemDate,
-            dateFin: slot.end || itemDate,
-          },
-          { headers: { Authorization: `Bearer ${tok}` } }
+            headers: {
+              Authorization: `Bearer ${tok}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
         );
       }
 
@@ -681,6 +392,14 @@ export default function MesReservations() {
     } finally {
       setSending(null);
     }
+  };
+
+  /* ── Créer un nouvel événement depuis le modal ── */
+  const handleCreateNewEvent = () => {
+    /* Fermer le modal et rediriger vers la page de création d'événement,
+       ou ouvrir un sous-modal selon votre flux. Ici on navigue. */
+    setSelectModal(m => ({ ...m, open: false }));
+    navigate("/creer-evenement");
   };
 
   /* ── Stats ── */
@@ -707,18 +426,26 @@ export default function MesReservations() {
 
       <style>{`
         @keyframes toastIn { from { opacity:0; transform:translateY(-14px) scale(.94); } to { opacity:1; transform:none; } }
-        @keyframes modalIn { from { opacity:0; transform:scale(.92) translateY(18px); } to { opacity:1; transform:none; } }
         @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
       `}</style>
 
       <Toast toast={toast} onClose={() => setToast(null)} />
 
-      {/* ── AUTH MODAL (import depuis AuthModal.jsx) ── */}
+      {/* AUTH MODAL */}
       <AuthModal
         isOpen={authModal.open}
         onClose={() => setAuthModal({ open: false, item: null })}
         pendingItem={authModal.item}
         onAuthSuccess={handleAuthSuccess}
+      />
+
+      {/* SELECT EVENT MODAL */}
+      <SelectEventModal
+        isOpen={selectModal.open}
+        onClose={() => setSelectModal(m => ({ ...m, open: false }))}
+        onConfirm={sendRequest}
+        events={userEvents}
+        onCreateNew={handleCreateNewEvent}
       />
 
       <div className="min-h-screen pt-24 pb-16 px-4" style={{ background: "#F7F8FF" }}>
@@ -798,7 +525,7 @@ export default function MesReservations() {
             </section>
           )}
 
-          {/* Demandes — seulement si connecté */}
+          {/* Demandes envoyées */}
           {authToken && reservations.length > 0 && (
             <section>
               <div className="flex items-center gap-2 mb-3">
@@ -822,15 +549,6 @@ export default function MesReservations() {
 
         </div>
       </div>
-
-      {/* Info Modal */}
-      <InfoModal
-        isOpen={infoModal.open}
-        onClose={() => setInfoModal(m => ({ ...m, open: false }))}
-        onConfirm={sendRequest}
-        item={infoModal.item}
-        stockMax={infoModal.stock}
-      />
     </>
   );
 }
