@@ -203,7 +203,6 @@ const navItems = [
   { id:"gestion",    label:"Utilisateurs", icon:Users           },
   { id:"ressources", label:"Ressources",   icon:Package         },
   { id:"evenements", label:"Événements",   icon:Calendar        },
-  { id:"documents",  label:"Documents",    icon:FileText        },
 ];
 
 const Sidebar = ({ active, setActive, onLogout, isMobile, isMobileOpen, setIsMobileOpen }) => {
@@ -982,185 +981,11 @@ const EvenementsPage = () => {
 };
 
 /* ═══════════════════════════════════════════════════════════
-   DOCUMENTS — endpoint /documents/admin/all, types: CIN|Passport|Contract|patente
-═══════════════════════════════════════════════════════════ */
-const DocumentsPage = () => {
-  const [documents,setDocuments]=useState([]);
-  const [loading,setLoad]=useState(true);
-  const [search,setSearch]=useState("");
-  const [typeFilter,setTypeFilter]=useState("tous");
-  const [detail,setDetail]=useState(null);
-  const toast=useToast();
-  const {modal,confirm,yes,no}=useConfirm();
-
-  const load=useCallback(async()=>{
-    try{
-      setLoad(true);
-      const{data}=await axios.get(`${API}/documents/admin/all`,{headers:authHeaders()});
-      setDocuments(Array.isArray(data)?data:data.data||[]);
-    }catch(e){
-      console.error("Documents error:",e?.response?.data||e.message);
-      setDocuments([]);
-    }finally{setLoad(false);}
-  },[]);
-  useEffect(()=>{load();},[load]);
-
-  const handleDelete=async(id,title)=>{
-    if(!await confirm({type:"danger",title:"Supprimer ce document ?",message:`"${title}" sera définitivement supprimé.`,confirmLabel:"Supprimer"}))return;
-    try{await axios.delete(`${API}/documents/${id}`,{headers:authHeaders()});setDocuments(p=>p.filter(d=>d._id!==id));toast.success("Document supprimé");}
-    catch{toast.error("Erreur");}
-  };
-
-  const docTypes=["tous","CIN","Passport","Contract","patente"];
-  const typeCounts={CIN:0,Passport:0,Contract:0,patente:0};
-  documents.forEach(d=>{if(typeCounts[d.documentType]!==undefined)typeCounts[d.documentType]++;});
-
-  const filtered=documents.filter(d=>{
-    const ms=search===""||`${d.title} ${d.user?.firstname} ${d.user?.lastname} ${d.user?.email}`.toLowerCase().includes(search.toLowerCase());
-    const mt=typeFilter==="tous"||d.documentType===typeFilter;
-    return ms&&mt;
-  });
-
-  const docIcon =t=>({CIN:"🪪",Passport:"📘",Contract:"📄",patente:"📋"}[t]||"📁");
-  const docColor=t=>({
-    CIN:    {bg:C.accentBg,col:C.accent},
-    Passport:{bg:C.purpleBg,col:C.purple},
-    Contract:{bg:C.greenBg, col:C.green},
-    patente: {bg:C.orangeBg,col:C.orange},
-  }[t]||{bg:C.borderLight,col:C.t2});
-
-  return (
-    <div>
-      <ConfirmModal modal={modal} yes={yes} no={no}/>
-      <Toasts toasts={toast.toasts} remove={toast.remove}/>
-      {detail&&<DetailModal data={detail} title={detail.title} onClose={()=>setDetail(null)} fields={[
-        {label:"Type",       value:detail.documentType,badge:true},
-        {label:"Utilisateur",value:`${detail.user?.firstname||""} ${detail.user?.lastname||""}`},
-        {label:"Email",      value:detail.user?.email},
-        {label:"Rôle",       value:detail.user?.role,badge:true},
-        {label:"Fichier",    value:detail.fileUrl},
-        {label:"Ressources", value:detail.resource?.length?`${detail.resource.length} ressource(s)`:"Aucune"},
-        {label:"Créé le",    value:detail.createdAt?new Date(detail.createdAt).toLocaleDateString("fr-FR"):"—"},
-      ]}/>}
-
-      <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20 }}>
-        <div>
-          <h2 style={{ fontSize:22,fontWeight:700,color:C.t1,fontFamily:"'Google Sans',sans-serif",margin:0 }}>Gestion des documents</h2>
-          <p style={{ fontSize:13,color:C.t2,margin:"4px 0 0" }}>{documents.length} documents au total</p>
-        </div>
-        <div style={{ display:"flex",gap:8 }}>
-          <button onClick={load} style={{ display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:20,border:`1px solid ${C.border}`,background:C.card,color:C.t2,fontSize:13,cursor:"pointer",fontFamily:"inherit" }}>
-            <RefreshCw size={14}/>Actualiser
-          </button>
-          <div style={{ display:"flex",alignItems:"center",gap:8,background:C.card,border:`1px solid ${C.border}`,borderRadius:24,padding:"8px 16px",width:220 }}>
-            <Search size={14} color={C.t3}/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher..." style={{ border:"none",background:"transparent",fontSize:13,color:C.t1,width:"100%",fontFamily:"inherit" }}/>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats cards cliquables */}
-      <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20 }}>
-        {docTypes.filter(t=>t!=="tous").map(type=>{
-          const {bg,col}=docColor(type);
-          return (
-            <div key={type} onClick={()=>setTypeFilter(typeFilter===type?"tous":type)}
-              style={{ background:C.card,border:`1px solid ${typeFilter===type?col:C.border}`,borderRadius:12,padding:"16px 20px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",transition:"all .15s",boxShadow:typeFilter===type?"0 0 0 2px "+col+"33":"none" }}>
-              <div style={{ width:40,height:40,borderRadius:10,background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20 }}>{docIcon(type)}</div>
-              <div>
-                <div style={{ fontSize:22,fontWeight:700,color:col,lineHeight:1 }}>{typeCounts[type]}</div>
-                <div style={{ fontSize:11,color:C.t2,marginTop:2 }}>{type==="patente"?"Patentes":type==="Passport"?"Passeports":type==="Contract"?"Contrats":type}</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Filter pills */}
-      <div style={{ display:"flex",gap:8,marginBottom:20 }}>
-        {docTypes.map(t=>(
-          <button key={t} onClick={()=>setTypeFilter(t)} style={{ padding:"6px 16px",borderRadius:20,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"inherit",background:typeFilter===t?C.accentBg:C.card,color:typeFilter===t?C.accent:C.t2,border:typeFilter===t?`1.5px solid ${C.accent}`:`1px solid ${C.border}` }}>
-            {t==="tous"?"Tous":t} {t!=="tous"&&`(${typeCounts[t]})`}
-          </button>
-        ))}
-      </div>
-
-      <div style={{ background:C.card,borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden" }}>
-        {loading?<div style={{padding:24}}>{[1,2,3,4].map(i=><div key={i} style={{marginBottom:12}}><Skel h={56} r={8}/></div>)}</div>
-          :filtered.length===0?<EmptyState icon={FileText} message="Aucun document trouvé"/>
-          :(
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",minWidth:780}}>
-                <thead>
-                  <tr style={{background:C.bg,borderBottom:`1px solid ${C.border}`}}>
-                    <TH>Document</TH><TH>Type</TH><TH>Utilisateur</TH><TH>Rôle</TH><TH>Ressources</TH><TH>Créé le</TH><TH>Actions</TH>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(d=>{
-                    const {bg,col}=docColor(d.documentType);
-                    return (
-                      <tr key={d._id} className="adash-table-row">
-                        <TD>
-                          <div style={{display:"flex",alignItems:"center",gap:10}}>
-                            <div style={{width:40,height:40,borderRadius:10,background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{docIcon(d.documentType)}</div>
-                            <div>
-                              <div style={{fontWeight:600,color:C.t1,fontSize:13}}>{d.title}</div>
-                              <div style={{fontSize:11,color:C.t3,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.fileUrl||"—"}</div>
-                            </div>
-                          </div>
-                        </TD>
-                        <TD><Badge statut={d.documentType}/></TD>
-                        <TD>
-                          {d.user
-                            ?<div style={{display:"flex",alignItems:"center",gap:8}}>
-                               <UserAvatar user={d.user}/>
-                               <div>
-                                 <div style={{fontSize:13,fontWeight:500,color:C.t1}}>{d.user.firstname} {d.user.lastname}</div>
-                                 <div style={{fontSize:11,color:C.t3}}>{d.user.email}</div>
-                               </div>
-                             </div>
-                            :<span style={{color:C.t3}}>—</span>
-                          }
-                        </TD>
-                        <TD>{d.user?.role?<Badge statut={d.user.role}/>:<span style={{color:C.t3}}>—</span>}</TD>
-                        <TD>
-                          <span style={{fontSize:12,color:C.t2,background:C.borderLight,padding:"2px 8px",borderRadius:10}}>
-                            {d.resource?.length?`${d.resource.length} ressource(s)`:"Aucune"}
-                          </span>
-                        </TD>
-                        <TD style={{fontSize:12,color:C.t2}}>{d.createdAt?new Date(d.createdAt).toLocaleDateString("fr-FR"):"—"}</TD>
-                        <TD>
-                          <div style={{display:"flex",gap:6}}>
-                            <button onClick={()=>setDetail(d)} style={{width:32,height:32,borderRadius:8,border:"none",background:C.accentBg,color:C.accent,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Eye size={15}/></button>
-                            {d.fileUrl&&(
-                              <a href={`http://localhost:5000/${d.fileUrl.replace(/^\//,"")}`} target="_blank" rel="noreferrer"
-                                style={{width:32,height:32,borderRadius:8,border:"none",background:C.greenBg,color:C.green,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",textDecoration:"none"}}>
-                                <FileText size={15}/>
-                              </a>
-                            )}
-                            <button onClick={()=>handleDelete(d._id,d.title)} style={{width:32,height:32,borderRadius:8,border:"none",background:C.redBg,color:C.red,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Trash2 size={16}/></button>
-                          </div>
-                        </TD>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )
-        }
-      </div>
-    </div>
-  );
-};
-
-/* ═══════════════════════════════════════════════════════════
    ROOT
 ═══════════════════════════════════════════════════════════ */
 const pageTitles = {
   dashboard: "Dashboard", gestion:"Utilisateurs",
-  ressources:"Ressources", evenements:"Événements", documents:"Documents",
+  ressources:"Ressources", evenements:"Événements",
 };
 
 export default function AdminDashboard() {
@@ -1183,8 +1008,7 @@ export default function AdminDashboard() {
     dashboard:  <DashboardPage setActivePage={setActivePage}/>,
     gestion:    <ComptesPage/>,
     ressources: <RessourcesPage/>,
-    evenements: <EvenementsPage/>,
-    documents:  <DocumentsPage/>,
+    evenements: <EvenementsPage/>
   };
 
   return (
