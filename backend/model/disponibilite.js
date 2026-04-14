@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 
 const dispoSchema=new mongoose.Schema({
-    date_deb:{type:Date},
-    date_fin:{type:Date},
+    date_deb:{type:Date, required: true},
+    date_fin:{type:Date, required: true},
     satut_disp:{type:Boolean}}
 )
 

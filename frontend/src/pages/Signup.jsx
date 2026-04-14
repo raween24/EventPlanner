@@ -199,28 +199,7 @@ export default function Signup() {
       return "";
     }
   };
-  const resetForm = () => {
-    setForm({
-      firstname: "",
-      lastname: "",
-      nomSociete: "",
-      email: "",
-      password: "",
-      numPatente: "",
-      numTel: "",
-      patenteFile: null,
-      image: null,
-      locationLat: null,
-      locationLng: null,
-      locationName: "",
-    });
-
-    setPreview(null);
-
-    // reset map
-    setMapLat(36.8065);
-    setMapLng(10.1815);
-  };
+  
   const getCoordinates = async (name) => {
     try {
       const res = await fetch(
@@ -336,9 +315,10 @@ export default function Signup() {
 
       if (res.ok) {
         if (role === "prestataire") {
-             resetForm();
+            
             // Affiche la popup — la navigation se fait depuis le bouton "J'ai compris"
           setShowPendingPopup(true);
+          setTimeout(() => navigate("/login"), 1000);
         } else {
           // Organisateur → login directement
           toast.success("Compte créé avec succès ! 🎉");
@@ -480,7 +460,6 @@ export default function Signup() {
                   transition={{ duration: 0.25 }}
                   style={{ overflow: "hidden", display: "contents" }}
                 >
-
                   <div className="field-wrap span-2">
                     <label>Numéro de patente</label>
                     <input name="numPatente" placeholder="Ex: TU-123456" value={form.numPatente} onChange={handleChange} required />

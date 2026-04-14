@@ -125,7 +125,7 @@ export default function HomePage() {
                 >
                   {isAdmin ? <Shield className="w-4 h-4 text-red-300" /> : <Sparkles className="w-4 h-4 text-yellow-400" />}
                   <span className="text-sm font-medium text-white">
-                    {isAdmin ? "Bienvenue, Administrateur 🛡️" : `Bienvenue, ${user.firstname} 👋`}
+                    {isAdmin ? "Bienvenue, Administrateur " : `Bienvenue, ${user.firstname} 👋`}
                   </span>
                 </motion.div>
               )}
