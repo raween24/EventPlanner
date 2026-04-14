@@ -382,7 +382,7 @@ export default function Signup() {
                 >
                   <div className="field-wrap span-2">
                     <label>Numéro de téléphone</label>
-                    <input name="numTel" type="tel" placeholder="Ex: +216 12 345 678" value={form.numTel} onChange={handleChange} required />
+                    <input name="numTel" type="Number" placeholder="Ex: +216 12 345 678" maxLength={12} minLength={8} value={form.numTel} onChange={handleChange} required />
                   </div>
                   <div className="field-wrap span-2">
                     <label>Numéro de patente</label>
