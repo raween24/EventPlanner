@@ -31,8 +31,10 @@ const UserSchema = new mongoose.Schema({
     },
     coordinates: {
       type: [Number], // [lng, lat]
-    }
-  }
+    },
+    
+  },
+  locationName: { type: String }
 });
 UserSchema.index({ location: "2dsphere" });
 export default mongoose.model("User", UserSchema);

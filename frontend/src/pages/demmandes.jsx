@@ -11,7 +11,6 @@ import {
     Search, Filter, ArrowUpDown, ChevronDown, ArrowLeft,
     Package
 } from 'lucide-react';
-import Navbar from "../components/Navbar";
 
 const StatusBadge = ({ status }) => {
     const config = {
@@ -162,7 +161,7 @@ export default function MesDemandes() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 sm:p-6 lg:p-8">
-            <Navbar />
+            
             <div className="max-w-7xl mx-auto">
 
                 {/* En-tête */}

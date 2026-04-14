@@ -164,6 +164,57 @@ export default function Navbar() {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
+  const NotificationsPanel = () => (
+    <AnimatePresence>
+      {showNotifications && (
+        <motion.div
+          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+          className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
+        >
+          <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50">
+            <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+              <Bell size={16} className="text-blue-600" /> Notifications
+            </h3>
+            {unreadCount > 0 && (
+              <button onClick={markAllAsRead} className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-1 bg-white rounded-lg">
+                Tout marquer
+              </button>
+            )}
+          </div>
+          <div className="max-h-96 overflow-y-auto">
+            {notifications.length > 0 ? (
+              notifications.map((notif) => (
+                <div
+                  key={notif.id}
+                  className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-all ${!notif.read ? 'bg-blue-50/30' : ''}`}
+                  onClick={() => markAsRead(notif.id)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${notif.type === 'success' ? 'bg-green-100' : 'bg-blue-100'}`}>
+                      {notif.type === 'success' ? <CheckCircle size={18} className="text-green-600" /> : <Bell size={18} className="text-blue-600" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900 text-sm truncate">{notif.title}</p>
+                      <p className="text-gray-500 text-xs mt-1">{notif.message}</p>
+                      <p className="text-gray-400 text-[10px] mt-1">il y a {notif.time}</p>
+                    </div>
+                    {!notif.read && <div className="w-2 h-2 bg-blue-600 rounded-full" />}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                <Bell size={32} className="mx-auto mb-2 text-gray-300" />
+                Aucune notification
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   const ProfileMenu = () => (
     <div className="relative" ref={profileMenuRef}>

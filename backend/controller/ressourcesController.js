@@ -2,6 +2,7 @@ import Resource from "../model/ressources.js";
 import Media from "../model/media_ressources.js";
 import Dispo from "../model/disponibilite.js";
 import User from "../model/user.js";
+import { getLocationName } from "../utils/geocode.js";
 import { resourceFields } from "../config/resourceFields.js";
 
 
@@ -43,12 +44,19 @@ const addResource = async (req, res) => {
         parsedLocation?.coordinates &&
         parsedLocation.coordinates.length === 2
       ) {
+        const [lng, lat] = parsedLocation.coordinates;
+
+        // 🔥 appel backend (PAS frontend)
+        const locationName = await getLocationName(lat, lng);
+
         resourceLocation = {
           type: "Point",
-          coordinates: parsedLocation.coordinates
+          coordinates: parsedLocation.coordinates,
+          name: locationName // 🔥 ajouté
         };
       }
     }
+    console.log("📍 FULL DATA:", JSON.stringify(data, null, 2));
 
     // 🔹 CREATE RESOURCE
     const newResource = new Resource({
@@ -225,9 +233,14 @@ const updateResource = async (req, res) => {
           : req.body.location;
 
       if (parsedLocation?.coordinates?.length === 2) {
+        const [lng, lat] = parsedLocation.coordinates;
+
+        const locationName = await getLocationName(lat, lng);
+
         resource.location = {
           type: "Point",
-          coordinates: parsedLocation.coordinates
+          coordinates: parsedLocation.coordinates,
+          name: locationName
         };
       }
     }

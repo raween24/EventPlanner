@@ -14,7 +14,8 @@ const registerUser = async (req, res) => {
       role,
       numPatente,
       numTel,
-      location
+      location,
+      locationName // 👈 NOUVEAU
     } = req.body;
 
     const existingUser = await User.findOne({ email });
@@ -28,8 +29,9 @@ const registerUser = async (req, res) => {
     let status = "en_attente";
     if (role === "organisateur") status = "valide";
 
-    // ✅ FIX LOCATION
+    /* ================= LOCATION ================= */
     let userLocation = undefined;
+    let finalLocationName = locationName || "";
 
     if (location) {
       const parsedLocation =
@@ -43,6 +45,31 @@ const registerUser = async (req, res) => {
           type: "Point",
           coordinates: parsedLocation.coordinates
         };
+
+        // ⚡ Si le frontend n’envoie pas le nom → on appelle API UNE FOIS
+        if (!locationName) {
+          try {
+            const [lng, lat] = parsedLocation.coordinates;
+
+            const response = await axios.get(
+              `https://nominatim.openstreetmap.org/reverse`,
+              {
+                params: {
+                  lat,
+                  lon: lng,
+                  format: "json"
+                }
+              }
+            );
+
+            finalLocationName =
+              response.data?.display_name || "Localisation inconnue";
+
+          } catch (err) {
+            console.log("Erreur geocoding:", err.message);
+            finalLocationName = "Localisation inconnue";
+          }
+        }
       }
     }
 
@@ -55,14 +82,18 @@ const registerUser = async (req, res) => {
       status,
       numPatente,
       numTel,
-      location: userLocation, // ✅ important
+      location: userLocation,
+      locationName: finalLocationName, // 👈 IMPORTANT
       image: req.files?.image?.[0]?.path || null,
       patente: req.files?.patente?.[0]?.path || null,
     });
 
     await user.save();
 
-    res.status(201).json({ message: "Utilisateur créé", user });
+    res.status(201).json({
+      message: "Utilisateur créé",
+      user
+    });
 
   } catch (error) {
     console.log(error);
@@ -162,27 +193,55 @@ const updateUser = async (req, res) => {
     }
 
     // 📍 update location
+    // 📍 update location + name
     if (location && location.coordinates) {
       user.location = {
         type: "Point",
         coordinates: location.coordinates
       };
+
+      if (req.body.locationName) {
+        user.locationName = req.body.locationName;
+      } else {
+        // ⚡ fallback API
+        try {
+          const [lng, lat] = location.coordinates;
+
+          const response = await axios.get(
+            `https://nominatim.openstreetmap.org/reverse`,
+            {
+              params: {
+                lat,
+                lon: lng,
+                format: "json"
+              }
+            }
+          );
+
+          user.locationName =
+            response.data?.display_name || "Localisation inconnue";
+
+        } catch (err) {
+          user.locationName = "Localisation inconnue";
+        }
+      }
     }
+  
 
     // 🖼️ image
     if (req.file) {
-      user.image = `/uploads/${req.file.filename}`;
-    } else if (image) {
-      user.image = image;
-    }
-
-    await user.save();
-
-    res.status(200).json(user);
-
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    user.image = `/uploads/${req.file.filename}`;
+  } else if (image) {
+    user.image = image;
   }
+
+  await user.save();
+
+  res.status(200).json(user);
+
+} catch (error) {
+  res.status(500).json({ message: error.message });
+}
 };
 /* ================= ADORE (FAVORIS) ================= */
 const addToAdore = async (req, res) => {

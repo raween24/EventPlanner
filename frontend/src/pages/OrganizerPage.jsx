@@ -27,7 +27,7 @@ const categoryGroups = [
       { label: "Photographe", value: "photographe" },
       { label: "Serveur", value: "serveur" },
     ],
-  }
+  },
 ];
 
 const sortOptions = [
@@ -46,6 +46,13 @@ const sortOptions = [
 const readCart = () => {
   try { return JSON.parse(localStorage.getItem("reservationCart") || "[]"); }
   catch { return []; }
+};
+
+const toStr = (id) => {
+  if (!id) return "";
+  if (typeof id === "string") return id;
+  if (typeof id === "object" && id.$oid) return id.$oid;
+  return String(id);
 };
 
 /* ─────────────────────────────────────────────────
@@ -280,6 +287,155 @@ function SortDropdown({ value, onChange }) {
 }
 
 /* ─────────────────────────────────────────────────
+   RECOMMENDATIONS CAROUSEL
+───────────────────────────────────────────────── */
+function RecommendationsCarousel({ resources, loading, title }) {
+  const scrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 8);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 8);
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    checkScroll();
+    return () => el.removeEventListener("scroll", checkScroll);
+  }, [resources]);
+
+  const scroll = (dir) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * 340, behavior: "smooth" });
+  };
+
+  return (
+    <div className="mb-12">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-6 h-6 text-purple-600" />
+          <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
+          {loading && <Spinner size="sm" color="purple" />}
+        </div>
+
+        {/* Arrow buttons */}
+        {!loading && resources.length > 0 && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => scroll(-1)}
+              disabled={!canScrollLeft}
+              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all
+                ${canScrollLeft
+                  ? "bg-white border-gray-200 text-gray-700 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-600 shadow-sm"
+                  : "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"}`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => scroll(1)}
+              disabled={!canScrollRight}
+              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all
+                ${canScrollRight
+                  ? "bg-white border-gray-200 text-gray-700 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-600 shadow-sm"
+                  : "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"}`}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Carousel body */}
+      {loading ? (
+        <div className="flex gap-6 overflow-hidden">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="flex-shrink-0 bg-white rounded-2xl shadow-md p-4 animate-pulse"
+              style={{ width: 320 }}
+            >
+              <div className="w-full h-48 bg-gray-200 rounded-xl mb-4" />
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+              <div className="h-4 bg-gray-200 rounded w-2/3" />
+            </div>
+          ))}
+        </div>
+      ) : resources.length > 0 ? (
+        <div className="relative">
+          {/* Left fade */}
+          {canScrollLeft && (
+            <div
+              className="pointer-events-none absolute left-0 top-0 h-full w-16 z-10"
+              style={{ background: "linear-gradient(to right, rgba(248,250,252,0.9), transparent)" }}
+            />
+          )}
+          {/* Right fade */}
+          {canScrollRight && (
+            <div
+              className="pointer-events-none absolute right-0 top-0 h-full w-16 z-10"
+              style={{ background: "linear-gradient(to left, rgba(248,250,252,0.9), transparent)" }}
+            />
+          )}
+
+          <div
+            ref={scrollRef}
+            className="flex gap-6 overflow-x-auto pb-3"
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              WebkitScrollbar: { display: "none" },
+            }}
+          >
+            <style>{`
+              .recs-carousel::-webkit-scrollbar { display: none; }
+            `}</style>
+            {resources.slice(0, 12).map((resource) => (
+              <div
+                key={toStr(resource._id)}
+                className="flex-shrink-0"
+                style={{ width: 320 }}
+              >
+                <RecommendationCard resource={resource} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl shadow-md p-8 text-center text-gray-400">
+          <Sparkles className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p>Aucune recommandation disponible pour le moment.</p>
+        </div>
+      )}
+
+      {/* Dot indicators */}
+      {!loading && resources.length > 0 && (
+        <div className="flex justify-center gap-1.5 mt-4">
+          {Array.from({ length: Math.min(resources.length, 12) }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                if (scrollRef.current) {
+                  scrollRef.current.scrollTo({ left: i * 340, behavior: "smooth" });
+                }
+              }}
+              className="w-1.5 h-1.5 rounded-full transition-all bg-purple-300 hover:bg-purple-500"
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────
    PAGE PRINCIPALE
 ───────────────────────────────────────────────── */
 export default function OrganizerPage() {
@@ -309,7 +465,7 @@ export default function OrganizerPage() {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const userId = user?._id || user?.id || null;
 
-  /* ── Sync cart (poll + storage + focus) ── */
+  /* ── Sync cart ── */
   useEffect(() => {
     const sync = () => {
       const fresh = readCart();
@@ -327,9 +483,10 @@ export default function OrganizerPage() {
     };
   }, []);
 
-  /* ── Likes ── */
+  /* ── Likes — stringify all IDs ── */
   useEffect(() => {
-    setLikedResources(JSON.parse(localStorage.getItem("adore") || "[]"));
+    const stored = JSON.parse(localStorage.getItem("adore") || "[]");
+    setLikedResources(stored.map((id) => toStr(id)));
   }, []);
 
   /* ── Cart actions ── */
@@ -354,7 +511,7 @@ export default function OrganizerPage() {
     navigate("/mes-reservations");
   };
 
-  /* ── CAS 1 & 2 : Recommandations générales ── */
+  /* ── Recommandations générales ── */
   useEffect(() => {
     if (eventId) return;
     const fetchRecommendations = async () => {
@@ -380,7 +537,7 @@ export default function OrganizerPage() {
     fetchRecommendations();
   }, [userId, eventId]);
 
-  /* ── CAS 3 : Recommandations par événement ── */
+  /* ── Recommandations par événement ── */
   useEffect(() => {
     if (!eventId) return;
     const fetchEventRecommendations = async () => {
@@ -451,8 +608,13 @@ export default function OrganizerPage() {
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedSubCategory, maxPrice, sortBy]);
 
-  const handleLikeUpdate = (id, liked) =>
-    setLikedResources((p) => liked ? [...p, id] : p.filter((x) => x !== id));
+  /* ── Like update — stringify ── */
+  const handleLikeUpdate = (id, liked) => {
+    const strId = toStr(id);
+    setLikedResources((p) =>
+      liked ? [...p, strId] : p.filter((x) => x !== strId)
+    );
+  };
 
   /* ── Pagination ── */
   const totalPages = Math.ceil(filteredResources.length / itemsPerPage);
@@ -507,7 +669,7 @@ export default function OrganizerPage() {
     </div>
   );
 
-  /* ── Contenu bannière dynamique ── */
+  /* ── Banner content ── */
   const getBannerContent = () => {
     if (eventId) return {
       title: "🎯 Ressources pour votre événement",
@@ -557,7 +719,7 @@ export default function OrganizerPage() {
 
       <div className="pt-28 pb-10 px-4 max-w-7xl mx-auto">
 
-        {/* ── Bannière dynamique ── */}
+        {/* ── Bannière ── */}
         <div className="mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -581,7 +743,6 @@ export default function OrganizerPage() {
               <h2 className="text-xl font-semibold text-slate-800">Recherche & Filtres</h2>
             </div>
 
-            {/* Bouton panier — toujours visible */}
             <button
               onClick={() => setSidebarOpen(true)}
               className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:shadow-sm transition-all text-sm font-medium text-gray-800"
@@ -643,38 +804,12 @@ export default function OrganizerPage() {
           )}
         </motion.div>
 
-        {/* ── Section Recommandations avec skeleton ── */}
-        <div className="mb-12">
-          <div className="flex items-center gap-2 mb-6">
-            <Sparkles className="w-6 h-6 text-purple-600" />
-            <h2 className="text-2xl font-bold text-slate-800">{getRecsTitle()}</h2>
-            {loadingRecs && <Spinner size="sm" color="purple" />}
-          </div>
-
-          {loadingRecs ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl shadow-md p-4 animate-pulse">
-                  <div className="w-full h-48 bg-gray-200 rounded-xl mb-4" />
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
-                  <div className="h-4 bg-gray-200 rounded w-2/3" />
-                </div>
-              ))}
-            </div>
-          ) : recommendedResources.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {recommendedResources.slice(0, 6).map((resource) => (
-                <RecommendationCard key={resource._id} resource={resource} />
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl shadow-md p-8 text-center text-gray-400">
-              <Sparkles className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p>Aucune recommandation disponible pour le moment.</p>
-            </div>
-          )}
-        </div>
+        {/* ── Carousel Recommandations ── */}
+        <RecommendationsCarousel
+          resources={recommendedResources}
+          loading={loadingRecs}
+          title={getRecsTitle()}
+        />
 
         {/* ── Liste ressources ── */}
         <div>
@@ -706,9 +841,9 @@ export default function OrganizerPage() {
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {currentResources.map((resource) => (
                   <ResourceCard
-                    key={resource._id}
+                    key={toStr(resource._id)}
                     resource={resource}
-                    isLiked={likedResources.includes(resource._id)}
+                    isLiked={likedResources.includes(toStr(resource._id))}
                     onLikeUpdate={handleLikeUpdate}
                     onBook={() => setSelectedResource(resource)}
                   />

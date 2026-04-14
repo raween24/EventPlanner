@@ -70,6 +70,7 @@ const ToastContainer = ({ toasts, removeToast }) => (
   </div>
 );
 
+
 // === Carte — FIX boucle infinie ===
 // On passe uniquement les coordonnées primitives et un callback stable
 const LocationPicker = ({ centerLat, centerLng, onLocationChange }) => {
@@ -145,7 +146,28 @@ export default function Signup() {
     numPatente: "", numTel: "",
     patenteFile: null, image: null,
     locationLat: null, locationLng: null,
+    locationName: "",
   });
+  useEffect(() => {
+    const delay = setTimeout(async () => {
+      if (!form.locationName || form.locationName.length < 3) return;
+
+      const coords = await getCoordinates(form.locationName);
+
+      if (coords) {
+        setMapLat(coords.lat);
+        setMapLng(coords.lng);
+
+        setForm(f => ({
+          ...f,
+          locationLat: coords.lat,
+          locationLng: coords.lng
+        }));
+      }
+    }, 600); // ⏱️ debounce (évite spam API)
+
+    return () => clearTimeout(delay);
+  }, [form.locationName]);
   const [preview, setPreview] = useState(null);
 
   // Coordonnées de la carte stockées séparément pour éviter les re-renders en cascade
@@ -166,17 +188,75 @@ export default function Signup() {
     if (!file) return;
     setForm(f => ({ ...f, patenteFile: file }));
   };
+  const getLocationName = async (lat, lng) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+      );
+      const data = await res.json();
+      return data.display_name || "";
+    } catch {
+      return "";
+    }
+  };
+  const resetForm = () => {
+    setForm({
+      firstname: "",
+      lastname: "",
+      nomSociete: "",
+      email: "",
+      password: "",
+      numPatente: "",
+      numTel: "",
+      patenteFile: null,
+      image: null,
+      locationLat: null,
+      locationLng: null,
+      locationName: "",
+    });
 
+    setPreview(null);
+
+    // reset map
+    setMapLat(36.8065);
+    setMapLng(10.1815);
+  };
+  const getCoordinates = async (name) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${name}&format=json&limit=1`
+      );
+      const data = await res.json();
+
+      if (data && data.length > 0) {
+        return {
+          lat: parseFloat(data[0].lat),
+          lng: parseFloat(data[0].lon),
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
   const handleRoleChange = (newRole) => {
     setRole(newRole);
     setForm(f => ({ ...f, numPatente: "", numTel: "", patenteFile: null, nomSociete: "" }));
   };
 
   // Callback stable pour la carte
-  const handleLocationChange = useCallback((lat, lng) => {
+  const handleLocationChange = useCallback(async (lat, lng) => {
     setMapLat(lat);
     setMapLng(lng);
-    setForm(f => ({ ...f, locationLat: lat, locationLng: lng }));
+
+    const name = await getLocationName(lat, lng);
+
+    setForm(f => ({
+      ...f,
+      locationLat: lat,
+      locationLng: lng,
+      locationName: name
+    }));
   }, []);
 
   // Détection auto au premier chargement — appelée UNE seule fois
@@ -230,6 +310,10 @@ export default function Signup() {
         coordinates: [10.1815, 36.8065],
       }));
     }
+    formData.append(
+      "locationName",
+      form.locationName || "Position sélectionnée"
+    );
 
 
     formData.append("email", form.email);
@@ -252,7 +336,8 @@ export default function Signup() {
 
       if (res.ok) {
         if (role === "prestataire") {
-          // Affiche la popup — la navigation se fait depuis le bouton "J'ai compris"
+             resetForm();
+            // Affiche la popup — la navigation se fait depuis le bouton "J'ai compris"
           setShowPendingPopup(true);
         } else {
           // Organisateur → login directement
@@ -333,7 +418,10 @@ export default function Signup() {
                 <input name="nomSociete" placeholder="Ex: Traiteur El Amal, Studio Photo Lumière..." value={form.nomSociete} onChange={handleChange} required />
               </div>
             )}
-
+            <div className="field-wrap span-2">
+              <label>Numéro de téléphone</label>
+              <input name="numTel" type="Number" placeholder="Ex: +216 12 345 678" value={form.numTel} onChange={handleChange} required />
+            </div>
             <div className="field-wrap span-2">
               <label>Email</label>
               <input type="email" name="email" placeholder="exemple@email.com" value={form.email} onChange={handleChange} required />
@@ -347,6 +435,18 @@ export default function Signup() {
             {/* Carte interactive */}
             <div className="field-wrap span-2" style={{ marginTop: 8 }}>
               <label>📍 Votre position sur la carte</label>
+              <div className="field-wrap span-2">
+                <label>📍 Localisation</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Tunis, Sfax..."
+                  value={form.locationName}
+                  onChange={(e) =>
+                    setForm(f => ({ ...f, locationName: e.target.value }))
+                  }
+
+                />
+              </div>
               <LocationPicker
                 centerLat={mapLat}
                 centerLng={mapLng}
@@ -380,10 +480,7 @@ export default function Signup() {
                   transition={{ duration: 0.25 }}
                   style={{ overflow: "hidden", display: "contents" }}
                 >
-                  <div className="field-wrap span-2">
-                    <label>Numéro de téléphone</label>
-                    <input name="numTel" type="tel" placeholder="Ex: +216 12 345 678" value={form.numTel} onChange={handleChange} required />
-                  </div>
+
                   <div className="field-wrap span-2">
                     <label>Numéro de patente</label>
                     <input name="numPatente" placeholder="Ex: TU-123456" value={form.numPatente} onChange={handleChange} required />
@@ -489,64 +586,85 @@ export default function Signup() {
       {/* Popup prestataire en attente */}
       <AnimatePresence>
         {showPendingPopup && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position: "fixed", inset: 0, display: "flex", alignItems: "center",
-              justifyContent: "center", background: "rgba(0,0,0,0.5)",
-              backdropFilter: "blur(4px)", zIndex: 50, padding: 16,
-            }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              style={{
-                background: "#fff", borderRadius: 24,
-                boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-                width: "100%", maxWidth: 420, overflow: "hidden", position: "relative",
-              }}
-            >
-              {/* Header coloré */}
-              <div style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)", padding: "28px 32px 24px", textAlign: "center" }}>
-                <div style={{ fontSize: 52, marginBottom: 8 }}>⏳</div>
-                <h3 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: 0 }}>Demande envoyée !</h3>
+          <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4 animate-fadeIn">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[420px] overflow-hidden relative animate-slideUp">
+
+              <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute -top-20 -right-20 w-64 h-64 bg-yellow-200 rounded-full opacity-20 animate-pulse-slow"></div>
+                <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-indigo-200 rounded-full opacity-20 animate-pulse-slower"></div>
               </div>
 
-              <div style={{ padding: "24px 32px 32px", textAlign: "center" }}>
-                <p style={{ color: "#475569", marginBottom: 20, lineHeight: 1.7, fontSize: 14 }}>
-                  Votre compte prestataire est en cours de validation par l'administrateur. Vous serez notifié dès que votre demande sera traitée.
-                </p>
+              <button onClick={() => { setShowPendingPopup(false); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 hover:rotate-90 transition-all duration-300 z-10">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
 
-                <div style={{ background: "#f8fafc", borderRadius: 12, padding: "14px 18px", marginBottom: 24, border: "1px solid #e2e8f0" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
-                    <span style={{ color: "#64748b" }}>⏱ Temps estimé</span>
-                    <span style={{ fontWeight: 700, color: "#6366f1" }}>24 – 48 heures</span>
+              <div className="relative p-8">
+                <div className="flex justify-center mb-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-yellow-400 rounded-full animate-ping opacity-20"></div>
+                    <div className="absolute inset-0 border-2 border-yellow-400 rounded-full animate-spin-slow"></div>
+                    <div className="relative bg-gradient-to-br from-yellow-400 to-yellow-500 text-white rounded-2xl p-5 shadow-lg shadow-yellow-200 animate-float">
+                      <div className="animate-spin-slow">⏳</div>
+                    </div>
+                    <div className="absolute -bottom-2 -right-2 bg-green-500 text-white rounded-full p-1.5 shadow-lg animate-bounce-in">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
-                {/* Bouton → redirige vers /login */}
+                <h3 className="text-2xl font-bold text-center mb-3 bg-gradient-to-r from-yellow-600 to-indigo-600 bg-clip-text text-transparent animate-slideDown">
+                  Demande en cours de traitement !
+                </h3>
+
+                <div className="space-y-4 mb-6">
+                  <p className="text-gray-600 text-center leading-relaxed animate-slideUp delay-100">
+                    Votre compte prestataire est en cours de validation par l'administrateur.
+                  </p>
+                  <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="absolute inset-0 flex">
+                      <motion.div
+                        animate={{ x: ['-100%', '400%'] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        className="w-1/3 h-full bg-gradient-to-r from-yellow-400 via-indigo-400 to-yellow-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-r from-yellow-50 to-indigo-50 rounded-xl p-4 mb-6 animate-scaleUp">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Temps estimé</span>
+                    <span className="font-semibold text-indigo-600 animate-pulse">24-48 heures</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
+                    <span>Début</span>
+                    <div className="flex space-x-1">
+                      <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"></div>
+                      <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse delay-100"></div>
+                      <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse delay-200"></div>
+                    </div>
+                    <span>Finalisation</span>
+                  </div>
+                </div>
+
                 <button
-                  onClick={() => { setShowPendingPopup(false); navigate("/login"); }}
-                  style={{
-                    width: "100%", background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
-                    color: "#fff", fontWeight: 700, padding: "14px 0",
-                    borderRadius: 12, border: "none", cursor: "pointer",
-                    fontSize: 15, letterSpacing: 0.3,
-                    boxShadow: "0 4px 14px rgba(99,102,241,0.4)",
-                  }}
+                  onClick={() => setShowPendingPopup(false)}
+                  className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold py-3.5 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group"
                 >
-                  J'ai compris →
+                  <span className="relative z-10">J'ai compris</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-700 to-indigo-800 transform translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
                 </button>
-                <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 14, lineHeight: 1.5 }}>
-                  Vous recevrez une confirmation par email une fois votre demande approuvée.
+
+                <p className="text-xs text-center text-gray-400 mt-4 animate-fadeIn delay-500">
+                  Vous recevrez une confirmation une fois votre demande approuvée
                 </p>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
       </AnimatePresence>
     </div>

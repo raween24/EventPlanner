@@ -63,7 +63,7 @@ export default function OrganizerDashboard() {
         lastname: '',
         email: '',
         numTel: '',
-        region: ''
+        localisation: ''
     });
     const [profilePasswordData, setProfilePasswordData] = useState({
         password: '',
@@ -188,7 +188,7 @@ export default function OrganizerDashboard() {
                 lastname: userRes.data.lastname || '',
                 email: userRes.data.email || '',
                 numTel: userRes.data.numTel || '',
-                region: userRes.data.region || ''
+                region: userRes.data.locationName || ''
             });
             setEvents(eventsRes.data);
             setResources(resourcesRes.data);
@@ -237,7 +237,7 @@ export default function OrganizerDashboard() {
             lastname: organizer?.lastname || '',
             email: organizer?.email || '',
             numTel: organizer?.numTel || '',
-            region: organizer?.region || ''
+            region: organizer?.locationName || ''
         });
         setProfilePasswordData({ password: '', confirmPassword: '' });
         setProfileImage(null);
@@ -287,7 +287,7 @@ export default function OrganizerDashboard() {
                 lastname: response.data.lastname || '',
                 email: response.data.email || '',
                 numTel: response.data.numTel || '',
-                region: response.data.region || ''
+                region: response.data.locationName || ''
             });
             const updatedUser = { ...user, ...response.data, id: response.data._id };
             localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -564,7 +564,7 @@ export default function OrganizerDashboard() {
     if (loading) {
         return (
             <>
-                <NavbarProfileOrg 
+                <NavbarProfileOrg
                     notifications={notifications}
                     unreadCount={unreadCount}
                     onMarkAsRead={markAsRead}
@@ -583,7 +583,7 @@ export default function OrganizerDashboard() {
     if (error) {
         return (
             <>
-                <NavbarProfileOrg 
+                <NavbarProfileOrg
                     notifications={notifications}
                     unreadCount={unreadCount}
                     onMarkAsRead={markAsRead}
@@ -607,13 +607,13 @@ export default function OrganizerDashboard() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
             {/* Navbar spécifique pour l'organisateur */}
-            <NavbarProfileOrg 
+            <NavbarProfileOrg
                 notifications={notifications}
                 unreadCount={unreadCount}
                 onMarkAsRead={markAsRead}
                 onMarkAllAsRead={markAllAsRead}
             />
-            
+
             {/* Espacement pour compenser la navbar fixe */}
             <div className="pt-20 sm:pt-24">
                 {/* Main Content */}
@@ -652,7 +652,7 @@ export default function OrganizerDashboard() {
                                         </div>
                                         <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg sm:rounded-xl hover:bg-purple-50 transition-colors group">
                                             <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors"><Building2 size={14} className="sm:w-4 sm:h-4 text-purple-600" /></div>
-                                            <span className="text-xs sm:text-sm text-gray-600 group-hover:text-gray-900 truncate">{organizer?.region || 'Région non renseignée'}</span>
+                                            <span className="text-xs sm:text-sm text-gray-600 group-hover:text-gray-900 truncate">{organizer?.locationName || 'Région non renseignée'}</span>
                                         </div>
                                     </div>
                                     <div className="w-full grid grid-cols-3 gap-1 sm:gap-2 mt-4 sm:mt-6">
@@ -692,20 +692,20 @@ export default function OrganizerDashboard() {
                                             <option value="all">Tous les événements</option>
                                             {events.map(event => (<option key={event._id} value={event._id}>{event.title}</option>))}
                                         </select>
-                                        
+
                                         {/* Bouton Aujourd'hui */}
                                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={goToToday} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-1 group">
                                             <Home size={14} className="group-hover:rotate-12 transition-transform" />
                                             <span>Aujourd'hui</span>
                                         </motion.button>
-                                        
+
                                         {/* Boutons mois précédent/suivant */}
                                         <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
                                             <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={prevMonth} className="p-1.5 sm:p-2 bg-white rounded-lg hover:bg-gray-200 shadow-sm transition-all"><ChevronLeft size={16} /></motion.button>
                                             <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={nextMonth} className="p-1.5 sm:p-2 bg-white rounded-lg hover:bg-gray-200 shadow-sm transition-all"><ChevronRight size={16} /></motion.button>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Bouton Nouvel événement - À DROITE sur la même ligne */}
                                     <motion.button
                                         whileHover={{ scale: 1.05 }}
@@ -725,7 +725,7 @@ export default function OrganizerDashboard() {
                                     <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-100 border border-blue-300 rounded-full"></div><span className="text-gray-600">Événement</span></div>
                                     {selectedEventFilter !== 'all' && (<div className="flex items-center gap-2"><div className="w-3 h-3 bg-green-500 rounded-full"></div><span className="text-gray-600">Filtre actif: {events.find(e => e._id === selectedEventFilter)?.title}</span></div>)}
                                 </div>
-                                
+
                                 {/* Calendrier */}
                                 <motion.h4 key={currentMonth.toString()} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center font-semibold text-gray-700 mb-3 sm:mb-4 text-sm sm:text-base bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{getMonthName(currentMonth)}</motion.h4>
                                 <div className="grid grid-cols-7 gap-1 mb-2">{['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (<div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 sm:py-2">{day}</div>))}</div>
@@ -746,7 +746,7 @@ export default function OrganizerDashboard() {
                                         );
                                     })}
                                 </div>
-                                
+
                                 {/* Événements du jour sélectionné */}
                                 <div className="mt-4 sm:mt-6">
                                     <div className="flex items-center justify-between mb-2 sm:mb-3">

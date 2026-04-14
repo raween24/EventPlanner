@@ -59,6 +59,10 @@ const resourceSchema = new mongoose.Schema(
       coordinates: {
         type: [Number], // [lng, lat]
         required: true
+      },
+      name: {   // 🔥 AJOUT
+        type: String,
+        default: ""
       }
     },
 
@@ -82,8 +86,8 @@ const resourceSchema = new mongoose.Schema(
       required: true
     },
     averageRating: { type: Number, default: 0, min: 0, max: 5 },
-totalRatings:  { type: Number, default: 0 },
-likesCount:    { type: Number, default: 0 },
+    totalRatings: { type: Number, default: 0 },
+    likesCount: { type: Number, default: 0 },
     // ✅ NOUVEAU CHAMP STOCK (pour les produits)
     stock: {
       type: Number,
@@ -104,13 +108,13 @@ likesCount:    { type: Number, default: 0 },
     }
 
   },
-  
+
   {
     timestamps: true,
   }
 );
 
-//  validation
+// 🔐 validation
 resourceSchema.pre("save", async function () {
   const hasText = this.terms?.text && this.terms.text.trim() !== "";
   const hasFile = this.terms?.file && this.terms.file !== "";
