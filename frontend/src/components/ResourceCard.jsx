@@ -170,7 +170,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
             <div className="flex items-center gap-2">
               <MapPin size={16} className="text-blue-500" />
               {/* ✅ DIRECTEMENT depuis DB */}
-              <span>{resource.location?.name || "Inconnue"}</span>
+              <span>{resource.locationname || "Inconnue"}</span>
             </div>
           )}
 

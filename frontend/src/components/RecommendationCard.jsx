@@ -50,29 +50,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
 
 
 
-    const getAddressFromCoords = async (lat, lng) => {
-        try {
-            const res = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
-            );
-
-            const data = await res.json();
-
-            return data.display_name; // adresse complète
-        } catch (err) {
-            console.error("Erreur geocoding:", err);
-            return "Adresse inconnue";
-        }
-    };
-    const [address, setAddress] = useState("");
-
-    useEffect(() => {
-        if (resource.location?.coordinates) {
-            const [lng, lat] = resource.location.coordinates;
-
-            getAddressFromCoords(lat, lng).then(setAddress);
-        }
-    }, [resource]);
+   
     // ✅ Debug : affiche la structure reçue (à retirer en prod)
     useEffect(() => {
         console.log("ResourceCard — resource reçu :", resource);
@@ -240,7 +218,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
                     {resource.location && (
                         <div className="flex items-center gap-2">
                             <MapPin size={16} className="text-blue-500 shrink-0" />
-                            <span className="truncate">{address || "Chargement..."}</span>
+                            <span className="truncate">{resource.locationname || "Chargement..."}</span>
                         </div>
                     )}
                     {resource.capacity && (

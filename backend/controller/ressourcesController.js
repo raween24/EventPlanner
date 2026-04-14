@@ -2,9 +2,6 @@ import Resource from "../model/ressources.js";
 import Media from "../model/media_ressources.js";
 import Dispo from "../model/disponibilite.js";
 import User from "../model/user.js";
-import { getLocationName } from "../utils/geocode.js";
-import { resourceFields } from "../config/resourceFields.js";
-
 
 // ================= AJOUTER RESSOURCE =================
 const addResource = async (req, res) => {
@@ -31,8 +28,8 @@ const addResource = async (req, res) => {
       img_vd: mediaPaths
     });
 
-    // 🔥 FIX LOCATION
-    let resourceLocation = undefined;
+    // ================= LOCATION =================
+    let resourceLocation = null;
 
     if (req.body.location) {
       const parsedLocation =
@@ -46,19 +43,17 @@ const addResource = async (req, res) => {
       ) {
         const [lng, lat] = parsedLocation.coordinates;
 
-        // 🔥 appel backend (PAS frontend)
-        const locationName = await getLocationName(lat, lng);
-
         resourceLocation = {
           type: "Point",
-          coordinates: parsedLocation.coordinates,
-          name: locationName // 🔥 ajouté
+          coordinates: [lng, lat]
         };
       }
     }
-    console.log("📍 FULL DATA:", JSON.stringify(data, null, 2));
 
-    // 🔹 CREATE RESOURCE
+    // ✅ récupère directement depuis frontend
+    const locationName = req.body.locationname || "";
+
+    // ================= CREATE =================
     const newResource = new Resource({
       name: req.body.name,
       description: req.body.description,
@@ -66,6 +61,7 @@ const addResource = async (req, res) => {
       price: Number(req.body.price),
 
       location: resourceLocation,
+      locationname: locationName, // ✅ frontend
 
       stock: req.body.stock ? Number(req.body.stock) : 1,
       category: req.body.categoryName,
@@ -93,13 +89,12 @@ const addResource = async (req, res) => {
     res.status(201).json(populatedResource);
 
   } catch (err) {
-    console.error(err);
+    console.error("❌ ADD RESOURCE ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
-
-// ================= GET ALL (SMART 🔥) =================
+// ================= GET ALL =================
 const getAllResources = async (req, res) => {
   try {
     let userLocation = null;
@@ -117,7 +112,6 @@ const getAllResources = async (req, res) => {
 
     let resources;
 
-    // 🔥 GEO SEARCH
     if (userLocation) {
       resources = await Resource.aggregate([
         {
@@ -135,14 +129,12 @@ const getAllResources = async (req, res) => {
       resources = await Resource.find();
     }
 
-    // 🔹 populate
     resources = await Resource.populate(resources, [
       { path: "media" },
       { path: "availability" },
       { path: "prestataire" }
     ]);
 
-    // 🔥 SCORE IA
     const scored = resources.map(r => {
       let score = 0;
 
@@ -162,11 +154,10 @@ const getAllResources = async (req, res) => {
     res.status(200).json(scored);
 
   } catch (error) {
-    console.error(error);
+    console.error("❌ GET ALL ERROR:", error);
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // ================= GET BY ID =================
 const getResourceById = async (req, res) => {
@@ -183,10 +174,10 @@ const getResourceById = async (req, res) => {
     res.status(200).json(resource);
 
   } catch (error) {
+    console.error("❌ GET BY ID ERROR:", error);
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // ================= USER RESOURCES =================
 const getResourcesByUser = async (req, res) => {
@@ -200,13 +191,13 @@ const getResourcesByUser = async (req, res) => {
     res.status(200).json(resources);
 
   } catch (error) {
+    console.error("❌ USER RESOURCES ERROR:", error);
     res.status(500).json({
       message: "Erreur récupération ressources",
       error: error.message
     });
   }
 };
-
 
 // ================= UPDATE =================
 const updateResource = async (req, res) => {
@@ -225,7 +216,7 @@ const updateResource = async (req, res) => {
     resource.type = req.body.type || resource.type;
     resource.price = req.body.price || resource.price;
 
-    // 🔥 FIX LOCATION UPDATE
+    // 🔥 UPDATE LOCATION
     if (req.body.location) {
       const parsedLocation =
         typeof req.body.location === "string"
@@ -235,14 +226,16 @@ const updateResource = async (req, res) => {
       if (parsedLocation?.coordinates?.length === 2) {
         const [lng, lat] = parsedLocation.coordinates;
 
-        const locationName = await getLocationName(lat, lng);
-
         resource.location = {
           type: "Point",
-          coordinates: parsedLocation.coordinates,
-          name: locationName
+          coordinates: [lng, lat]
         };
       }
+    }
+
+    // ✅ update name depuis frontend
+    if (req.body.locationname) {
+      resource.locationname = req.body.locationname;
     }
 
     if (req.body.stock !== undefined) {
@@ -254,10 +247,10 @@ const updateResource = async (req, res) => {
     res.status(200).json(resource);
 
   } catch (error) {
+    console.error("❌ UPDATE ERROR:", error);
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // ================= DELETE =================
 const deleteResource = async (req, res) => {
@@ -271,10 +264,10 @@ const deleteResource = async (req, res) => {
     res.status(200).json({ message: "Ressource supprimée" });
 
   } catch (error) {
+    console.error("❌ DELETE ERROR:", error);
     res.status(500).json({ message: error.message });
   }
 };
-
 
 export {
   addResource,

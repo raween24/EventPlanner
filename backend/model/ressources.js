@@ -59,12 +59,13 @@ const resourceSchema = new mongoose.Schema(
       coordinates: {
         type: [Number], // [lng, lat]
         required: true
-      },
-      name: {   // 🔥 AJOUT
-        type: String,
-        default: ""
       }
     },
+    
+      locationname: {   // 🔥 AJOUT
+        type: String,
+        default: ""
+      },
 
     media: [
       {

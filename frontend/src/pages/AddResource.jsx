@@ -18,7 +18,6 @@ import axios from 'axios';
 
 const localizer = momentLocalizer(moment);
 
-// === Correction des icônes Leaflet ===
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
@@ -26,7 +25,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-// ================= Composant Carte (réutilisable) =================
+// ================= Composant Carte =================
 const LocationPicker = ({ centerLat, centerLng, onLocationChange }) => {
   const [markerPos, setMarkerPos] = useState(
     centerLat && centerLng ? { lat: centerLat, lng: centerLng } : null
@@ -79,7 +78,7 @@ const LocationPicker = ({ centerLat, centerLng, onLocationChange }) => {
   );
 };
 
-// ================= Composants UI (inchangés) =================
+// ================= Composants UI =================
 const Tooltip = ({ children, text }) => (
   <div className="relative group">
     {children}
@@ -239,7 +238,7 @@ const DateCellWrapper = ({ children }) => {
   );
 };
 
-// ================= Définition des champs par catégorie (inchangé) =================
+// ================= Définition des champs par catégorie =================
 const resourceFields = {
   salle: [
     { name: "capacity", label: "Capacité (personnes)", type: "number", required: true, icon: FiUsers },
@@ -286,12 +285,14 @@ const resourceFields = {
   ]
 };
 
-// ================= Composant principal modifié =================
+// ================= Composant principal =================
 const AddResourceForm = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  // État principal
+  // ── flag anti-boucle carte ↔ input ──
+  const isUpdatingFromMap = useRef(false);
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -307,13 +308,11 @@ const AddResourceForm = () => {
   const [customAttributes, setCustomAttributes] = useState([]);
   const [newCustomAttr, setNewCustomAttr] = useState({ name: "", type: "text", value: "" });
 
-  // Médias
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
   const [dragActive, setDragActive] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Calendrier
   const [availabilityEvents, setAvailabilityEvents] = useState([]);
   const [selectedRange, setSelectedRange] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -323,13 +322,11 @@ const AddResourceForm = () => {
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   const [selectedEventType, setSelectedEventType] = useState(null);
 
-  // Nouveau : état pour la localisation géographique
-  const [resourceLocation, setResourceLocation] = useState(null); // { lat, lng }
+  const [resourceLocation, setResourceLocation] = useState(null);
   const [mapLat, setMapLat] = useState(36.8065);
   const [mapLng, setMapLng] = useState(10.1815);
-  // Tunis
+  const [locationName, setLocationName] = useState("");
 
-  // Animations / thème
   const [backgroundTheme, setBackgroundTheme] = useState('gradient');
   const [showConfetti, setShowConfetti] = useState(false);
   const [formProgress, setFormProgress] = useState(0);
@@ -341,14 +338,14 @@ const AddResourceForm = () => {
   // Calcul progression
   useEffect(() => {
     let filled = 0;
-    let total = 5; // name, description, price, type, category (terms optionnel)
+    let total = 5;
     if (formData.name) filled++;
     if (formData.description) filled++;
     if (formData.price) filled++;
     if (formData.type) filled++;
     if (formData.category) filled++;
     if (formData.termsText || formData.termsFile) filled++;
-    if (resourceLocation) filled++; // +1 pour la localisation
+    if (resourceLocation) filled++;
     const requiredFields = resourceFields[formData.category]?.filter(f => f.required) || [];
     requiredFields.forEach(field => {
       total++;
@@ -374,11 +371,26 @@ const AddResourceForm = () => {
     }
     setFloatingIcons(newFloatingIcons);
   }, []);
-  const handleLocationChange = useCallback((lat, lng) => {
+
+  // ── handleLocationChange : carte → input (avec flag anti-boucle) ──
+  const handleLocationChange = useCallback(async (lat, lng) => {
     setMapLat(lat);
     setMapLng(lng);
     setResourceLocation({ lat, lng });
-  }, []); // stable — ne change jamais
+
+    try {
+      const res = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+      );
+      if (res.data?.display_name) {
+        isUpdatingFromMap.current = true; // 🛡 bloque le debounce
+        setLocationName(res.data.display_name);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
   // Géolocalisation automatique au chargement
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -390,7 +402,39 @@ const AddResourceForm = () => {
       },
       () => console.log("Géolocalisation refusée")
     );
-  }, []); // tableau vide — une seule fois
+  }, []);
+
+  // ── Debounce input → carte (avec guard anti-boucle) ──
+  useEffect(() => {
+    // Si la mise à jour vient de la carte, on ignore et on remet le flag à false
+    if (isUpdatingFromMap.current) {
+      isUpdatingFromMap.current = false;
+      return;
+    }
+
+    const delayDebounce = setTimeout(async () => {
+      if (!locationName || locationName.length < 3) return;
+
+      try {
+        const res = await axios.get(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationName)}`
+        );
+        if (res.data && res.data.length > 0) {
+          const { lat, lon, display_name } = res.data[0];
+          isUpdatingFromMap.current = true; // 🛡 évite re-déclenchement après setLocationName
+          setMapLat(parseFloat(lat));
+          setMapLng(parseFloat(lon));
+          setResourceLocation({ lat: parseFloat(lat), lng: parseFloat(lon) });
+          setLocationName(display_name);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 600);
+
+    return () => clearTimeout(delayDebounce);
+  }, [locationName]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -531,11 +575,11 @@ const AddResourceForm = () => {
     setResourceLocation(null);
     setMapLat(36.8065);
     setMapLng(10.1815);
+    setLocationName("");
     setCalendarView('week');
     setCurrentDate(new Date());
   };
 
-  // Utilisation de la position actuelle (bouton)
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) { setMessage("Géolocalisation non supportée"); return; }
     navigator.geolocation.getCurrentPosition(
@@ -576,14 +620,12 @@ const AddResourceForm = () => {
       setTimeout(() => setShowConfetti(false), 3000);
 
       const resourceData = new FormData();
-
       resourceData.append("name", formData.name);
       resourceData.append("description", formData.description);
       resourceData.append("type", formData.type);
       resourceData.append("price", formData.price);
       resourceData.append("categoryName", formData.category);
 
-      // Ajout de la localisation si disponible
       if (resourceLocation) {
         const geoJson = {
           type: "Point",
@@ -591,6 +633,7 @@ const AddResourceForm = () => {
         };
         resourceData.append("location", JSON.stringify(geoJson));
       }
+      resourceData.append("locationname", locationName);
 
       if (formData.termsFile) {
         resourceData.append("termsFile", formData.termsFile);
@@ -600,7 +643,6 @@ const AddResourceForm = () => {
 
       resourceData.append("attributes", JSON.stringify(attributes || {}));
       resourceData.append("customAttributes", JSON.stringify(customAttributes || {}));
-
       resourceData.append(
         "availability",
         JSON.stringify(
@@ -637,10 +679,28 @@ const AddResourceForm = () => {
     }
   };
 
+  const handleSearchLocation = async () => {
+    if (!locationName) return;
+    try {
+      const res = await axios.get(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationName)}`
+      );
+      if (res.data && res.data.length > 0) {
+        const { lat, lon, display_name } = res.data[0];
+        isUpdatingFromMap.current = true;
+        setMapLat(parseFloat(lat));
+        setMapLng(parseFloat(lon));
+        setResourceLocation({ lat: parseFloat(lat), lng: parseFloat(lon) });
+        setLocationName(display_name);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const renderDynamicFields = () => {
     const fields = resourceFields[formData.category];
     if (!fields) return null;
-
     return (
       <div className="space-y-4">
         <h3 className="text-md font-semibold text-gray-800 border-b pb-2 flex items-center gap-2">
@@ -807,8 +867,8 @@ const AddResourceForm = () => {
           </motion.button>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-7xl mx-auto relative z-10">
-          <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-7xl mx-auto relative z-10 px-4 pb-12">
+          <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="mb-8 pt-4">
             <button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-gray-600 hover:text-black transition">
               <FiArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition" /> Retour
             </button>
@@ -816,7 +876,17 @@ const AddResourceForm = () => {
             <p className="text-gray-600 mt-2">Remplissez les détails pour ajouter une nouvelle ressource</p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* ── GRILLE PRINCIPALE ── */}
+          {/* 
+            La colonne droite (calendrier) est en position sticky.
+            Elle reste visible pendant tout le scroll du formulaire.
+            - top-24 = espace sous la Navbar (pt-20 + 1rem de marge)
+            - max-h-[calc(100vh-7rem)] + overflow-y-auto = scroll interne si le contenu dépasse
+            - self-start est indispensable pour que sticky fonctionne dans une grille
+          */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+
+            {/* ── COLONNE GAUCHE : formulaire ── */}
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl p-6 border border-white/30">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
@@ -914,26 +984,32 @@ const AddResourceForm = () => {
 
                 {renderDynamicFields()}
 
-                {/* ========== NOUVELLE SECTION : CARTE POUR LOCALISATION ========== */}
+                {/* ── LOCALISATION ── */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                     <FiMapPin className="text-purple-500" /> Localisation géographique *
                   </label>
+
+                  {/* Input texte avec bouton recherche */}
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={locationName}
+                      onChange={(e) => setLocationName(e.target.value)}
+                      placeholder="Entrer une adresse ou un lieu..."
+                      className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:border-purple-400 focus:ring-2 focus:ring-purple-200 transition"
+                    />
+
+                  </div>
+
                   <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
                     <LocationPicker
                       centerLat={mapLat}
                       centerLng={mapLng}
                       onLocationChange={handleLocationChange}
                     />
-
                     <div className="flex justify-between items-center mt-3">
-                      <button
-                        type="button"
-                        onClick={handleUseMyLocation}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition"
-                      >
-                        📍 Utiliser ma position actuelle
-                      </button>
+
                       {resourceLocation && (
                         <span className="text-xs text-green-600 bg-green-50 px-3 py-1 rounded-full">
                           ✓ Coordonnées sélectionnées
@@ -941,7 +1017,7 @@ const AddResourceForm = () => {
                       )}
                     </div>
                     <p className="text-xs text-gray-400 mt-2">
-                      Cliquez sur la carte ou déplacez le marqueur pour définir l'emplacement exact de la ressource.
+                      Cliquez sur la carte ou déplacez le marqueur • L'adresse se remplit automatiquement
                     </p>
                   </div>
                 </div>
@@ -1019,16 +1095,50 @@ const AddResourceForm = () => {
                   )}
                 </div>
 
-                {message && <div className={`p-3 rounded-xl ${message.includes("succès") ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{message}</div>}
+                {message && (
+                  <div className={`p-3 rounded-xl ${message.includes("succès") ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {message}
+                  </div>
+                )}
 
-                <motion.button type="submit" disabled={isSubmitting} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-70">
-                  {isSubmitting ? <div className="flex items-center justify-center space-x-2"><motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" /><span>Ajout en cours...</span></div> : "Ajouter la ressource"}
+                <motion.button
+                  type="submit"
+                  disabled={isSubmitting}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-70"
+                >
+                  {isSubmitting
+                    ? <div className="flex items-center justify-center space-x-2">
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                      <span>Ajout en cours...</span>
+                    </div>
+                    : "Ajouter la ressource"
+                  }
                 </motion.button>
               </form>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-              <motion.div animate={{ height: isCalendarExpanded ? 'auto' : '60px', overflow: isCalendarExpanded ? 'visible' : 'hidden' }} className="bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl p-6 sticky top-6 border border-white/30">
+            {/* ── COLONNE DROITE : calendrier STICKY ── */}
+            {/*
+              sticky + top-24 : le panneau colle sous la navbar dès qu'on scroll
+              self-start : obligatoire en CSS Grid pour que sticky fonctionne
+                           (sans ça, l'élément s'étire à la hauteur de la colonne gauche)
+              max-h-[calc(100vh-7rem)] + overflow-y-auto : si le contenu du panneau
+              dépasse la fenêtre, il scroll de façon interne
+            */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="self-start flex top-24"
+            >
+              <motion.div
+                animate={{
+                  height: isCalendarExpanded ? 'auto' : '60px',
+                  overflow: isCalendarExpanded ? 'visible' : 'hidden'
+                }}
+                className="bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl p-6 border border-white/30 max-h-[calc(100vh-7rem)] overflow-y-auto"
+              >
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-gray-800">Calendrier de disponibilité</h2>
                   <div className="flex items-center space-x-2">
@@ -1047,20 +1157,56 @@ const AddResourceForm = () => {
                     </motion.button>
                   </div>
                 </div>
+
                 {showSelectionTooltip && selectedRange && (
                   <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="mb-4 p-3 bg-purple-100 text-purple-700 rounded-lg">
-                    Plage sélectionnée: {moment(selectedRange.start).format('MMM DD, HH:mm')} - {moment(selectedRange.end).format('HH:mm')}
+                    Plage sélectionnée : {moment(selectedRange.start).format('MMM DD, HH:mm')} - {moment(selectedRange.end).format('HH:mm')}
                   </motion.div>
                 )}
-                <motion.div className="calendar-container rounded-lg overflow-hidden border border-gray-200" animate={{ scale: isCalendarExpanded ? 1 : 0.8, opacity: isCalendarExpanded ? 1 : 0 }}>
-                  <Calendar localizer={localizer} events={availabilityEvents} startAccessor="start" endAccessor="end" style={{ height: 500 }} selectable onSelectSlot={handleSelectRange} components={CalendarComponents} className="bg-white" popup views={['week', 'day']} defaultView="week" view={calendarView} onView={setCalendarView} date={currentDate} onNavigate={handleNavigate} step={30} timeslots={2} messages={messages} min={moment().hours(0).minutes(0).toDate()} max={moment().hours(23).minutes(59).toDate()} culture='fr' />
+
+                <motion.div
+                  className="calendar-container rounded-lg overflow-hidden border border-gray-200"
+                  animate={{ scale: isCalendarExpanded ? 1 : 0.8, opacity: isCalendarExpanded ? 1 : 0 }}
+                >
+                  <Calendar
+                    localizer={localizer}
+                    events={availabilityEvents}
+                    startAccessor="start"
+                    endAccessor="end"
+                    style={{ height: 500 }}
+                    selectable
+                    onSelectSlot={handleSelectRange}
+                    components={CalendarComponents}
+                    className="bg-white"
+                    popup
+                    views={['week', 'day']}
+                    defaultView="week"
+                    view={calendarView}
+                    onView={setCalendarView}
+                    date={currentDate}
+                    onNavigate={handleNavigate}
+                    step={30}
+                    timeslots={2}
+                    messages={messages}
+                    min={moment().hours(0).minutes(0).toDate()}
+                    max={moment().hours(23).minutes(59).toDate()}
+                    culture='fr'
+                  />
                 </motion.div>
+
                 <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center space-x-6">
-                    <div className="flex items-center space-x-2"><div className="w-4 h-4 bg-green-100 border-l-4 border-green-500 rounded" /><span className="text-sm text-gray-600">Disponible</span></div>
-                    <div className="flex items-center space-x-2"><div className="w-4 h-4 bg-red-100 border-l-4 border-red-500 rounded" /><span className="text-sm text-gray-600">Indisponible</span></div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-green-100 border-l-4 border-green-500 rounded" />
+                      <span className="text-sm text-gray-600">Disponible</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-red-100 border-l-4 border-red-500 rounded" />
+                      <span className="text-sm text-gray-600">Indisponible</span>
+                    </div>
                   </div>
                 </div>
+
                 {availabilityEvents.length > 0 && (
                   <div className="mt-4 border-t pt-4">
                     <h3 className="text-sm font-medium text-gray-700 mb-3">Plages de disponibilité</h3>
@@ -1071,7 +1217,9 @@ const AddResourceForm = () => {
                             {event.type === 'available' ? <FiCheckCircle className="text-green-500" /> : <FiXCircle className="text-red-500" />}
                             <span className="text-xs">{moment(event.start).format('MMM DD, HH:mm')} - {moment(event.end).format('HH:mm')}</span>
                           </div>
-                          <button onClick={() => removeAvailabilityEvent(event.id)} className="text-gray-400 hover:text-gray-600"><FiXCircle className="w-4 h-4" /></button>
+                          <button onClick={() => removeAvailabilityEvent(event.id)} className="text-gray-400 hover:text-gray-600">
+                            <FiXCircle className="w-4 h-4" />
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -1079,6 +1227,7 @@ const AddResourceForm = () => {
                 )}
               </motion.div>
             </motion.div>
+
           </div>
         </motion.div>
       </div>

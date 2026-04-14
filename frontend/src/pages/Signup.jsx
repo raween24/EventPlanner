@@ -199,7 +199,7 @@ export default function Signup() {
       return "";
     }
   };
-  
+
   const getCoordinates = async (name) => {
     try {
       const res = await fetch(
@@ -315,8 +315,8 @@ export default function Signup() {
 
       if (res.ok) {
         if (role === "prestataire") {
-            
-            // Affiche la popup — la navigation se fait depuis le bouton "J'ai compris"
+
+          // Affiche la popup — la navigation se fait depuis le bouton "J'ai compris"
           setShowPendingPopup(true);
           setTimeout(() => navigate("/login"), 1000);
         } else {
@@ -416,7 +416,7 @@ export default function Signup() {
             <div className="field-wrap span-2" style={{ marginTop: 8 }}>
               <label>📍 Votre position sur la carte</label>
               <div className="field-wrap span-2">
-                <label>📍 Localisation</label>
+
                 <input
                   type="text"
                   placeholder="Ex: Tunis, Sfax..."
