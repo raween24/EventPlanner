@@ -316,7 +316,7 @@ function RecommendationsCarousel({ resources, loading, title }) {
   };
 
   return (
-    <div className="relative mb-12 rounded-2xl bg-gradient-to-br from-purple-50 via-indigo-50/30 to-purple-50 p-6 shadow-inner border border-purple-100">
+    <div className="mb-12">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
@@ -324,13 +324,43 @@ function RecommendationsCarousel({ resources, loading, title }) {
           <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
           {loading && <Spinner size="sm" color="purple" />}
         </div>
-        <div className="w-20" /> {/* espace pour équilibre */}
+
+        {/* Arrow buttons */}
+        {!loading && resources.length > 0 && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => scroll(-1)}
+              disabled={!canScrollLeft}
+              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all
+                ${canScrollLeft
+                  ? "bg-white border-gray-200 text-gray-700 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-600 shadow-sm"
+                  : "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"}`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => scroll(1)}
+              disabled={!canScrollRight}
+              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all
+                ${canScrollRight
+                  ? "bg-white border-gray-200 text-gray-700 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-600 shadow-sm"
+                  : "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"}`}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
+      {/* Carousel body */}
       {loading ? (
         <div className="flex gap-6 overflow-hidden">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="flex-shrink-0 bg-white rounded-2xl shadow-md p-4 animate-pulse" style={{ width: 320 }}>
+            <div
+              key={i}
+              className="flex-shrink-0 bg-white rounded-2xl shadow-md p-4 animate-pulse"
+              style={{ width: 320 }}
+            >
               <div className="w-full h-48 bg-gray-200 rounded-xl mb-4" />
               <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
               <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
@@ -342,40 +372,19 @@ function RecommendationsCarousel({ resources, loading, title }) {
         <div className="relative">
           {/* Left fade */}
           {canScrollLeft && (
-            <div className="pointer-events-none absolute left-0 top-0 h-full w-20 z-10 bg-gradient-to-r from-purple-50/90 to-transparent" />
+            <div
+              className="pointer-events-none absolute left-0 top-0 h-full w-16 z-10"
+              style={{ background: "linear-gradient(to right, rgba(248,250,252,0.9), transparent)" }}
+            />
           )}
           {/* Right fade */}
           {canScrollRight && (
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-20 z-10 bg-gradient-to-l from-purple-50/90 to-transparent" />
+            <div
+              className="pointer-events-none absolute right-0 top-0 h-full w-16 z-10"
+              style={{ background: "linear-gradient(to left, rgba(248,250,252,0.9), transparent)" }}
+            />
           )}
 
-          {/* Flèche GAUCHE (grande et visible) */}
-          <button
-            onClick={() => scroll(-1)}
-            disabled={!canScrollLeft}
-            className={`absolute left-0 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white shadow-xl flex items-center justify-center transition-all duration-200
-              ${canScrollLeft
-                ? "text-purple-700 hover:bg-purple-100 hover:scale-105 hover:shadow-2xl opacity-100"
-                : "text-gray-300 opacity-40 cursor-not-allowed"}`}
-            style={{ transform: "translate(-30%, -50%)" }}
-          >
-            <ChevronLeft className="w-7 h-7 stroke-[2.5]" />
-          </button>
-
-          {/* Flèche DROITE (grande et visible) */}
-          <button
-            onClick={() => scroll(1)}
-            disabled={!canScrollRight}
-            className={`absolute right-0 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white shadow-xl flex items-center justify-center transition-all duration-200
-              ${canScrollRight
-                ? "text-purple-700 hover:bg-purple-100 hover:scale-105 hover:shadow-2xl opacity-100"
-                : "text-gray-300 opacity-40 cursor-not-allowed"}`}
-            style={{ transform: "translate(30%, -50%)" }}
-          >
-            <ChevronRight className="w-7 h-7 stroke-[2.5]" />
-          </button>
-
-          {/* Carrousel */}
           <div
             ref={scrollRef}
             className="flex gap-6 overflow-x-auto pb-3"
@@ -385,16 +394,22 @@ function RecommendationsCarousel({ resources, loading, title }) {
               WebkitScrollbar: { display: "none" },
             }}
           >
-            <style>{`.recs-carousel::-webkit-scrollbar { display: none; }`}</style>
+            <style>{`
+              .recs-carousel::-webkit-scrollbar { display: none; }
+            `}</style>
             {resources.slice(0, 12).map((resource) => (
-              <div key={toStr(resource._id)} className="flex-shrink-0" style={{ width: 320 }}>
+              <div
+                key={toStr(resource._id)}
+                className="flex-shrink-0"
+                style={{ width: 320 }}
+              >
                 <RecommendationCard resource={resource} />
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <div className="bg-white/60 rounded-2xl shadow-md p-8 text-center text-gray-400">
+        <div className="bg-white rounded-2xl shadow-md p-8 text-center text-gray-400">
           <Sparkles className="w-10 h-10 mx-auto mb-3 opacity-30" />
           <p>Aucune recommandation disponible pour le moment.</p>
         </div>
@@ -402,7 +417,7 @@ function RecommendationsCarousel({ resources, loading, title }) {
 
       {/* Dot indicators */}
       {!loading && resources.length > 0 && (
-        <div className="flex justify-center gap-1.5 mt-6">
+        <div className="flex justify-center gap-1.5 mt-4">
           {Array.from({ length: Math.min(resources.length, 12) }).map((_, i) => (
             <button
               key={i}
@@ -419,6 +434,7 @@ function RecommendationsCarousel({ resources, loading, title }) {
     </div>
   );
 }
+
 /* ─────────────────────────────────────────────────
    PAGE PRINCIPALE
 ───────────────────────────────────────────────── */
@@ -661,12 +677,12 @@ export default function OrganizerPage() {
       gradient: "from-purple-600 to-pink-600",
     };
     if (userId) return {
-      title: "Bienvenue, nous sommes toujours là pour vous !",
+      title: "✨ Bienvenue, nous sommes toujours là pour vous !",
       subtitle: "Vos recommandations personnalisées sont prêtes selon vos préférences",
       gradient: "from-blue-600 to-purple-600",
     };
     return {
-      title: "Organisez l'événement inoubliable",
+      title: "✨ Organisez l'événement inoubliable",
       subtitle: "Des centaines de ressources à portée de main, filtrées selon vos besoins",
       gradient: "from-blue-600 to-purple-600",
     };
@@ -674,8 +690,8 @@ export default function OrganizerPage() {
 
   const getRecsTitle = () => {
     if (eventId) return "🎯 Ressources pour votre événement";
-    if (userId) return "Nous sommes toujours là pour vous";
-    return "Les plus populaires";
+    if (userId) return "✨ Nous sommes toujours là pour vous";
+    return "🔥 Les plus populaires";
   };
 
   const banner = getBannerContent();

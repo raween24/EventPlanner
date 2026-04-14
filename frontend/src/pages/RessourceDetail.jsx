@@ -9,6 +9,7 @@ import {
   Edit3, Trash2, Flag, Zap, Ruler, Palette, Weight, Tag,
   Building, ShoppingCart, Package, ChevronDown
 } from "lucide-react";
+import AuthModal from "../components/AuthModal";
 
 /* ─────────────────────────────────────────────────
    MINI CART SIDEBAR (popup droite)
@@ -106,8 +107,6 @@ function CartSidebar({ isOpen, onClose, cartItems, onRemove, onNavigate }) {
    PAGE PRINCIPALE
 ───────────────────────────────────────────────── */
 export default function ResourceDetailsPage() {
-
-
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -120,7 +119,9 @@ export default function ResourceDetailsPage() {
   const [showLightbox, setShowLightbox] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-
+  // Auth Modal states
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [pendingCartItem, setPendingCartItem] = useState(null);
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
@@ -150,9 +151,22 @@ export default function ResourceDetailsPage() {
 
   /* ── init ── */
   useEffect(() => {
-    setCurrentUser(JSON.parse(localStorage.getItem("user")));
+    const user = JSON.parse(localStorage.getItem("user"));
+    setCurrentUser(user);
     loadCartFromStorage();
   }, []);
+
+  // Écouter les changements de connexion
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const user = JSON.parse(localStorage.getItem("user"));
+      setCurrentUser(user);
+      loadCartFromStorage();
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
   const isPrestataire = currentUser?.role === "prestataire";
 
   const loadCartFromStorage = () => {
@@ -200,11 +214,50 @@ export default function ResourceDetailsPage() {
     fetchData();
   }, [id]);
 
-  /* ── AJOUTER AU PANIER ── */
-  const addToCart = () => {
+  /* ── FONCTION POUR AJOUTER AU PANIER (RÉUTILISABLE) ── */
+  const performAddToCart = (cartItemToAdd) => {
     const existing = JSON.parse(localStorage.getItem("reservationCart") || "[]");
-    if (existing.some(i => i.resourceId === resource._id)) {
+    if (existing.some(i => i.resourceId === cartItemToAdd.resourceId)) {
       setSidebarOpen(true);
+      return false;
+    }
+    const updated = [...existing, cartItemToAdd];
+    saveCart(updated);
+    setAddedToCart(true);
+    setSidebarOpen(true);
+    setTimeout(() => setAddedToCart(false), 2500);
+    return true;
+  };
+
+  /* ── AJOUTER AU PANIER AVEC VÉRIFICATION CONNEXION ── */
+  const addToCart = () => {
+    // Vérifier si l'utilisateur est connecté
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    
+    if (!token || !user) {
+      // Stocker l'item pour après connexion
+      const cartItem = {
+        resourceId: resource._id,
+        resourceName: resource.name,
+        price: resource.price,
+        type: resource.type,
+        category: resource.category,
+        quantity: 1,
+        totalPrice: resource.type === "service"
+          ? calculateTotalPrice() || resource.price
+          : resource.price,
+        stock: resource.stock ?? 999,
+        selectedTimes: selectedTimes.map(s => ({
+          display: s.display,
+          start: s.start.toISOString(),
+          end: s.end.toISOString(),
+          price: s.price,
+        })),
+        selectedDate: selectedDate ? selectedDate.toISOString() : null,
+      };
+      setPendingCartItem(cartItem);
+      setAuthModalOpen(true);
       return;
     }
 
@@ -228,12 +281,19 @@ export default function ResourceDetailsPage() {
       selectedDate: selectedDate ? selectedDate.toISOString() : null,
     };
 
-    const updated = [...existing, cartItem];
-    saveCart(updated);
-    setAddedToCart(true);
-    setSidebarOpen(true);
+    performAddToCart(cartItem);
+  };
 
-    setTimeout(() => setAddedToCart(false), 2500);
+  /* ── AUTH SUCCESS ── */
+  const handleAuthSuccess = (token, user) => {
+    setAuthModalOpen(false);
+    setCurrentUser(user);
+    
+    // Si un item était en attente, l'ajouter au panier maintenant
+    if (pendingCartItem) {
+      performAddToCart(pendingCartItem);
+      setPendingCartItem(null);
+    }
   };
 
   /* ── disponibilités ── */
@@ -324,9 +384,6 @@ export default function ResourceDetailsPage() {
     if (!startDate || !endDate) return 0;
     return Math.ceil(Math.abs(endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
   };
- 
-
-  
 
   /* ── commentaires ── */
   const fetchComments = async () => {
@@ -452,6 +509,20 @@ export default function ResourceDetailsPage() {
         cartItems={cartItems}
         onRemove={(id) => { removeFromCart(id); }}
         onNavigate={() => { setSidebarOpen(false); navigate("/mes-reservations"); }}
+      />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => {
+          setAuthModalOpen(false);
+          setPendingCartItem(null);
+        }}
+        pendingItem={pendingCartItem ? {
+          resourceName: pendingCartItem.resourceName,
+          type: pendingCartItem.type,
+        } : null}
+        onAuthSuccess={handleAuthSuccess}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
@@ -869,7 +940,6 @@ export default function ResourceDetailsPage() {
               </div>
 
               {/* ════ BOUTON AJOUTER AU PANIER ════ */}
-              {/* ════ BOUTON AJOUTER AU PANIER ════ */}
               {alreadyInCart ? (
                 <div className="bg-indigo-50 p-4 rounded-xl text-center">
                   <CheckCircle2 className="h-8 w-8 text-indigo-600 mx-auto mb-2" />
@@ -888,7 +958,7 @@ export default function ResourceDetailsPage() {
                     onClick={addToCart}
                     disabled={!canAddToCart || currentUser?.role === "prestataire"}
                     className={`w-full py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2
-        ${(!canAddToCart || currentUser?.role === "prestataire")
+                    ${(!canAddToCart || currentUser?.role === "prestataire")
                         ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                         : "bg-black text-white hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98]"}`}
                   >
