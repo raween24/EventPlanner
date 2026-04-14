@@ -15,25 +15,6 @@ import {
 ───────────────────────────────────────────────── */
 function CartSidebar({ isOpen, onClose, cartItems, onRemove, onNavigate }) {
   const total = cartItems.reduce((s, i) => s + (i.totalPrice || i.price), 0);
-  const getCoordinates = async (address) => {
-    const apiKey = "YOUR_API_KEY";
-
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`
-    );
-
-    const data = await res.json();
-
-    if (data.results.length > 0) {
-      const location = data.results[0].geometry.location;
-      return {
-        lat: location.lat,
-        lng: location.lng,
-      };
-    }
-
-    return null;
-  };
 
   return (
     <>
@@ -343,29 +324,9 @@ export default function ResourceDetailsPage() {
     if (!startDate || !endDate) return 0;
     return Math.ceil(Math.abs(endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
   };
-  const getAddressFromCoords = async (lat, lng) => {
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
-      );
+ 
 
-      const data = await res.json();
-
-      return data.display_name; // adresse complète
-    } catch (err) {
-      console.error("Erreur geocoding:", err);
-      return "Adresse inconnue";
-    }
-  };
-  const [address, setAddress] = useState("");
-
-  useEffect(() => {
-    if (!resource) return;  // ← cette ligne suffit
-    if (resource.location?.coordinates) {
-      const [lng, lat] = resource.location.coordinates;
-      getAddressFromCoords(lat, lng).then(setAddress);
-    }
-  }, [resource]);
+  
 
   /* ── commentaires ── */
   const fetchComments = async () => {
@@ -574,7 +535,7 @@ export default function ResourceDetailsPage() {
                 </div>
                 <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium capitalize">{resource.type}</span>
               </div>
-              <div className="flex items-center gap-2 text-gray-500"><MapPin className="h-4 w-4" /><span>{address}</span></div>
+              <div className="flex items-center gap-2 text-gray-500"><MapPin className="h-4 w-4" /><span>{resource.locationname}</span></div>
               <div className="border-t border-gray-100 pt-4">
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">Description</h2>
                 <p className="text-gray-600 leading-relaxed">{resource.description}</p>
@@ -746,10 +707,10 @@ export default function ResourceDetailsPage() {
             {/* Localisation */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4"><Map className="h-5 w-5" />Localisation</h2>
-              <div className="flex items-start gap-3 text-gray-600 mb-4"><MapPin className="h-5 w-5 text-gray-400 flex-shrink-0" /><div><p className="font-medium text-gray-900">Adresse</p><p>  {address}</p></div></div>
+              <div className="flex items-start gap-3 text-gray-600 mb-4"><MapPin className="h-5 w-5 text-gray-400 flex-shrink-0" /><div><p className="font-medium text-gray-900">Adresse</p><p>  {resource.locationname}</p></div></div>
               <div className="relative h-[300px] rounded-xl overflow-hidden">
                 <iframe width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen
-                  src={`https://www.google.com/maps?q=${address}&output=embed`} />
+                  src={`https://www.google.com/maps?q=${resource.locationname}&output=embed`} />
               </div>
             </div>
           </div>
