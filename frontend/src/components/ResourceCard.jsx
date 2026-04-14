@@ -11,28 +11,30 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
   const [liked, setLiked] = useState(false);
   const [loadingLike, setLoadingLike] = useState(false);
 
+  // ✅ Normalise le chemin (corrige les backslashes Windows)
+  const normalizePath = (img) => {
+    if (!img) return "";
+    if (img.startsWith("http")) return img;
+    const normalized = img.replace(/\\/g, "/");
+    return `http://localhost:5000/${normalized}`;
+  };
+
   // ✅ Images
   const extractImages = () => {
     const media = resource.media;
 
     if (!media || media.length === 0) {
-      return (resource.images || []).map(img =>
-        img?.startsWith("http") ? img : `http://localhost:5000/${img}`
-      );
+      return (resource.images || []).map(normalizePath);
     }
 
     if (typeof media[0] === "object" && media[0]?.img_vd) {
       return media.flatMap(m =>
-        (m.img_vd || []).map(img =>
-          img?.startsWith("http") ? img : `http://localhost:5000/${img}`
-        )
+        (m.img_vd || []).map(normalizePath)
       );
     }
 
     if (typeof media[0] === "string") {
-      return media.map(img =>
-        img?.startsWith("http") ? img : `http://localhost:5000/${img}`
-      );
+      return media.map(normalizePath);
     }
 
     return [];
@@ -169,7 +171,6 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
           {resource.location && (
             <div className="flex items-center gap-2">
               <MapPin size={16} className="text-blue-500" />
-              {/* ✅ DIRECTEMENT depuis DB */}
               <span>{resource.locationname || "Inconnue"}</span>
             </div>
           )}

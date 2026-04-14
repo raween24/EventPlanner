@@ -116,7 +116,7 @@ export default function AuthModal({ isOpen, onClose, pendingItem, onAuthSuccess 
     }
   };
 
-  /* ── Inscription ── */
+  /* ── Inscription avec coordonnées par défaut ── */
   const handleSignup = async (e) => {
     e.preventDefault();
     if (signupForm.password.length < 6) {
@@ -126,19 +126,27 @@ export default function AuthModal({ isOpen, onClose, pendingItem, onAuthSuccess 
     setError("");
     setLoading(true);
     try {
-      /* 1. Créer le compte */
       const fd = new FormData();
       fd.append("firstname", signupForm.firstname);
       fd.append("lastname",  signupForm.lastname);
       fd.append("email",     signupForm.email);
       fd.append("password",  signupForm.password);
       fd.append("role",      "organisateur");
+      
+      // ✅ AJOUT DES COORDONNÉES PAR DÉFAUT (Centre de Tunis)
+      const defaultLocation = {
+        type: "Point",
+        coordinates: [10.1815, 36.8065] // [lng, lat] - Tunis centre
+      };
+      fd.append("location", JSON.stringify(defaultLocation));
+      fd.append("locationName", "Tunis, Tunisie");
 
       const res  = await fetch("http://localhost:5000/api/users/register", {
         method: "POST",
         body: fd,
       });
       const data = await res.json();
+      
       if (!res.ok) {
         setError(data.message || "Erreur lors de la création du compte");
         return;
@@ -151,6 +159,7 @@ export default function AuthModal({ isOpen, onClose, pendingItem, onAuthSuccess 
         body: JSON.stringify({ email: signupForm.email, password: signupForm.password }),
       });
       const loginData = await loginRes.json();
+      
       if (!loginRes.ok) {
         setError("Compte créé mais connexion automatique échouée. Veuillez vous connecter.");
         setTab("login");
@@ -164,11 +173,62 @@ export default function AuthModal({ isOpen, onClose, pendingItem, onAuthSuccess 
       /* ✅ Callback → parent gère la suite */
       onAuthSuccess(loginData.token, loginData.user);
 
-    } catch {
+    } catch (err) {
+      console.error("Signup error:", err);
       setError("Erreur serveur, veuillez réessayer.");
     } finally {
       setLoading(false);
     }
+  };
+
+  /* ── Google Login (popup window) ── */
+  const handleGoogleLogin = () => {
+    // Ouvrir une fenêtre popup pour l'authentification Google
+    const width = 500;
+    const height = 600;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    
+    const popup = window.open(
+      "http://localhost:5000/api/users/google",
+      "Google Login",
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
+
+    // Écouter le message de retour
+    const handleMessage = async (event) => {
+      // Vérifier l'origine du message (sécurité)
+      if (event.origin !== "http://localhost:5000") return;
+      
+      if (event.data.type === "GOOGLE_AUTH_SUCCESS") {
+        // Fermer la popup
+        if (popup) popup.close();
+        
+        // Stocker les données
+        localStorage.setItem("token", event.data.token);
+        localStorage.setItem("user", JSON.stringify(event.data.user));
+        
+        // Appeler le callback
+        onAuthSuccess(event.data.token, event.data.user);
+        
+        // Nettoyer l'écouteur
+        window.removeEventListener("message", handleMessage);
+      } else if (event.data.type === "GOOGLE_AUTH_ERROR") {
+        setError(event.data.message || "Erreur lors de l'authentification Google");
+        if (popup) popup.close();
+        window.removeEventListener("message", handleMessage);
+      }
+    };
+    
+    window.addEventListener("message", handleMessage);
+    
+    // Nettoyage si la popup est fermée manuellement
+    const checkPopupClosed = setInterval(() => {
+      if (popup && popup.closed) {
+        clearInterval(checkPopupClosed);
+        window.removeEventListener("message", handleMessage);
+      }
+    }, 500);
   };
 
   if (!isOpen) return null;
@@ -266,13 +326,9 @@ export default function AuthModal({ isOpen, onClose, pendingItem, onAuthSuccess 
               </div>
             )}
 
-            {/* ── Google button (décoratif — redirige vers /login avec redirect) ── */}
+            {/* ── Google button (fonctionnel avec popup) ── */}
             <button
-              onClick={() => {
-                /* Sauvegarder l'URL cible avant de partir vers /login */
-                localStorage.setItem("redirectAfterLogin", "/mes-reservations");
-                window.location.href = "/login";
-              }}
+              onClick={handleGoogleLogin}
               className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition text-sm font-medium text-gray-700 mb-4"
             >
               <svg width="16" height="16" viewBox="0 0 24 24">
