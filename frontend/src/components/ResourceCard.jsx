@@ -2,8 +2,7 @@ import { MapPin, Users, Heart, ImageOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }) {
-
+export default function ResourceCard({ resource = {}, eventId, onBook, isLiked, onLikeUpdate }) {
   const navigate = useNavigate();
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -11,7 +10,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
   const [liked, setLiked] = useState(false);
   const [loadingLike, setLoadingLike] = useState(false);
 
-  // ✅ Images
+  // ✅ Extraction des images (gère plusieurs formats)
   const extractImages = () => {
     const media = resource.media;
 
@@ -41,7 +40,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
   const images = extractImages();
   const isAvailable = resource.availability?.length > 0;
 
-  // ✅ Like init
+  // ✅ Initialisation du like depuis localStorage ET la prop isLiked
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || "null");
     const adore = user?.adore || [];
@@ -52,7 +51,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
     if (isLiked !== undefined) setLiked(isLiked);
   }, [isLiked]);
 
-  // ✅ Toggle Like
+  // ✅ Toggle like avec notification au parent
   const toggleLike = async (e) => {
     e.stopPropagation();
     if (loadingLike) return;
@@ -82,16 +81,20 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
       });
 
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.message);
 
       const updatedAdore = liked
         ? (user.adore || []).filter(id => id !== resource._id)
         : [...(user.adore || []), resource._id];
 
+      // Mise à jour locale et localStorage
       setLiked(!liked);
       localStorage.setItem("user", JSON.stringify({ ...user, adore: updatedAdore }));
 
+      // 🔥 Notifier le parent (pour synchroniser la liste des favoris)
+      if (onLikeUpdate) {
+        onLikeUpdate(resource._id, !liked);
+      }
     } catch (err) {
       console.error("Erreur like :", err);
     } finally {
@@ -99,7 +102,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
     }
   };
 
-  // ✅ Carousel
+  // ✅ Carrousel automatique au survol
   useEffect(() => {
     if (!isHovering || images.length <= 1) return;
 
@@ -112,7 +115,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
     return () => clearInterval(interval);
   }, [isHovering, images.length]);
 
-  // ✅ Prestataire
+  // ✅ Nom du prestataire
   const prestataireNom =
     resource.prestataire?.lastname ||
     resource.prestataire?.name ||
@@ -155,7 +158,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
         </div>
       </div>
 
-      {/* Content */}
+      {/* Contenu */}
       <div className="p-5">
         <h3 className="text-lg font-semibold truncate">
           {resource.name || "Sans nom"}
@@ -169,7 +172,6 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
           {resource.location && (
             <div className="flex items-center gap-2">
               <MapPin size={16} className="text-blue-500" />
-              {/* ✅ DIRECTEMENT depuis DB */}
               <span>{resource.locationname || "Inconnue"}</span>
             </div>
           )}

@@ -1,33 +1,43 @@
-// recommendationController.js
 import {
   getPopularResources,
   getPersonalizedResources,
   getEventBasedResources,
 } from "../recommandations/recommendationService.js";
 
+/* ─────────────────────────────
+   GENERAL RECOMMENDATIONS
+───────────────────────────── */
 export const getRecommendations = async (req, res) => {
   try {
-    const userId = req.user?.id; // ← "id" et non "_id" (selon ton middleware)
+    const userId = req.user?.id;
 
     if (!userId) {
-      // CAS 1 : Non connecté
       const data = await getPopularResources(10);
-      return res.json({ case: "popular", data });
+      return res.json({ type: "popular", data });
     }
 
-    // CAS 2 : Connecté
     const data = await getPersonalizedResources(userId, 10);
-    return res.json({ case: "personalized", data });
+
+    return res.json({
+      type: "personalized",
+      data
+    });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Erreur recommandation", error: err.message });
+    res.status(500).json({
+      message: "Erreur recommandation",
+      error: err.message
+    });
   }
 };
 
+/* ─────────────────────────────
+   EVENT RECOMMENDATIONS
+───────────────────────────── */
 export const getEventRecommendations = async (req, res) => {
   try {
-    const userId = req.user?.id; // ← "id"
+    const userId = req.user?.id;
     const eventData = req.body;
 
     if (!eventData.category) {
@@ -35,10 +45,17 @@ export const getEventRecommendations = async (req, res) => {
     }
 
     const data = await getEventBasedResources(eventData, userId, 15);
-    return res.json({ case: "event", data });
+
+    return res.json({
+      type: "event",
+      data
+    });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Erreur recommandation événement", error: err.message });
+    res.status(500).json({
+      message: "Erreur recommandation événement",
+      error: err.message
+    });
   }
 };

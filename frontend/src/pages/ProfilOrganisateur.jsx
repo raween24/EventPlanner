@@ -231,6 +231,27 @@ export default function OrganizerDashboard() {
     }, [documents, docSearchTerm, docSortOption]);
 
     // Gestion du profil
+    const geocodeLocation = async (locationName) => {
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationName)}`
+            );
+            const data = await res.json();
+
+            if (data && data.length > 0) {
+                return {
+                    lat: parseFloat(data[0].lat),
+                    lng: parseFloat(data[0].lon),
+                    displayName: data[0].display_name
+                };
+            }
+
+            return null;
+        } catch (err) {
+            console.error("Erreur géocodage:", err);
+            return null;
+        }
+    };
     const handleProfileEdit = () => {
         setProfileFormData({
             firstname: organizer?.firstname || '',
@@ -270,7 +291,35 @@ export default function OrganizerDashboard() {
             formData.append('lastname', profileFormData.lastname);
             formData.append('email', profileFormData.email);
             formData.append('numTel', profileFormData.numTel || '');
-            formData.append('region', profileFormData.region || '');
+
+            // 🔥 Géocodage sécurisé
+            if (profileFormData.region && profileFormData.region.trim() !== '') {
+                try {
+                    const coords = await geocodeLocation(profileFormData.region);
+                    if (coords && coords.lng && coords.lat) {
+                        const locationGeoJSON = {
+                            type: "Point",
+                            coordinates: [coords.lng, coords.lat]
+                        };
+                        formData.append('location', JSON.stringify(locationGeoJSON));
+                        formData.append('locationName', coords.displayName);
+                    } else {
+                        console.warn("⚠️ Géocodage infructueux – la localisation ne sera pas mise à jour");
+                        setProfileError("Impossible de géolocaliser la région saisie. La localisation n'a pas été modifiée.");
+                        // On n'ajoute pas le champ 'location' pour ne pas casser l'existant
+                    }
+                } catch (geoError) {
+                    console.error("Erreur lors du géocodage :", geoError);
+                    setProfileError("Erreur technique lors de la géolocalisation. La localisation reste inchangée.");
+                    // On ne bloque pas la mise à jour du reste du profil
+                }
+            } else {
+                // Si la région est vide, on peut envoyer une chaîne vide pour effacer l'ancienne localisation
+                formData.append('locationName', '');
+                // Attention : ne pas envoyer 'location' vide, car le backend attend un GeoJSON
+                // Option : envoyer null ou ne rien faire – on laisse la localisation inchangée
+            }
+
             if (profilePasswordData.password) {
                 formData.append('password', profilePasswordData.password);
             }
@@ -281,6 +330,7 @@ export default function OrganizerDashboard() {
             const response = await api.put(`/users/update`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
+
             setOrganizer(response.data);
             setProfileFormData({
                 firstname: response.data.firstname || '',
@@ -289,12 +339,15 @@ export default function OrganizerDashboard() {
                 numTel: response.data.numTel || '',
                 region: response.data.locationName || ''
             });
+
             const updatedUser = { ...user, ...response.data, id: response.data._id };
             localStorage.setItem('user', JSON.stringify(updatedUser));
+
             setProfileSuccess('Profil modifié avec succès !');
             setProfilePasswordData({ password: '', confirmPassword: '' });
             setProfileImage(null);
             setProfileImagePreview(null);
+
             setTimeout(() => {
                 setShowProfileEditModal(false);
                 setProfileSuccess('');
@@ -454,7 +507,7 @@ export default function OrganizerDashboard() {
     const [likedResources, setLikedResources] = useState([]);
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem("user"));
-        setLikedResources(user?.adore || []);
+        setLikedResources(user.adore || []);
     }, []);
 
     const toggleLike = async (e, resourceId) => {
@@ -627,7 +680,7 @@ export default function OrganizerDashboard() {
                                     <motion.div whileHover={{ scale: 1.05 }} className="relative mb-3 sm:mb-4 cursor-pointer">
                                         <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden ring-4 ring-blue-100 shadow-lg">
                                             {organizer?.image ? (
-                                                <img src={`http://localhost:5000/${organizer.image}`} alt={`${organizer.firstname} ${organizer.lastname}`} className="w-full h-full object-cover" />
+                                                <img src={`http://localhost:5000${organizer.image}`} alt={`${organizer.firstname} ${organizer.lastname}`} className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
                                                     <User size={28} className="sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-white" />
@@ -955,7 +1008,7 @@ export default function OrganizerDashboard() {
                                         {profileSuccess && (<div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-600 text-sm"><CheckCircle size={16} /> {profileSuccess}</div>)}
                                         {profileActiveTab === 'info' && (
                                             <>
-                                                <div className="flex flex-col items-center mb-4"><div className="relative"><div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-blue-100 shadow-lg bg-gray-100">{profileImagePreview ? (<img src={profileImagePreview} alt="Aperçu" className="w-full h-full object-cover" />) : organizer?.image ? (<img src={`http://localhost:5000/${organizer.image}`} alt={organizer.firstname} className="w-full h-full object-cover" />) : (<div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center"><User size={32} className="text-white" /></div>)}</div><label className="absolute bottom-0 right-0 p-1 bg-blue-600 rounded-full cursor-pointer hover:bg-blue-700"><Camera size={16} className="text-white" /><input type="file" accept="image/*" onChange={handleProfileImageChange} className="hidden" /></label>{profileImagePreview && (<button type="button" onClick={handleRemoveProfileImage} className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600"><X size={12} /></button>)}</div><p className="text-xs text-gray-500 mt-2">Cliquez sur l'icône caméra pour changer la photo</p></div>
+                                                <div className="flex flex-col items-center mb-4"><div className="relative"><div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-blue-100 shadow-lg bg-gray-100">{profileImagePreview ? (<img src={profileImagePreview} alt="Aperçu" className="w-full h-full object-cover" />) : organizer?.image ? (<img src={`http://localhost:5000${organizer.image}`} alt={organizer.firstname} className="w-full h-full object-cover" />) : (<div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center"><User size={32} className="text-white" /></div>)}</div><label className="absolute bottom-0 right-0 p-1 bg-blue-600 rounded-full cursor-pointer hover:bg-blue-700"><Camera size={16} className="text-white" /><input type="file" accept="image/*" onChange={handleProfileImageChange} className="hidden" /></label>{profileImagePreview && (<button type="button" onClick={handleRemoveProfileImage} className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600"><X size={12} /></button>)}</div><p className="text-xs text-gray-500 mt-2">Cliquez sur l'icône caméra pour changer la photo</p></div>
                                                 <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label><input type="text" value={profileFormData.firstname} onChange={(e) => setProfileFormData({ ...profileFormData, firstname: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" value={profileFormData.lastname} onChange={(e) => setProfileFormData({ ...profileFormData, lastname: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required /></div></div>
                                                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" value={profileFormData.email} onChange={(e) => setProfileFormData({ ...profileFormData, email: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" required /></div>
                                                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label><input type="tel" value={profileFormData.numTel} onChange={(e) => setProfileFormData({ ...profileFormData, numTel: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" placeholder="+33 6 12 34 56 78" /></div>

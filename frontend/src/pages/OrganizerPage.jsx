@@ -317,14 +317,13 @@ function RecommendationsCarousel({ resources, loading, title }) {
 
   return (
     <div className="relative mb-12 rounded-2xl bg-gradient-to-br from-purple-50 via-indigo-50/30 to-purple-50 p-6 shadow-inner border border-purple-100">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-purple-600" />
           <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
           {loading && <Spinner size="sm" color="purple" />}
         </div>
-        <div className="w-20" /> {/* espace pour équilibre */}
+        <div className="w-20" />
       </div>
 
       {loading ? (
@@ -340,16 +339,12 @@ function RecommendationsCarousel({ resources, loading, title }) {
         </div>
       ) : resources.length > 0 ? (
         <div className="relative">
-          {/* Left fade */}
           {canScrollLeft && (
             <div className="pointer-events-none absolute left-0 top-0 h-full w-20 z-10 bg-gradient-to-r from-purple-50/90 to-transparent" />
           )}
-          {/* Right fade */}
           {canScrollRight && (
             <div className="pointer-events-none absolute right-0 top-0 h-full w-20 z-10 bg-gradient-to-l from-purple-50/90 to-transparent" />
           )}
-
-          {/* Flèche GAUCHE (grande et visible) */}
           <button
             onClick={() => scroll(-1)}
             disabled={!canScrollLeft}
@@ -361,8 +356,6 @@ function RecommendationsCarousel({ resources, loading, title }) {
           >
             <ChevronLeft className="w-7 h-7 stroke-[2.5]" />
           </button>
-
-          {/* Flèche DROITE (grande et visible) */}
           <button
             onClick={() => scroll(1)}
             disabled={!canScrollRight}
@@ -374,8 +367,6 @@ function RecommendationsCarousel({ resources, loading, title }) {
           >
             <ChevronRight className="w-7 h-7 stroke-[2.5]" />
           </button>
-
-          {/* Carrousel */}
           <div
             ref={scrollRef}
             className="flex gap-6 overflow-x-auto pb-3"
@@ -399,8 +390,6 @@ function RecommendationsCarousel({ resources, loading, title }) {
           <p>Aucune recommandation disponible pour le moment.</p>
         </div>
       )}
-
-      {/* Dot indicators */}
       {!loading && resources.length > 0 && (
         <div className="flex justify-center gap-1.5 mt-6">
           {Array.from({ length: Math.min(resources.length, 12) }).map((_, i) => (
@@ -419,8 +408,9 @@ function RecommendationsCarousel({ resources, loading, title }) {
     </div>
   );
 }
+
 /* ─────────────────────────────────────────────────
-   PAGE PRINCIPALE
+   PAGE PRINCIPALE (CORRIGÉE)
 ───────────────────────────────────────────────── */
 export default function OrganizerPage() {
   const navigate = useNavigate();
@@ -467,11 +457,20 @@ export default function OrganizerPage() {
     };
   }, []);
 
-  /* ── Likes — stringify all IDs ── */
+  /* ── CORRECTION : Initialisation des likes depuis localStorage ── */
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("adore") || "[]");
-    setLikedResources(stored.map((id) => toStr(id)));
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    const adore = user?.adore || [];
+    setLikedResources(adore.map(id => toStr(id)));
   }, []);
+
+  /* ── Gestion du like (notifiée par ResourceCard) ── */
+  const handleLikeUpdate = (resourceId, liked) => {
+    const strId = toStr(resourceId);
+    setLikedResources(prev =>
+      liked ? [...prev, strId] : prev.filter(id => id !== strId)
+    );
+  };
 
   /* ── Cart actions ── */
   const removeFromCart = (resourceId) => {
@@ -572,7 +571,7 @@ export default function OrganizerPage() {
       f = f.filter((r) =>
         r.name?.toLowerCase().includes(t) ||
         r.description?.toLowerCase().includes(t) ||
-        r.location?.toLowerCase().includes(t) ||
+        r.locationname?.toLowerCase().includes(t) ||
         r.provider_name?.toLowerCase().includes(t)
       );
     }
@@ -591,14 +590,6 @@ export default function OrganizerPage() {
   }, [resources, searchTerm, selectedSubCategory, maxPrice, sortBy]);
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedSubCategory, maxPrice, sortBy]);
-
-  /* ── Like update — stringify ── */
-  const handleLikeUpdate = (id, liked) => {
-    const strId = toStr(id);
-    setLikedResources((p) =>
-      liked ? [...p, strId] : p.filter((x) => x !== strId)
-    );
-  };
 
   /* ── Pagination ── */
   const totalPages = Math.ceil(filteredResources.length / itemsPerPage);
@@ -703,7 +694,7 @@ export default function OrganizerPage() {
 
       <div className="pt-28 pb-10 px-4 max-w-7xl mx-auto">
 
-        {/* ── Bannière ── */}
+        {/* Bannière */}
         <div className="mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -719,14 +710,13 @@ export default function OrganizerPage() {
           </motion.div>
         </div>
 
-        {/* ── Filtres + bouton panier ── */}
+        {/* Filtres + panier */}
         <motion.div className="bg-white rounded-2xl shadow-lg p-6 mb-10 border border-gray-100">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Filter className="w-5 h-5 text-blue-600" />
               <h2 className="text-xl font-semibold text-slate-800">Recherche & Filtres</h2>
             </div>
-
             <button
               onClick={() => setSidebarOpen(true)}
               className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:shadow-sm transition-all text-sm font-medium text-gray-800"
@@ -788,14 +778,14 @@ export default function OrganizerPage() {
           )}
         </motion.div>
 
-        {/* ── Carousel Recommandations ── */}
+        {/* Carousel Recommandations */}
         <RecommendationsCarousel
           resources={recommendedResources}
           loading={loadingRecs}
           title={getRecsTitle()}
         />
 
-        {/* ── Liste ressources ── */}
+        {/* Liste ressources */}
         <div>
           <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
             <div className="flex items-center gap-3">

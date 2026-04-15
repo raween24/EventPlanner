@@ -50,7 +50,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
 
 
 
-   
+
     // ✅ Debug : affiche la structure reçue (à retirer en prod)
     useEffect(() => {
         console.log("ResourceCard — resource reçu :", resource);
