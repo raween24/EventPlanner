@@ -18,9 +18,4 @@ evenment:
 
 
 
-sorted by fi page mes reservation ( date )
-supprimer les champs from modal informations personnelles 
-dans modal info personnelle afficher liste des events et ajout ysir ghadi 
-notification : en cas dacceptation des demandes pour org , recevoir des demande pour prestataire , prestataire recoit commentaire sur post , 
-
  
