@@ -69,9 +69,9 @@ const injectStyles = () => {
     .chart-tooltip{animation:tooltipFade .15s ease}
     input:focus{outline:none}
     select:focus{outline:none}
-    .patente-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9500;display:flex;align-items:center;justify-content:center;padding:20px}
+    .patente-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9500;display:flex;align-items:center;justify-content:center;padding:20px}
     .patente-modal{background:#1a1a2e;border-radius:16px;padding:20px;max-width:90vw;max-height:90vh;display:flex;flex-direction:column;gap:12px;animation:modalIn .25s ease}
-    .patente-img{max-width:100%;max-height:70vh;border-radius:8px;object-fit:contain}
+    .patente-img{max-width:100%;max-height:70vh;border-radius:8px;object-fit:contain;background:#0f0f1a}
     .patente-toolbar{display:flex;align-items:center;gap:8px;justify-content:flex-end}
     .patente-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px;transition:background .2s}
     .patente-btn:hover{background:rgba(255,255,255,.2)}
@@ -110,14 +110,6 @@ const AnimatedLineChart = ({ usersData, resourcesData, labels }) => {
   const toArea = data => {
     const line = data.map((v, i) => `${i === 0 ? "M" : "L"}${px(i)},${py(v)}`).join(" ");
     return `${line} L${px(data.length - 1)},${PAD.top + chartH} L${PAD.left},${PAD.top + chartH} Z`;
-  };
-
-  const pathLen = usePath => {
-    try {
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      svg.setAttribute("d", usePath);
-      return svg.getTotalLength?.() ?? 600;
-    } catch { return 600; }
   };
 
   const uPath = toPath(usersData);
@@ -275,18 +267,26 @@ const AnimatedBarChart = ({ usersData, resourcesData, labels }) => {
 // ─── PATENTE VIEWER MODAL ─────────────────────────────────────────────────────
 const PatenteModal = ({ url, onClose }) => {
   const [zoom, setZoom] = useState(1);
+  const [imageError, setImageError] = useState(false);
+  
   if (!url) return null;
 
   const isPdf = url?.toLowerCase().endsWith(".pdf");
-  const fullUrl = url.startsWith("http") ? url : `http://localhost:5000${url}`;
+  // Construct full URL - handle both relative and absolute paths
+  let fullUrl = url;
+  if (!url.startsWith("http") && !url.startsWith("blob:")) {
+    fullUrl = url.startsWith("/") ? `http://localhost:5000${url}` : `http://localhost:5000/${url}`;
+  }
+
+  console.log("Patente URL:", fullUrl); // Debug log
 
   return (
     <div className="patente-modal-overlay" onClick={onClose}>
-      <div className="patente-modal" onClick={e => e.stopPropagation()} style={{ minWidth: 340 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="patente-modal" onClick={e => e.stopPropagation()} style={{ minWidth: 340, maxWidth: "85vw" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
           <div style={{ color: "#fff", fontSize: 15, fontWeight: 700 }}>📄 Document de patente</div>
           <div className="patente-toolbar">
-            {!isPdf && (
+            {!isPdf && !imageError && (
               <>
                 <button className="patente-btn" onClick={() => setZoom(z => Math.max(0.5, z - 0.25))}>
                   <ZoomOut size={14} /> Réduire
@@ -305,20 +305,34 @@ const PatenteModal = ({ url, onClose }) => {
           </div>
         </div>
 
-        <div style={{ overflowAuto: "auto", display: "flex", justifyContent: "center", maxHeight: "75vh", overflow: "auto" }}>
+        <div style={{ overflow: "auto", display: "flex", justifyContent: "center", alignItems: "center", maxHeight: "75vh", minHeight: "300px", background: "#0f0f1a", borderRadius: 8 }}>
           {isPdf ? (
-            <iframe src={fullUrl} title="Patente" style={{ width: "75vw", height: "70vh", border: "none", borderRadius: 8 }} />
+            <iframe src={fullUrl} title="Patente" style={{ width: "70vw", height: "65vh", border: "none", borderRadius: 8, background: "#fff" }} />
+          ) : imageError ? (
+            <div style={{ textAlign: "center", color: "#fff", padding: "40px" }}>
+              <AlertCircle size={48} style={{ marginBottom: 16, opacity: 0.5 }} />
+              <p>Impossible de charger l'image</p>
+              <p style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>{fullUrl}</p>
+              <a href={fullUrl} target="_blank" rel="noreferrer" style={{ color: PURPLE, marginTop: 16, display: "inline-block" }}>
+                Ouvrir dans un nouvel onglet
+              </a>
+            </div>
           ) : (
             <img
               src={fullUrl}
               alt="Patente"
               className="patente-img"
-              style={{ transform: `scale(${zoom})`, transformOrigin: "top center", transition: "transform .3s" }}
-              onError={e => { e.target.style.display = "none"; }}
+              style={{ transform: `scale(${zoom})`, transformOrigin: "center center", transition: "transform .3s", maxWidth: "100%", maxHeight: "70vh" }}
+              onError={(e) => { 
+                console.error("Image failed to load:", fullUrl);
+                setImageError(true);
+                e.target.style.display = "none";
+              }}
+              onLoad={() => setImageError(false)}
             />
           )}
         </div>
-        <div style={{ color: "#6b7280", fontSize: 11, textAlign: "center" }}>
+        <div style={{ color: "#6b7280", fontSize: 11, textAlign: "center", wordBreak: "break-all" }}>
           {fullUrl}
         </div>
       </div>
@@ -777,8 +791,7 @@ const ComptesPage = () => {
   const [tab, setTab] = useState("tous");
   const [search, setSearch] = useState("");
   const [actionLoading, setAL] = useState(null);
-  const [detail, setDetail] = useState(null);
-  const [patenteUrl, setPatenteUrl] = useState(null); // ← patente viewer
+  const [patenteUrl, setPatenteUrl] = useState(null);
   const toast = useToast();
   const { modal, confirm, yes, no } = useConfirm();
 
@@ -835,37 +848,13 @@ const ComptesPage = () => {
 
   return (
     <div>
-<<<<<<< HEAD
       <ConfirmModal modal={modal} yes={yes} no={no} />
       <Toasts toasts={toast.toasts} remove={toast.remove} />
       {patenteUrl && <PatenteModal url={patenteUrl} onClose={() => setPatenteUrl(null)} />}
-      {detail && (
-        <DetailModal data={detail} title={`${detail.firstname} ${detail.lastname}`} onClose={() => setDetail(null)} fields={[
-          { label: "Email",      value: detail.email },
-          { label: "Rôle",       value: detail.role, badge: true },
-          { label: "Statut",     value: detail.status || "—", badge: true },
-          { label: "Téléphone",  value: detail.numTel },
-          { label: "Num patente",value: detail.numPatente },
-          { label: "Région",     value: detail.locationName || detail.region },
-          { label: "Inscrit le", value: detail.createdAt ? new Date(detail.createdAt).toLocaleDateString("fr-FR") : "—" },
-        ]} />
-      )}
-=======
-      <ConfirmModal modal={modal} yes={yes} no={no}/>
-      <Toasts toasts={toast.toasts} remove={toast.remove}/>
-      {detail&&<DetailModal data={detail} title={`${detail.firstname} ${detail.lastname}`} onClose={()=>setDetail(null)} fields={[
-        {label:"Email",     value:detail.email},
-        {label:"Rôle",      value:detail.role,  badge:true},
-        {label:"Statut",    value:detail.status||"—",badge:true},
-        {label:"Téléphone", value:detail.numTel},
-        {label:"Région",    value:detail.locationName},
-        {label:"Inscrit le",value:detail.createdAt?new Date(detail.createdAt).toLocaleDateString("fr-FR"):"—"},
-      ]}/>}
->>>>>>> 9585f1d11534fecafd39d920bc5d06ade40dc42b
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: C.t1, fontFamily: "'Google Sans',sans-serif", margin: 0 }}>Gestion des utilisateurs</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: C.t1, fontFamily: "'Google Sans',sans-serif", margin: 0 }}></h2>
           <p style={{ fontSize: 13, color: C.t2, margin: "4px 0 0" }}>{_users.length} utilisateurs au total</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.card, border: `1px solid ${C.border}`, borderRadius: 24, padding: "8px 16px", width: 240 }}>
@@ -923,9 +912,8 @@ const ComptesPage = () => {
                             {isPrest
                               ? <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                   <Badge statut={u.status || "en_attente"} />
-                                  {/* Patente indicator */}
                                   {hasPatente
-                                    ? <span style={{ fontSize: 10, color: C.green, fontWeight: 600 }}>✓ Patente fournie</span>
+                                    ? <span style={{ fontSize: 10, color: C.green, fontWeight: 600, cursor: "pointer", textDecoration: "underline" }} onClick={() => setPatenteUrl(u.patente)}>✓ Patente fournie</span>
                                     : <span style={{ fontSize: 10, color: C.orange, fontWeight: 600 }}>⚠ Pas de patente</span>
                                   }
                                 </div>
@@ -934,19 +922,7 @@ const ComptesPage = () => {
                           </TD>
                           <TD>
                             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                              <button onClick={() => setDetail(u)} title="Voir détails" style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: C.accentBg, color: C.accent, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Eye size={15} /></button>
-
-                              {/* ─── PATENTE BUTTON ─── */}
-                              {isPrest && (
-                                <button
-                                  onClick={() => hasPatente ? setPatenteUrl(u.patente) : toast.info("Aucune patente téléchargée")}
-                                  title={hasPatente ? "Voir patente" : "Pas de patente"}
-                                  style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: hasPatente ? C.purpleBg : C.borderLight, color: hasPatente ? C.purple : C.t3, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-                                  <FileText size={15} />
-                                  {!hasPatente && <span style={{ position: "absolute", top: -3, right: -3, width: 10, height: 10, borderRadius: "50%", background: C.orange, border: "1px solid #fff" }} />}
-                                </button>
-                              )}
-
+                              {/* Patente button removed - now integrated in status column */}
                               {isPrest && u.status === "en_attente" && (
                                 <>
                                   <button onClick={() => handleValidate(u._id, name)} disabled={actionLoading === u._id + "_v"} title="Valider" style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: C.greenBg, color: C.green, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><CheckCircle size={16} /></button>
@@ -980,7 +956,6 @@ const RessourcesPage = () => {
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState(null);
   const [comments, setComments] = useState({});
-  const [detail, setDetail] = useState(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -1015,22 +990,10 @@ const RessourcesPage = () => {
   return (
     <div>
       <Toasts toasts={toast.toasts} remove={toast.remove} />
-      {detail && (
-        <DetailModal data={detail} title={detail.name} onClose={() => setDetail(null)} fields={[
-          { label: "Type",        value: detail.type,     badge: true },
-          { label: "Catégorie",   value: detail.category, badge: true },
-          { label: "Prix",        value: `${Number(detail.price).toFixed(2)} €` },
-          { label: "Stock",       value: detail.stock?.toString() },
-          { label: "Description", value: detail.description },
-          { label: "Prestataire", value: `${detail.prestataire?.firstname || ""} ${detail.prestataire?.lastname || ""}` },
-          { label: "Email",       value: detail.prestataire?.email },
-          { label: "Note moy.",   value: detail.averageRating ? `${detail.averageRating.toFixed(1)} ★` : "—" },
-        ]} />
-      )}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: C.t1, fontFamily: "'Google Sans',sans-serif", margin: 0 }}>Gestion des ressources</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: C.t1, fontFamily: "'Google Sans',sans-serif", margin: 0 }}></h2>
           <p style={{ fontSize: 13, color: C.t2, margin: "4px 0 0" }}>{resources.length} ressources au total</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.card, border: `1px solid ${C.border}`, borderRadius: 24, padding: "8px 16px", width: 220 }}>
@@ -1056,8 +1019,7 @@ const RessourcesPage = () => {
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
                   <thead>
                     <tr style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
-                      {/* Removed: Prestataire, Note columns */}
-                      <TH>Ressource</TH><TH>Catégorie</TH><TH>Type</TH><TH>Prix</TH><TH>Commentaires</TH><TH>Détails</TH>
+                      <TH>Ressource</TH><TH>Catégorie</TH><TH>Type</TH><TH>Prix</TH><TH>Commentaires</TH>
                     </tr>
                   </thead>
                   <tbody>
@@ -1076,14 +1038,10 @@ const RessourcesPage = () => {
                               <Eye size={14} />Voir<ChevronDown size={13} style={{ transform: expanded === r._id ? "rotate(180deg)" : "none", transition: "transform .25s" }} />
                             </button>
                           </TD>
-                          <TD>
-                            {/* Only info button — no delete */}
-                            <button onClick={() => setDetail(r)} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: C.accentBg, color: C.accent, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Info size={15} /></button>
-                          </TD>
                         </tr>
                         {expanded === r._id && (
                           <tr key={r._id + "_exp"}>
-                            <td colSpan={6} style={{ padding: "0 20px 16px", background: "#f8f9ff" }}>
+                            <td colSpan={5} style={{ padding: "0 20px 16px", background: "#f8f9ff" }}>
                               <div style={{ borderRadius: 10, border: `1px solid ${C.accentBg}`, overflow: "hidden", marginTop: 4 }}>
                                 <div style={{ padding: "10px 16px", background: C.accentBg, fontSize: 13, fontWeight: 600, color: C.accentText }}>Commentaires pour « {r.name} »</div>
                                 {!comments[r._id] || comments[r._id].length === 0
@@ -1133,9 +1091,8 @@ const EvenementsPage = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoad] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("tous");
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [categoryFilter, setCategoryFilter] = useState("tous");
-  const [detail, setDetail] = useState(null);
   const toast = useToast();
   const { modal, confirm, yes, no } = useConfirm();
 
@@ -1145,43 +1102,36 @@ const EvenementsPage = () => {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const handleDelete = async (id, title) => {
-    if (!await confirm({ type: "danger", title: "Supprimer cet événement ?", message: `"${title}" sera définitivement supprimé.`, confirmLabel: "Supprimer" })) return;
-    try { await axios.delete(`${API}/admin/events/${id}`, { headers: authHeaders() }); setEvents(p => p.filter(e => e._id !== id)); toast.success(`"${title}" supprimé`); }
-    catch { toast.error("Erreur"); }
-  };
-
-  const statuses = ["tous", "en attente", "en cours", "terminé"];
   const categories = ["tous", "Mariage", "Conference", "Anniversaire", "Seminaire", "autre"];
-  const counts = { "en attente": 0, "en cours": 0, terminé: 0 };
-  events.forEach(e => { if (counts[e.status] !== undefined) counts[e.status]++; });
 
   const filtered = events.filter(e => {
     const ms = search === "" || `${e.title} ${e.lieu} ${e.category}`.toLowerCase().includes(search.toLowerCase());
-    const mst = statusFilter === "tous" || e.status === statusFilter;
     const mc = categoryFilter === "tous" || e.category === categoryFilter;
-    return ms && mst && mc;
+    
+    // Date filter
+    let md = true;
+    if (dateRange.start && e.dateDebut) {
+      const eventDate = new Date(e.dateDebut);
+      const startDate = new Date(dateRange.start);
+      if (eventDate < startDate) md = false;
+    }
+    if (dateRange.end && e.dateFin) {
+      const eventDate = new Date(e.dateFin);
+      const endDate = new Date(dateRange.end);
+      if (eventDate > endDate) md = false;
+    }
+    
+    return ms && mc && md;
   });
 
   return (
     <div>
       <ConfirmModal modal={modal} yes={yes} no={no} />
       <Toasts toasts={toast.toasts} remove={toast.remove} />
-      {detail && <DetailModal data={detail} title={detail.title} onClose={() => setDetail(null)} fields={[
-        { label: "Catégorie",    value: detail.category, badge: true },
-        { label: "Type",         value: detail.type,     badge: true },
-        { label: "Statut",       value: detail.status,   badge: true },
-        { label: "Lieu",         value: detail.lieu },
-        { label: "Date début",   value: detail.dateDebut ? new Date(detail.dateDebut).toLocaleDateString("fr-FR") : "—" },
-        { label: "Date fin",     value: detail.dateFin ? new Date(detail.dateFin).toLocaleDateString("fr-FR") : "—" },
-        { label: "Participants", value: detail.nombreParticipants?.toString() },
-        { label: "Description",  value: detail.description },
-        { label: "Ressources",   value: detail.ressources_utiliser?.length ? `${detail.ressources_utiliser.length} ressource(s)` : "Aucune" },
-      ]} />}
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: C.t1, fontFamily: "'Google Sans',sans-serif", margin: 0 }}>Gestion des événements</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: C.t1, fontFamily: "'Google Sans',sans-serif", margin: 0 }}></h2>
           <p style={{ fontSize: 13, color: C.t2, margin: "4px 0 0" }}>{events.length} événements au total</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.card, border: `1px solid ${C.border}`, borderRadius: 24, padding: "8px 16px", width: 240 }}>
@@ -1190,31 +1140,32 @@ const EvenementsPage = () => {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
-        {[
-          { label: "En attente", count: counts["en attente"], bg: "#fef3c7", color: "#92400e", icon: <Clock size={18} color="#92400e" /> },
-          { label: "En cours",   count: counts["en cours"],   bg: C.accentBg, color: C.accent, icon: <TrendingUp size={18} color={C.accent} /> },
-          { label: "Terminés",   count: counts["terminé"],    bg: C.greenBg,  color: C.green,  icon: <CheckCircle size={18} color={C.green} /> },
-        ].map(({ label, count, bg, color, icon }) => (
-          <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: bg, display: "flex", alignItems: "center", justifyContent: "center" }}>{icon}</div>
-            <div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: C.t1, lineHeight: 1 }}>{count}</div>
-              <div style={{ fontSize: 12, color: C.t2, marginTop: 3 }}>{label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 12, color: C.t3, alignSelf: "center", marginRight: 4 }}>Statut:</span>
-          {statuses.map(s => (
-            <button key={s} onClick={() => setStatusFilter(s)} style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", background: statusFilter === s ? C.accentBg : C.card, color: statusFilter === s ? C.accent : C.t2, border: statusFilter === s ? `1.5px solid ${C.accent}` : `1px solid ${C.border}` }}>
-              {s === "tous" ? "Tous" : s.charAt(0).toUpperCase() + s.slice(1)}
+      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontSize: 12, color: C.t3, marginRight: 4 }}>Date début:</span>
+          <input 
+            type="date" 
+            value={dateRange.start} 
+            onChange={e => setDateRange({ ...dateRange, start: e.target.value })}
+            style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12 }}
+          />
+          <span style={{ fontSize: 12, color: C.t3, marginLeft: 8, marginRight: 4 }}>Date fin:</span>
+          <input 
+            type="date" 
+            value={dateRange.end} 
+            onChange={e => setDateRange({ ...dateRange, end: e.target.value })}
+            style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12 }}
+          />
+          {(dateRange.start || dateRange.end) && (
+            <button 
+              onClick={() => setDateRange({ start: "", end: "" })}
+              style={{ padding: "6px 12px", borderRadius: 20, fontSize: 11, background: C.bg, border: `1px solid ${C.border}`, cursor: "pointer" }}
+            >
+              Réinitialiser
             </button>
-          ))}
+          )}
         </div>
+        
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <span style={{ fontSize: 12, color: C.t3, alignSelf: "center", marginRight: 4 }}>Catégorie:</span>
           {categories.map(c => (
@@ -1234,7 +1185,7 @@ const EvenementsPage = () => {
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 650 }}>
                   <thead>
                     <tr style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
-                      <TH>Événement</TH><TH>Catégorie</TH><TH>Type</TH><TH>Dates</TH><TH>Lieu</TH><TH>Actions</TH>
+                      <TH>Événement</TH><TH>Catégorie</TH><TH>Type</TH><TH>Dates</TH><TH>Lieu</TH>
                     </tr>
                   </thead>
                   <tbody>
@@ -1242,7 +1193,6 @@ const EvenementsPage = () => {
                       <tr key={ev._id} className="adash-table-row">
                         <TD>
                           <div style={{ fontWeight: 600, color: C.t1, fontSize: 14 }}>{ev.title}</div>
-                          <div style={{ marginTop: 4 }}><Badge statut={ev.status} /></div>
                         </TD>
                         <TD><Badge statut={ev.category} /></TD>
                         <TD><Badge statut={ev.type} /></TD>
@@ -1253,12 +1203,6 @@ const EvenementsPage = () => {
                         <TD>
                           <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: C.t2 }}>
                             <MapPin size={13} color={C.t3} />{ev.lieu || "—"}
-                          </div>
-                        </TD>
-                        <TD>
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <button onClick={() => setDetail(ev)} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: C.accentBg, color: C.accent, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Eye size={15} /></button>
-                            <button onClick={() => handleDelete(ev._id, ev.title)} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: C.redBg, color: C.red, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={16} /></button>
                           </div>
                         </TD>
                       </tr>
