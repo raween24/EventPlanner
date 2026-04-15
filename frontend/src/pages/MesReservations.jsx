@@ -6,9 +6,11 @@ import { fr } from "date-fns/locale";
 import NavbarProfileOrg from "../components/navbarProfileOrg";
 import AuthModal from "../components/AuthModal";
 import SelectEventModal from "../components/SelectEventModal";
+import QuickEventModal from "../components/QuickEventModal";
+
 
 /* ═══════════════════════════════════════════
-   SVG ICONS
+   SVG ICONS (rajout de l'icône manquante)
 ═══════════════════════════════════════════ */
 const Ic = {
   bag:     (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>,
@@ -215,8 +217,9 @@ export default function MesReservations() {
   const [userEvents,   setUserEvents]   = useState([]);
 
   /* Modals */
-  const [authModal,   setAuthModal]   = useState({ open: false, item: null });
-  const [selectModal, setSelectModal] = useState({ open: false, item: null });
+  const [authModal,       setAuthModal]       = useState({ open: false, item: null });
+  const [selectModal,     setSelectModal]     = useState({ open: false, item: null });
+  const [quickEventModal, setQuickEventModal] = useState({ open: false, item: null });
 
   const [toast,       setToast]       = useState(null);
   const [stockLimits, setStockLimits] = useState({});
@@ -229,8 +232,6 @@ export default function MesReservations() {
     try { return JSON.parse(localStorage.getItem("user") || "null"); }
     catch { return null; }
   });
-
-  const userId = authUser?._id || authUser?.id;
 
   useEffect(() => {
     loadCart();
@@ -247,13 +248,21 @@ export default function MesReservations() {
     const raw = localStorage.getItem("reservationCart");
     if (!raw) return;
     const items = JSON.parse(raw);
-    setCartItems(items);
+    const validItems = items.filter(item => item.resourceId && item.resourceId !== "undefined");
+    if (validItems.length !== items.length) {
+      console.warn("Des items avec resourceId undefined ont été filtrés");
+      saveCart(validItems);
+    }
+    setCartItems(validItems);
     const stocks = {};
-    await Promise.all(items.map(async (i) => {
+    await Promise.all(validItems.map(async (i) => {
       try {
         const r = await axios.get(`http://localhost:5000/api/ressources/get_by_id/${i.resourceId}`);
         stocks[i.resourceId] = r.data.stock ?? 999;
-      } catch { stocks[i.resourceId] = i.type === "service" ? 1 : 999; }
+      } catch (err) {
+        console.error(`Erreur chargement stock pour ${i.resourceId}:`, err);
+        stocks[i.resourceId] = i.type === "service" ? 1 : 999;
+      }
     }));
     setStockLimits(s => ({ ...s, ...stocks }));
   };
@@ -262,9 +271,14 @@ export default function MesReservations() {
     localStorage.setItem("reservationCart", JSON.stringify(items));
     setCartItems(items);
   };
-  const removeItem = (id) => saveCart(cartItems.filter(i => i.resourceId !== id));
+
+  const removeItem = (id) => {
+    if (!id) return;
+    saveCart(cartItems.filter(i => i.resourceId !== id));
+  };
 
   const updateQty = (resourceId, newQty) => {
+    if (!resourceId) return;
     const max = stockLimits[resourceId] ?? 999;
     if (newQty < 1)   { removeItem(resourceId); return; }
     if (newQty > max) { notify(`Stock maximum : ${max}`, "error"); return; }
@@ -292,6 +306,10 @@ export default function MesReservations() {
 
   /* ── OUVRIR LE MODAL D'ENVOI ── */
   const openSendModal = (item) => {
+    if (!item || !item.resourceId || item.resourceId === "undefined") {
+      notify("Erreur: cet article n'a pas d'identifiant valide", "error");
+      return;
+    }
     const tok = localStorage.getItem("token");
     if (!tok) {
       setAuthModal({ open: true, item });
@@ -336,70 +354,98 @@ export default function MesReservations() {
     finally { setLoading(false); }
   };
 
-  /* ── ENVOI DEMANDE (appelé depuis SelectEventModal) ── */
-  const sendRequest = async (eventId, cinFile) => {
-    const cartItem = selectModal.item;
-    if (!cartItem) return;
+  /* ══════════════════════════════════════════════════════
+     ✅ ENVOI DIRECT — JSON uniquement, pas de FormData
+     Le CIN est déjà lié à l'événement lors de sa création
+  ══════════════════════════════════════════════════════ */
+  const sendRequestWithData = async (eventId) => {
+    const cartItem = selectModal.item || quickEventModal.item;
 
-    const tok         = authToken || localStorage.getItem("token");
-    const currentUser = authUser  || JSON.parse(localStorage.getItem("user") || "null");
-    const itemDate    = cartItem.selectedDate || new Date().toISOString();
+    if (!cartItem) {
+      notify("Erreur: aucun article sélectionné", "error");
+      setSending(null);
+      return;
+    }
+
+    if (!cartItem.resourceId || cartItem.resourceId === "undefined") {
+      notify("Erreur: ID de ressource invalide", "error");
+      setSending(null);
+      return;
+    }
+
+    if (!eventId) {
+      notify("Erreur: aucun événement sélectionné", "error");
+      setSending(null);
+      return;
+    }
+
+    const tok = authToken || localStorage.getItem("token");
+    const itemDate = cartItem.selectedDate || new Date().toISOString();
 
     setSending(cartItem.resourceId);
     setSelectModal(m => ({ ...m, open: false }));
+    setQuickEventModal({ open: false, item: null });
 
     try {
-      let finalEventId = eventId;
-
-      /* Si pas d'event sélectionné → ne devrait pas arriver, mais sécurité */
-      if (!finalEventId) {
-        notify("Veuillez sélectionner un événement.", "error");
-        setSending(null);
-        return;
-      }
-
-      /* Créer une location par créneau */
       const slots = cartItem.selectedTimes?.length > 0
         ? cartItem.selectedTimes
         : [{ start: itemDate, end: itemDate }];
 
       for (const slot of slots) {
-        const fd = new FormData();
-        fd.append("event",     finalEventId);
-        fd.append("resource",  cartItem.resourceId);
-        fd.append("dateDebut", slot.start || itemDate);
-        fd.append("dateFin",   slot.end   || itemDate);
-        if (cinFile) fd.append("cinFile", cinFile);
-
+        // ✅ JSON simple — req.body sera correctement parsé par Express
         await axios.post(
           "http://localhost:5000/api/location/create",
-          fd,
+          {
+            event:     eventId,
+            resource:  cartItem.resourceId,
+            dateDebut: slot.start || itemDate,
+            dateFin:   slot.end   || itemDate,
+          },
           {
             headers: {
               Authorization: `Bearer ${tok}`,
-              "Content-Type": "multipart/form-data",
+              // ✅ Pas de Content-Type manuel — axios met application/json automatiquement
             },
           }
         );
       }
 
       removeItem(cartItem.resourceId);
-      notify(`Demande envoyée pour "${cartItem.resourceName}" !`, "success");
-      fetchReservations(tok);
+      notify(`Demande envoyée pour "${cartItem.resourceName || "la ressource"}" !`, "success");
+      await fetchReservations(tok);
     } catch (e) {
-      console.error(e);
+      console.error("Erreur détaillée:", e.response?.data || e.message);
       notify(e.response?.data?.message || "Erreur lors de l'envoi.", "error");
     } finally {
       setSending(null);
     }
   };
 
-  /* ── Créer un nouvel événement depuis le modal ── */
-  const handleCreateNewEvent = () => {
-    /* Fermer le modal et rediriger vers la page de création d'événement,
-       ou ouvrir un sous-modal selon votre flux. Ici on navigue. */
+  /* ── ENVOI DEMANDE (appelé depuis SelectEventModal) ── */
+  // ✅ cinFile ignoré ici — plus besoin de le transmettre à /location/create
+  const sendRequest = async (eventId) => {
+    await sendRequestWithData(eventId);
+  };
+
+  /* ── QUAND UN NOUVEL ÉVÉNEMENT EST CRÉÉ ── */
+  // ✅ cinFile ignoré ici aussi — il a déjà été uploadé dans addEvent
+  const handleEventCreated = (newEventId) => {
+    if (!newEventId) {
+      notify("Erreur: événement créé sans ID", "error");
+      setQuickEventModal({ open: false, item: null });
+      return;
+    }
+    sendRequestWithData(newEventId);
+  };
+
+  /* ── OUVRIR LE MODAL DE CRÉATION D'ÉVÉNEMENT RAPIDE ── */
+  const openQuickEventModal = () => {
+    if (!selectModal.item) {
+      notify("Erreur: aucun article sélectionné", "error");
+      return;
+    }
+    setQuickEventModal({ open: true, item: selectModal.item });
     setSelectModal(m => ({ ...m, open: false }));
-    navigate("/creer-evenement");
   };
 
   /* ── Stats ── */
@@ -445,7 +491,14 @@ export default function MesReservations() {
         onClose={() => setSelectModal(m => ({ ...m, open: false }))}
         onConfirm={sendRequest}
         events={userEvents}
-        onCreateNew={handleCreateNewEvent}
+        onCreateNew={openQuickEventModal}
+      />
+
+      {/* QUICK EVENT MODAL */}
+      <QuickEventModal
+        isOpen={quickEventModal.open}
+        onClose={() => setQuickEventModal({ open: false, item: null })}
+        onEventCreated={handleEventCreated}
       />
 
       <div className="min-h-screen pt-24 pb-16 px-4" style={{ background: "#F7F8FF" }}>
@@ -512,7 +565,7 @@ export default function MesReservations() {
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
                 {cartItems.map((item) => (
                   <CartRow
-                    key={item.resourceId}
+                    key={item.resourceId || item.id || Math.random().toString()}
                     item={item}
                     stockMax={item.type === "service" ? 1 : (stockLimits[item.resourceId] ?? 999)}
                     onQty={updateQty}

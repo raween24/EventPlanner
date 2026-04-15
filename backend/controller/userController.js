@@ -15,7 +15,7 @@ const registerUser = async (req, res) => {
       numPatente,
       numTel,
       location,
-      locationName // 👈 NOUVEAU
+      locationName 
     } = req.body;
 
     const existingUser = await User.findOne({ email });

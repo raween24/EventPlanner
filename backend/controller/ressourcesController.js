@@ -12,7 +12,6 @@ const addResource = async (req, res) => {
     const pdfPath = termsFile ? termsFile.path : null;
     const mediaPaths = mediaFiles.map(f => f.path);
 
-    // 🔹 AVAILABILITY
     const availabilityData = JSON.parse(req.body.availability || "[]");
 
     const dispoDocs = await Dispo.create(
@@ -23,12 +22,10 @@ const addResource = async (req, res) => {
       }))
     );
 
-    // 🔹 MEDIA
     const mediaDoc = await Media.create({
       img_vd: mediaPaths
     });
 
-    // ================= LOCATION =================
     let resourceLocation = null;
 
     if (req.body.location) {
@@ -42,7 +39,6 @@ const addResource = async (req, res) => {
         parsedLocation.coordinates.length === 2
       ) {
         const [lng, lat] = parsedLocation.coordinates;
-
         resourceLocation = {
           type: "Point",
           coordinates: [lng, lat]
@@ -50,29 +46,22 @@ const addResource = async (req, res) => {
       }
     }
 
-    // ✅ récupère directement depuis frontend
     const locationName = req.body.locationname || "";
 
-    // ================= CREATE =================
     const newResource = new Resource({
       name: req.body.name,
       description: req.body.description,
       type: req.body.type,
       price: Number(req.body.price),
-
       location: resourceLocation,
-      locationname: locationName, // ✅ frontend
-
+      locationname: locationName,
       stock: req.body.stock ? Number(req.body.stock) : 1,
       category: req.body.categoryName,
       prestataire: req.user.id,
-
       attributes: JSON.parse(req.body.attributes || "{}"),
       customAttributes: JSON.parse(req.body.customAttributes || "[]"),
-
       availability: dispoDocs.map(d => d._id),
       media: [mediaDoc._id],
-
       terms: {
         text: req.body.terms || null,
         file: pdfPath || null
@@ -216,6 +205,17 @@ const updateResource = async (req, res) => {
     resource.type = req.body.type || resource.type;
     resource.price = req.body.price || resource.price;
 
+    // ✅ MISE À JOUR DES MÉDIAS
+    if (req.files && req.files.length > 0) {
+      const newPaths = req.files.map(f => f.path);
+      if (resource.media && resource.media.length > 0) {
+        await Media.findByIdAndUpdate(resource.media[0], { img_vd: newPaths });
+      } else {
+        const mediaDoc = await Media.create({ img_vd: newPaths });
+        resource.media = [mediaDoc._id];
+      }
+    }
+
     // 🔥 UPDATE LOCATION
     if (req.body.location) {
       const parsedLocation =
@@ -225,7 +225,6 @@ const updateResource = async (req, res) => {
 
       if (parsedLocation?.coordinates?.length === 2) {
         const [lng, lat] = parsedLocation.coordinates;
-
         resource.location = {
           type: "Point",
           coordinates: [lng, lat]
@@ -233,7 +232,6 @@ const updateResource = async (req, res) => {
       }
     }
 
-    // ✅ update name depuis frontend
     if (req.body.locationname) {
       resource.locationname = req.body.locationname;
     }
@@ -244,7 +242,12 @@ const updateResource = async (req, res) => {
 
     await resource.save();
 
-    res.status(200).json(resource);
+    const populated = await Resource.findById(resource._id)
+      .populate("media")
+      .populate("availability")
+      .populate("prestataire");
+
+    res.status(200).json(populated);
 
   } catch (error) {
     console.error("❌ UPDATE ERROR:", error);
