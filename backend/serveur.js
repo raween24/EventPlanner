@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 
 import connectDB from "./config/db.js";
 import recommendationRoutes from "./routes/recommendationRoutes.js";
+import notificationRoutes from './routes/notificationRoutes.js';
 
 import userRoutes from "./routes/userRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
@@ -63,6 +64,7 @@ app.use("/api/comment", commentRoutes);
 app.use("/api/location", LocationRoutes);
 app.use("/api/send-mail", mailRoutes);
 app.use("/api/recommendations", recommendationRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // test API
 app.get("/", (req, res) => {

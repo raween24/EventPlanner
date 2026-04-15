@@ -5,6 +5,7 @@ import Ressource from "../model/ressources.js";
 import axios from "axios";
 import mongoose from "mongoose";
 import Comment from "../model/commantaire.js";
+import { createNotification } from '../controller/notificationController.js';
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
 export const getStats = async (req, res) => {

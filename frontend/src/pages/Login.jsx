@@ -59,14 +59,14 @@ const useToast = () => {
 export default function Login() {
   const [showPendingPopup, setShowPendingPopup] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation(); // ✅ Ajouté pour récupérer l'état de navigation
+  const location = useLocation();
   const googleBtnRef = useRef(null);
   const toast = useToast();
 
   const [form, setForm] = useState({ email: "", password: "" });
 
-  // ✅ Fonction pour rediriger après connexion
-  const redirectAfterLogin = () => {
+  // ✅ Fonction pour rediriger après connexion (basée sur le rôle)
+  const redirectAfterLogin = (user) => {
     // Vérifier s'il y a une URL sauvegardée dans localStorage
     const savedRedirectUrl = localStorage.getItem("redirectAfterLogin");
     
@@ -76,8 +76,12 @@ export default function Login() {
       // Rediriger vers l'URL sauvegardée
       navigate(savedRedirectUrl);
     } else {
-      // Redirection par défaut vers l'accueil
-      navigate("/");
+      // ✅ Redirection basée sur le rôle
+      if (user?.role === "admin") {
+        navigate("/dashboard-admin");
+      } else {
+        navigate("/");
+      }
     }
   };
 
@@ -106,7 +110,7 @@ export default function Login() {
         toast.success(`Bienvenue ${data.user.firstname} ! 👋`);
         
         // ✅ Rediriger après un court délai (pour voir le toast)
-        setTimeout(() => redirectAfterLogin(), 800);
+        setTimeout(() => redirectAfterLogin(data.user), 800);
       } else {
         toast.error(data.message || "Email ou mot de passe incorrect");
       }
@@ -133,7 +137,7 @@ export default function Login() {
       // Vérifier si l'user a déjà un mot de passe
       if (res.data.needsPassword) {
         setTimeout(() => {
-          // ✅ Sauvegarder l'URL de redirection pour après la création du mot de passe
+          // Sauvegarder l'URL de redirection pour après la création du mot de passe
           const savedUrl = localStorage.getItem("redirectAfterLogin");
           if (savedUrl) {
             localStorage.setItem("redirectAfterPassword", savedUrl);
@@ -141,8 +145,8 @@ export default function Login() {
           navigate("/create-password");
         }, 800);
       } else {
-        // ✅ Redirection après connexion Google
-        setTimeout(() => redirectAfterLogin(), 800);
+        // ✅ Redirection basée sur le rôle après connexion Google
+        setTimeout(() => redirectAfterLogin(res.data.user), 800);
       }
 
     } catch (err) {

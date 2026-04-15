@@ -1,7 +1,11 @@
 import Location from "../model/location.js";
 import Event from "../model/event.js";
 import Resource from "../model/ressources.js";
+import User from "../model/user.js";
 import mongoose from "mongoose";
+
+// ✅ Import correct depuis le controller (pas depuis routes)
+import { createNotification } from '../controller/notificationController.js';
 
 // ============================
 // ✅ CRÉER UNE DEMANDE (organisateur)
@@ -27,7 +31,9 @@ export const createLocation = async (req, res) => {
             });
         }
 
-        const resourceExists = await Resource.findById(resource);
+        const resourceExists = await Resource.findById(resource)
+            .populate("prestataire", "firstname lastname email");
+
         if (!resourceExists) {
             return res.status(404).json({
                 message: "Ressource non trouvée"
@@ -61,6 +67,26 @@ export const createLocation = async (req, res) => {
         });
 
         await newLocation.save();
+
+        // ✅ NOTIFICATION POUR LE PRESTATAIRE
+        try {
+            const organisateur = await User.findById(req.user.id);
+
+            if (resourceExists.prestataire) {
+                const prestataireId = resourceExists.prestataire._id;
+                const formattedDate = new Date(dateDebut).toLocaleDateString('fr-FR');
+
+                await createNotification(
+                    prestataireId,
+                    "Nouvelle demande de réservation",
+                    `${organisateur?.firstname || "Un organisateur"} ${organisateur?.lastname || ""} souhaite réserver votre ressource "${resourceExists.name}" pour le ${formattedDate}.`,
+                    "event",
+                    "/mes-demandes"  // ✅ route prestataire correcte dans App.jsx
+                );
+            }
+        } catch (notifError) {
+            console.error("Erreur création notification réservation:", notifError);
+        }
 
         res.status(201).json({
             message: "Demande envoyée avec succès",
@@ -120,7 +146,9 @@ export const updateStatusByProvider = async (req, res) => {
         const { id } = req.params;
         const { status } = req.body;
 
-        const location = await Location.findById(id).populate("resource");
+        const location = await Location.findById(id)
+            .populate("resource")
+            .populate("organisateur", "firstname lastname email");
 
         if (!location) {
             return res.status(404).json({ message: "Demande non trouvée" });
@@ -180,6 +208,25 @@ export const updateStatusByProvider = async (req, res) => {
             );
         }
 
+        // ✅ NOTIFICATION POUR L'ORGANISATEUR
+        try {
+            if (location.organisateur) {
+                const prestataire = await User.findById(req.user.id);
+
+                await createNotification(
+                    location.organisateur._id,
+                    status === "acceptée" ? "Réservation acceptée ✅" : "Réservation refusée ❌",
+                    `Le prestataire ${prestataire?.firstname || ""} ${prestataire?.lastname || ""} a ${
+                        status === "acceptée" ? "accepté" : "refusé"
+                    } votre demande pour la ressource "${location.resource.name}".`,
+                    status === "acceptée" ? "success" : "error",
+                    "/mes-reservations"  // ✅ route organisateur correcte dans App.jsx
+                );
+            }
+        } catch (notifError) {
+            console.error("Erreur création notification statut réservation:", notifError);
+        }
+
         res.status(200).json({
             message: `Demande ${status}`,
             location
@@ -207,6 +254,26 @@ export const deleteLocation = async (req, res) => {
         }
 
         await location.deleteOne();
+
+        // ✅ NOTIFICATION POUR LE PRESTATAIRE (annulation)
+        try {
+            const resource = await Resource.findById(location.resource)
+                .populate("prestataire", "firstname lastname");
+            const organisateur = await User.findById(req.user.id);
+
+            if (resource?.prestataire) {
+                await createNotification(
+                    resource.prestataire._id,
+                    "Demande annulée",
+                    `${organisateur?.firstname || "L'organisateur"} ${organisateur?.lastname || ""} a annulé sa demande pour la ressource "${resource.name}".`,
+                    "warning",
+                    "/mes-demandes"  // ✅ route prestataire correcte dans App.jsx
+                );
+            }
+        } catch (notifError) {
+            console.error("Erreur création notification annulation:", notifError);
+        }
+
         res.status(200).json({ message: "Demande annulée" });
     } catch (error) {
         console.error("ERREUR deleteLocation:", error);

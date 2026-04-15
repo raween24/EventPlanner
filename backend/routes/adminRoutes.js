@@ -7,7 +7,6 @@ import {
   deleteUser,
   updateUserStatus,
   getAllEvents,
-  deleteEvent,
   getAllResources,
   deleteResource,
   getMonthlyStats,
@@ -29,7 +28,6 @@ router.patch("/users/:id/status",updateUserStatus);
 
 // Events
 router.get("/events",getAllEvents);
-router.delete("/events/:id",deleteEvent);
 
 // Resources
 router.get("/resources",getAllResources);
