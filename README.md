@@ -7,12 +7,6 @@ des noms pour le site
 ****GoEvent****
 eventplanner315@gmail.com
 pass: event123456
-les taches : 
-
-Admin :
--Visulaiser les documents(batindaa) 
--les signales
-
 ressources:
 -modifier les champs du creation du ressources
 
