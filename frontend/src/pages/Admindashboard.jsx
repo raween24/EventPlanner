@@ -581,7 +581,7 @@ const ComptesPage = () => {
         {label:"Rôle",      value:detail.role,  badge:true},
         {label:"Statut",    value:detail.status||"—",badge:true},
         {label:"Téléphone", value:detail.numTel},
-        {label:"Région",    value:detail.region},
+        {label:"Région",    value:detail.locationName},
         {label:"Inscrit le",value:detail.createdAt?new Date(detail.createdAt).toLocaleDateString("fr-FR"):"—"},
       ]}/>}
 

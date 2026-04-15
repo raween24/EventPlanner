@@ -15,7 +15,7 @@ const registerUser = async (req, res) => {
       numPatente,
       numTel,
       location,
-      locationName 
+      locationName
     } = req.body;
 
     const existingUser = await User.findOne({ email });
@@ -89,6 +89,16 @@ const registerUser = async (req, res) => {
     });
 
     await user.save();
+    if (role === "prestataire") {
+      try {
+        await axios.post("http://localhost:5678/webhook/signup-provider", {
+          email: user.email,
+          name: user.nomSociete,
+        });
+      } catch (err) {
+        console.log("Erreur envoi email n8n:", err.message);
+      }
+    }
 
     res.status(201).json({
       message: "Utilisateur créé",
@@ -226,22 +236,23 @@ const updateUser = async (req, res) => {
         }
       }
     }
-  
+
 
     // 🖼️ image
     if (req.file) {
-    user.image = `/uploads/${req.file.filename}`;
-  } else if (image) {
-    user.image = image;
+      user.image = `/uploads/${req.file.filename}`;
+    } else if (image) {
+      user.image = image;
+    }
+
+    await user.save();
+
+
+    res.status(200).json(user);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-
-  await user.save();
-
-  res.status(200).json(user);
-
-} catch (error) {
-  res.status(500).json({ message: error.message });
-}
 };
 /* ================= ADORE (FAVORIS) ================= */
 const addToAdore = async (req, res) => {
