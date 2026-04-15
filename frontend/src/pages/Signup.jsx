@@ -318,7 +318,7 @@ export default function Signup() {
 
           // Affiche la popup — la navigation se fait depuis le bouton "J'ai compris"
           setShowPendingPopup(true);
-          setTimeout(() => navigate("/login"), 1000);
+
         } else {
           // Organisateur → login directement
           toast.success("Compte créé avec succès ! 🎉");
@@ -631,21 +631,22 @@ export default function Signup() {
                 </div>
 
                 <button
-                  onClick={() => setShowPendingPopup(false)}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold py-3.5 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group"
+                  onClick={() => {setShowPendingPopup(false);navigate("/login");}}
+                className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold py-3.5 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group"
                 >
-                  <span className="relative z-10">J'ai compris</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-700 to-indigo-800 transform translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
-                </button>
+                <span className="relative z-10">J'ai compris</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-700 to-indigo-800 transform translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
+              </button>
 
-                <p className="text-xs text-center text-gray-400 mt-4 animate-fadeIn delay-500">
-                  Vous recevrez une confirmation une fois votre demande approuvée
-                </p>
-              </div>
+              <p className="text-xs text-center text-gray-400 mt-4 animate-fadeIn delay-500">
+                Vous recevrez une confirmation une fois votre demande approuvée
+              </p>
             </div>
           </div>
-        )}
-      </AnimatePresence>
-    </div>
+          </div>
+  )
+}
+      </AnimatePresence >
+    </div >
   );
 }

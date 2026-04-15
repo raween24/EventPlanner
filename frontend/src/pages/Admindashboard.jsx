@@ -835,6 +835,7 @@ const ComptesPage = () => {
 
   return (
     <div>
+<<<<<<< HEAD
       <ConfirmModal modal={modal} yes={yes} no={no} />
       <Toasts toasts={toast.toasts} remove={toast.remove} />
       {patenteUrl && <PatenteModal url={patenteUrl} onClose={() => setPatenteUrl(null)} />}
@@ -849,6 +850,18 @@ const ComptesPage = () => {
           { label: "Inscrit le", value: detail.createdAt ? new Date(detail.createdAt).toLocaleDateString("fr-FR") : "—" },
         ]} />
       )}
+=======
+      <ConfirmModal modal={modal} yes={yes} no={no}/>
+      <Toasts toasts={toast.toasts} remove={toast.remove}/>
+      {detail&&<DetailModal data={detail} title={`${detail.firstname} ${detail.lastname}`} onClose={()=>setDetail(null)} fields={[
+        {label:"Email",     value:detail.email},
+        {label:"Rôle",      value:detail.role,  badge:true},
+        {label:"Statut",    value:detail.status||"—",badge:true},
+        {label:"Téléphone", value:detail.numTel},
+        {label:"Région",    value:detail.locationName},
+        {label:"Inscrit le",value:detail.createdAt?new Date(detail.createdAt).toLocaleDateString("fr-FR"):"—"},
+      ]}/>}
+>>>>>>> 9585f1d11534fecafd39d920bc5d06ade40dc42b
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
