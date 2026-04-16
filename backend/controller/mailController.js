@@ -10,7 +10,7 @@ export const sendMail = async (req, res) => {
             service: "gmail",
             auth: {
                 user: "eventplanner315@gmail.com",
-                pass: "event123456" 
+                pass: "glsc ataw icdj ldws",
             }
         });
 
