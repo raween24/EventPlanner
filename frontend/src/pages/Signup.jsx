@@ -141,7 +141,7 @@ export default function Signup() {
 
   const [form, setForm] = useState({
     firstname: "", lastname: "",
-    cin: "",
+    
     nomSociete: "",
     email: "", password: "",
     numPatente: "", numTel: "",
@@ -276,7 +276,6 @@ export default function Signup() {
     } else {
       formData.append("firstname", form.firstname);
       formData.append("lastname", form.lastname);
-      formData.append("passportOrCid", form.cin);
     }
 
     if (form.locationLat && form.locationLng) {
@@ -385,16 +384,6 @@ export default function Signup() {
             {/* Nom / prénom ou société */}
             {!isPrestataire ? (
               <>
-                <div className="field-wrap span-2">
-                  <label>cin or passport</label>
-                  <input
-                    name="cin"   // ✅ IMPORTANT
-                    placeholder="Votre CIN ou passport"
-                    value={form.cin}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
                 <div className="field-wrap">
                   <label>Prénom</label>
                   <input name="firstname" placeholder="Votre prénom" value={form.firstname} onChange={handleChange} required />

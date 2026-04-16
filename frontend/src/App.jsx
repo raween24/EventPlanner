@@ -14,6 +14,7 @@ import ProfilPres from "./pages/ProfilPrestataire";
 import CreatePassword from "./pages/CreatePassword";
 import MesDemandes from "./pages/demmandes";
 import MesReservations from "./pages/MesReservations";  // ← NOUVEAU
+import PaymentForm from "./components/PaymentForm";
 
 export default function App() {
   return (
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/les_ressources" element={<OrganizerPage />} />
         <Route path="/RessourceDetail/:id" element={<RessourceDetail />} />
         <Route path="/create-password" element={<CreatePassword />} />
+        <Route path="/payer" element={<PaymentForm />} />
       </Routes>
     </BrowserRouter>
   );

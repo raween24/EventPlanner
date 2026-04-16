@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema({
-  passportOrCid: { type: String, default: "", unique: true },
   lastname: { type: String, default: "" },
   firstname: { type: String, default: "" },
   nomSociete: { type: String, default: "" }, // ← NOUVEAU : pour les prestataires

@@ -95,41 +95,33 @@ function CINVerifier({ onVerified, cinNumber, onCinNumberChange }) {
       const { data } = await axios.get("http://localhost:5000/api/cin");
       const cinInfo = Array.isArray(data) ? data[0] : data;
       setCinData(cinInfo);
+      const cinNumberExtracted = (cinInfo?.cin || "")
+        .replace(/^=/, "")
+        .replace(/\s/g, "")
+        .trim();
+      const cinNumberEntered = cinNumber.replace(/\s/g, "").trim();
 
-      const errors = [];
-
-      const cinSurname = normalize(cinInfo?.surname?.latin_transliteration || "");
-      const userLastname = normalize(user.lastname || user.name || "");
-      if (cinSurname && userLastname && cinSurname !== userLastname) {
-        errors.push({ field: "Nom", cin: cinInfo.surname.latin_transliteration, user: user.lastname || user.name });
+      if (!cinNumberExtracted) {
+        setCinError("Impossible de lire le numéro CIN depuis le document scanné.");
+        setStatus(CIN_STATUS.ERROR);
+        onVerified(false);
+        return;
       }
-
-      const cinGiven = normalize(cinInfo?.given_name?.latin_transliteration || "");
-      const userFirstname = normalize(user.firstname || user.prenom || "");
-      if (cinGiven && userFirstname && cinGiven !== userFirstname) {
-        errors.push({ field: "Prénom", cin: cinInfo.given_name.latin_transliteration, user: user.firstname || user.prenom });
-      }
-
-      const cinNumberExtracted = (cinInfo?.id_number || "").replace(/\s/g, "");
-      const userCIN = (user.cin || user.numCIN || user.id_number || "").replace(/\s/g, "");
-      if (cinNumberExtracted && userCIN && cinNumberExtracted !== userCIN) {
-        errors.push({ field: "Numéro CIN", cin: cinInfo.id_number, user: user.cin || user.numCIN || user.id_number });
-      }
-
-      const cinPlace = normalize(cinInfo?.place_of_birth?.latin_transliteration || "");
-      const userRegion = normalize(user.region || user.city || user.ville || "");
-      if (cinPlace && userRegion && cinPlace !== userRegion) {
-        errors.push({ field: "Région / Ville", cin: cinInfo.place_of_birth.latin_transliteration, user: user.region || user.city || user.ville });
-      }
-
-      if (errors.length === 0) {
+      if (cinNumberEntered !== cinNumberExtracted) {
+        setStatus(CIN_STATUS.ERROR);
+        setMismatch([
+          {
+            field: "Numéro CIN",
+            cin: cinNumberExtracted,
+            user: cinNumberEntered || "—",
+          },
+        ]);
+        onVerified(false);
+      } else {
         setStatus(CIN_STATUS.SUCCESS);
         onVerified(true);
-      } else {
-        setStatus(CIN_STATUS.ERROR);
-        setMismatch(errors);
-        onVerified(false);
       }
+
     } catch (err) {
       console.error("Erreur vérification CIN:", err);
       setCinError(err.response?.data?.message || "Erreur lors de la vérification. Réessayez.");
@@ -175,7 +167,7 @@ function CINVerifier({ onVerified, cinNumber, onCinNumberChange }) {
         <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all
           ${status === CIN_STATUS.SUCCESS ? "bg-emerald-50 border-emerald-200"
             : status === CIN_STATUS.ERROR ? "bg-rose-50 border-rose-200"
-            : "bg-gray-50 border-gray-200"}`}
+              : "bg-gray-50 border-gray-200"}`}
         >
           {status === CIN_STATUS.SUCCESS
             ? <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
@@ -185,7 +177,7 @@ function CINVerifier({ onVerified, cinNumber, onCinNumberChange }) {
           <span className={`text-sm flex-1 truncate font-medium
             ${status === CIN_STATUS.SUCCESS ? "text-emerald-700"
               : status === CIN_STATUS.ERROR ? "text-rose-700"
-              : "text-gray-700"}`}>
+                : "text-gray-700"}`}>
             {cinFile.name}
           </span>
           {!isLoading && (
@@ -349,11 +341,10 @@ const SelectEventModal = ({
                   <button
                     key={event._id}
                     onClick={() => setSelectedEventId(event._id)}
-                    className={`w-full text-left p-3 rounded-xl border transition-all ${
-                      selectedEventId === event._id
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-blue-300"
-                    }`}
+                    className={`w-full text-left p-3 rounded-xl border transition-all ${selectedEventId === event._id
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-blue-300"
+                      }`}
                   >
                     <p className="font-medium text-gray-900">{event.title}</p>
                     <p className="text-xs text-gray-500 mt-1">

@@ -7,7 +7,6 @@ import axios from "axios";
 const registerUser = async (req, res) => {
   try {
     const {
-      passportOrCid,
       lastname,
       firstname,
       email,
@@ -75,7 +74,6 @@ const registerUser = async (req, res) => {
     }
 
     const user = new User({
-      passportOrCid,
       lastname,
       firstname,
       email,
@@ -146,7 +144,6 @@ const loginUser = async (req, res) => {
       token,
       user: {
         id: user._id,
-        cin: user.passportOrCid,
         firstname: user.firstname,
         lastname: user.lastname,
         email: user.email,
