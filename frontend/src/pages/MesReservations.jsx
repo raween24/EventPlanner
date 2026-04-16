@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -7,6 +6,8 @@ import NavbarProfileOrg from "../components/navbarProfileOrg";
 import AuthModal from "../components/AuthModal";
 import SelectEventModal from "../components/SelectEventModal";
 import QuickEventModal from "../components/QuickEventModal";
+import { useNavigate } from "react-router-dom";
+
 
 
 /* ═══════════════════════════════════════════
@@ -153,6 +154,7 @@ function CartRow({ item, stockMax, onQty, onRemove, onSend, isSending }) {
 ═══════════════════════════════════════════ */
 function ReservationCard({ res, onPay }) {
   const accepted = res.status === "acceptée";
+    const navigate = useNavigate();
   const pending  = res.status === "en attente";
   return (
     <div className={cx(
@@ -177,7 +179,7 @@ function ReservationCard({ res, onPay }) {
         </div>
       </div>
       {accepted && (
-        <button onClick={() => onPay(res)}
+        <button onClick={() => navigate("/payer")}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white whitespace-nowrap transition hover:opacity-90"
           style={{ background: "linear-gradient(135deg,#059669,#10B981)" }}>
           <Ic.card width={14} height={14} /> Payer {res.resource?.price}€
