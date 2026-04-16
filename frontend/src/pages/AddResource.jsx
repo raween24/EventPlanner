@@ -1142,16 +1142,10 @@ const AddResourceForm = () => {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-gray-800">Calendrier de disponibilité</h2>
                   <div className="flex items-center space-x-2">
-                    <Tooltip text="Rendre indisponible">
-                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => addAvailabilityRange('unavailable')} disabled={!selectedRange} className="p-2 bg-red-100 text-red-600 rounded-lg disabled:opacity-50">
-                        <FiXCircle className="w-5 h-5" />
-                      </motion.button>
-                    </Tooltip>
-                    <Tooltip text="Rendre disponible">
-                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => addAvailabilityRange('available')} disabled={!selectedRange} className="p-2 bg-green-100 text-green-600 rounded-lg disabled:opacity-50">
-                        <FiCheckCircle className="w-5 h-5" />
-                      </motion.button>
-                    </Tooltip>
+                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => addAvailabilityRange('unavailable')} disabled={!selectedRange} className="p-2 bg-red-100 text-red-600 rounded-lg disabled:opacity-50">
+                      <FiXCircle className="w-5 h-5" />
+                    </motion.button>
+
                     <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setIsCalendarExpanded(!isCalendarExpanded)} className="p-2 bg-gray-100 text-gray-600 rounded-lg">
                       <motion.div animate={{ rotate: isCalendarExpanded ? 180 : 0 }}><FiChevronLeft className="w-5 h-5" /></motion.div>
                     </motion.button>
@@ -1196,20 +1190,19 @@ const AddResourceForm = () => {
 
                 <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center space-x-6">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-green-100 border-l-4 border-green-500 rounded" />
-                      <span className="text-sm text-gray-600">Disponible</span>
-                    </div>
+
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 bg-red-100 border-l-4 border-red-500 rounded" />
                       <span className="text-sm text-gray-600">Indisponible</span>
                     </div>
-                  </div>
-                </div>
 
+                  </div>
+
+                </div>
                 {availabilityEvents.length > 0 && (
                   <div className="mt-4 border-t pt-4">
                     <h3 className="text-sm font-medium text-gray-700 mb-3">Plages de disponibilité</h3>
+
                     <div className="space-y-2 max-h-32 overflow-y-auto">
                       {availabilityEvents.map(event => (
                         <div key={event.id} className={`flex items-center justify-between p-2 rounded-lg ${event.type === 'available' ? 'bg-green-50' : 'bg-red-50'}`}>
@@ -1225,6 +1218,7 @@ const AddResourceForm = () => {
                     </div>
                   </div>
                 )}
+
               </motion.div>
             </motion.div>
 

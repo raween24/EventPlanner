@@ -16,34 +16,30 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
     // 2. resource.media = ["url1", "url2"]  (tableau de strings directement)
     // 3. resource.images = ["url1"]         (clé alternative)
     const extractImages = () => {
-        const media = resource.media;
+    const media = resource.media;
 
-        if (!media || media.length === 0) {
-            // Fallback sur resource.images si media absent
-            return (resource.images || []).map(img =>
-                img?.startsWith("http") ? img : `http://localhost:5000/${img}`
-            );
-        }
-
-        // Cas 1 : media est un tableau d'objets avec img_vd
-        if (typeof media[0] === "object" && media[0] !== null && media[0].img_vd) {
-            return media.flatMap(m =>
-                (m?.img_vd || []).map(img =>
-                    img?.startsWith("http") ? img : `http://localhost:5000/${img}`
-                )
-            );
-        }
-
-        // Cas 2 : media est un tableau de strings
-        if (typeof media[0] === "string") {
-            return media.map(img =>
-                img?.startsWith("http") ? img : `http://localhost:5000/${img}`
-            );
-        }
-
+    if (!media || media.length === 0) {
         return [];
-    };
+    }
 
+    // ✅ Cas 1 : media = [{ img_vd: [...] }]
+    if (typeof media[0] === "object" && media[0]?.img_vd) {
+        return media.flatMap(m =>
+            (m.img_vd || []).map(img =>
+                img.startsWith("http")
+                    ? img
+                    : `http://localhost:5000/${img}`
+            )
+        );
+    }
+
+    // ❌ Cas 2 : media = ["id", "id"] → IGNORER
+    if (typeof media[0] === "string") {
+        return media.filter(img => img.startsWith("http"));
+    }
+
+    return [];
+};
     const images = extractImages();
     const isAvailable = resource.availability?.length > 0;
 

@@ -46,7 +46,7 @@ const Footer = () => {
         {/* Logo / Description */}
         <motion.div variants={fadeUp} custom={1}>
           <h2 className="text-2xl font-bold text-white mb-4">
-            Smart Event Planner
+            YallaEvents
           </h2>
           <p className="text-gray-400 text-sm leading-relaxed">
             Organisez vos événements facilement grâce à une plateforme moderne,
@@ -121,7 +121,7 @@ const Footer = () => {
         transition={{ delay: 0.8 }}
         className="border-t border-gray-700 mt-16 pt-6 text-center text-sm text-gray-500 relative"
       >
-        © {new Date().getFullYear()} Smart Event Planner. Tous droits réservés.
+        © {new Date().getFullYear()} YallaEvents . Tous droits réservés.
       </motion.div>
 
     </footer>

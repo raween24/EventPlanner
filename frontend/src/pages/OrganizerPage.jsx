@@ -54,6 +54,7 @@ const toStr = (id) => {
   if (typeof id === "object" && id.$oid) return id.$oid;
   return String(id);
 };
+console.log("STATE:", location.state);
 
 /* ─────────────────────────────────────────────────
    SPINNER
@@ -539,7 +540,16 @@ export default function OrganizerPage() {
         });
         if (!response.ok) throw new Error();
         const result = await response.json();
-        setRecommendedResources(result.data?.flat || []);
+
+        const data = result?.data;
+
+        if (Array.isArray(data)) {
+          setRecommendedResources(
+            typeof data.flat === "function" ? data.flat() : data
+          );
+        } else {
+          setRecommendedResources([]);
+        }
       } catch {
         setRecommendedResources([]);
       } finally {

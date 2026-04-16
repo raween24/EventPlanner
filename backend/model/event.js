@@ -4,8 +4,8 @@ const EventSchema = new mongoose.Schema(
     {
         title: { type: String, required: true },
         description: { type: String, required: true },
-        category: { type: String, enum: ["Mariage", "Conference", "Anniversaire", "Seminaire", "autre"], required: true },
-        type: { type: String, enum: ["public", "privé"], required: true },
+        category: { type: String, enum: ["Mariage", "Conference", "Anniversaire", "Seminaire", "autre"] },
+        type: { type: String, enum: ["public", "privé"]  },
         dateDebut: { type: Date },
         dateFin: { type: Date },
         nombreParticipants: { type: Number },

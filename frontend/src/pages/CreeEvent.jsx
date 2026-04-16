@@ -15,7 +15,7 @@ const api = axios.create({
   baseURL: "http://localhost:5000/api/",
 });
 
-// Composant de calendrier personnalisé - Version responsive
+// Composant de calendrier personnalisé - Version responsive (inchangé)
 const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
   const [view, setView] = useState('days');
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -117,14 +117,12 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
     return days;
   };
 
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100 w-full"
     >
-      {/* En-tête du calendrier - Version responsive */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4 sm:mb-6">
         <div className="flex items-center justify-between w-full sm:w-auto">
           <motion.button
@@ -135,7 +133,6 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
           >
             <FiChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
           </motion.button>
-
           <motion.h3
             key={currentMonth.getMonth()}
             initial={{ y: -10, opacity: 0 }}
@@ -144,7 +141,6 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
           >
             {months[currentMonth.getMonth()]} {currentMonth.getFullYear()}
           </motion.h3>
-
           <motion.button
             whileHover={{ scale: 1.1, x: 3 }}
             whileTap={{ scale: 0.9 }}
@@ -154,7 +150,6 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
             <FiChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
           </motion.button>
         </div>
-
         <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 w-full sm:w-auto justify-center">
           <button
             onClick={() => setView('days')}
@@ -172,8 +167,6 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
           </button>
         </div>
       </div>
-
-      {/* Jours de la semaine - Responsive */}
       <div className="grid grid-cols-7 gap-1 mb-2 sm:mb-4">
         {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (
           <div key={day} className="h-6 sm:h-8 flex items-center justify-center text-[10px] sm:text-xs font-medium text-gray-500">
@@ -181,13 +174,9 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
           </div>
         ))}
       </div>
-
-      {/* Grille des jours - Responsive */}
       <div className="grid grid-cols-7 gap-1">
         {renderDays()}
       </div>
-
-      {/* Sélection des heures - Responsive */}
       {startDate && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
@@ -212,7 +201,6 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
                 className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               />
             </div>
-
             <div>
               <label className="block text-[10px] sm:text-xs font-medium text-gray-500 mb-1 sm:mb-2 flex items-center gap-1">
                 <FiClockIcon className="w-3 h-3" />
@@ -239,22 +227,18 @@ const CustomDatePicker = ({ startDate, endDate, onChange, minDate }) => {
 };
 
 export default function CreerEvenement() {
-
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formProgress, setFormProgress] = useState(0);
   const [hoveredField, setHoveredField] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [dateRange, setDateRange] = useState({
-    start: null,
-    end: null
-  });
+  const [dateRange, setDateRange] = useState({ start: null, end: null });
   const [showCalendar, setShowCalendar] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    lieu: "", // AJOUT DU CHAMP LIEU
+    lieu: "", // Champ lieu ajouté
     category: "",
     type: "",
     dateDebut: "",
@@ -262,7 +246,6 @@ export default function CreerEvenement() {
     nombreParticipants: "",
   });
 
-  // Calculer la progression du formulaire
   const calculateProgress = () => {
     const requiredFields = ['title', 'description', 'lieu', 'category', 'type', 'dateDebut', 'dateFin', 'nombreParticipants'];
     const filledFields = requiredFields.filter(field => formData[field] && formData[field].toString().trim() !== '').length;
@@ -270,10 +253,7 @@ export default function CreerEvenement() {
   };
 
   const handleChange = (e) => {
-    const newFormData = {
-      ...formData,
-      [e.target.name]: e.target.value,
-    };
+    const newFormData = { ...formData, [e.target.name]: e.target.value };
     setFormData(newFormData);
     setFormProgress(calculateProgress());
   };
@@ -281,7 +261,6 @@ export default function CreerEvenement() {
   const handleDateChange = (dates) => {
     const [start, end] = dates;
     setDateRange({ start, end });
-
     if (start) {
       setFormData({
         ...formData,
@@ -307,8 +286,6 @@ export default function CreerEvenement() {
 
     try {
       const token = localStorage.getItem("token");
-
-
       const dataToSend = {
         ...formData,
         nombreParticipants: Number(formData.nombreParticipants),
@@ -317,27 +294,26 @@ export default function CreerEvenement() {
       const response = await api.post("/event/addEvent", dataToSend, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log(response.data);
+      console.log("data envoie",response.data);
 
       const eventId = response.data._id;
-
 
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
         navigate("/les_ressources", {
-          state: { eventId }
+          state: {
+            eventId,
+            eventData: dataToSend
+          }
         });
       }, 2000);
-
     } catch (error) {
       console.error(error);
-      alert("Erreur lors de la création ❌");
     }
   };
 
   const nextStep = () => {
-    // Validation avant de passer à l'étape suivante
     if (currentStep === 1) {
       if (!formData.title || !formData.description) {
         alert("Veuillez remplir le titre et la description");
@@ -357,7 +333,6 @@ export default function CreerEvenement() {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
-  // Formater la date pour l'affichage - Version responsive
   const formatDateRange = () => {
     if (!dateRange.start) return "Sélectionnez une période";
     if (!dateRange.end) {
@@ -383,8 +358,6 @@ export default function CreerEvenement() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center p-2 sm:p-4 relative overflow-hidden">
-
-      {/* Éléments d'arrière-plan animés */}
       <motion.div
         animate={{
           scale: [1, 1.2, 1],
@@ -404,7 +377,6 @@ export default function CreerEvenement() {
         className="absolute -bottom-20 -left-20 w-64 sm:w-96 h-64 sm:h-96 bg-purple-200 rounded-full blur-3xl"
       />
 
-      {/* Barre de progression */}
       <motion.div
         className="fixed top-0 left-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 z-50"
         initial={{ width: 0 }}
@@ -412,7 +384,6 @@ export default function CreerEvenement() {
         transition={{ duration: 0.5 }}
       />
 
-      {/* Animation de succès - Version centrée et responsive */}
       <AnimatePresence>
         {showSuccess && (
           <motion.div
@@ -437,7 +408,6 @@ export default function CreerEvenement() {
         transition={{ duration: 0.6 }}
         className="w-full max-w-4xl bg-white/90 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-white/20 overflow-hidden relative z-10"
       >
-        {/* En-tête avec étapes - Version responsive */}
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 sm:px-6 md:px-8 py-4 sm:py-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
             <button
@@ -447,18 +417,14 @@ export default function CreerEvenement() {
               <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Retour</span>
             </button>
-
             <div className="flex items-center space-x-2 self-end sm:self-auto">
               <FiStar className="text-yellow-300 w-4 h-4 sm:w-5 sm:h-5" />
               <FiHeart className="text-pink-300 w-4 h-4 sm:w-5 sm:h-5" />
               <FiSun className="text-yellow-300 w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
-
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">Créer un événement</h1>
           <p className="text-indigo-100 text-sm sm:text-base">Organisez votre prochain événement en quelques étapes</p>
-
-          {/* Indicateur d'étapes - Version responsive */}
           <div className="flex items-center justify-between mt-4 sm:mt-6">
             {[1, 2, 3].map((step) => (
               <div key={step} className="flex items-center flex-1">
@@ -486,8 +452,6 @@ export default function CreerEvenement() {
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 md:p-8">
-
-          {/* Étape 1 : Informations de base */}
           {currentStep === 1 && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -496,14 +460,10 @@ export default function CreerEvenement() {
               className="space-y-4 sm:space-y-6"
             >
               <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 sm:mb-6">Informations générales</h2>
-
-              {/* Titre */}
               <motion.div
                 onHoverStart={() => setHoveredField('title')}
                 onHoverEnd={() => setHoveredField(null)}
-                animate={{
-                  scale: hoveredField === 'title' ? 1.01 : 1,
-                }}
+                animate={{ scale: hoveredField === 'title' ? 1.01 : 1 }}
               >
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <FiEdit3 className="text-indigo-500" />
@@ -519,14 +479,10 @@ export default function CreerEvenement() {
                   className="w-full border border-gray-200 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
                 />
               </motion.div>
-
-              {/* Description */}
               <motion.div
                 onHoverStart={() => setHoveredField('description')}
                 onHoverEnd={() => setHoveredField(null)}
-                animate={{
-                  scale: hoveredField === 'description' ? 1.01 : 1
-                }}
+                animate={{ scale: hoveredField === 'description' ? 1.01 : 1 }}
               >
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <FiEdit3 className="text-indigo-500" />
@@ -545,7 +501,6 @@ export default function CreerEvenement() {
             </motion.div>
           )}
 
-          {/* Étape 2 : Lieu, Dates et participants - Version responsive */}
           {currentStep === 2 && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -554,14 +509,10 @@ export default function CreerEvenement() {
               className="space-y-4 sm:space-y-6"
             >
               <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 sm:mb-6">Lieu, dates et participants</h2>
-
-              {/* Lieu de l'événement - NOUVEAU CHAMP */}
               <motion.div
                 onHoverStart={() => setHoveredField('lieu')}
                 onHoverEnd={() => setHoveredField(null)}
-                animate={{
-                  scale: hoveredField === 'lieu' ? 1.01 : 1
-                }}
+                animate={{ scale: hoveredField === 'lieu' ? 1.01 : 1 }}
               >
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <FiMapPin className="text-indigo-500" />
@@ -582,7 +533,6 @@ export default function CreerEvenement() {
                 <p className="text-xs text-gray-500 mt-1">📍 Indiquez l'adresse complète ou le nom du lieu</p>
               </motion.div>
 
-              {/* Sélecteur de période moderne - Version responsive */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -593,7 +543,6 @@ export default function CreerEvenement() {
                     <FiCalendarIcon className="text-indigo-600 w-4 h-4 sm:w-5 sm:h-5" />
                     Période de l'événement *
                   </h3>
-
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -604,12 +553,7 @@ export default function CreerEvenement() {
                     <span className="truncate">{showCalendar ? 'Masquer' : 'Choisir les dates'}</span>
                   </motion.button>
                 </div>
-
-                {/* Aperçu de la période sélectionnée - Version responsive */}
-                <motion.div
-                  layout
-                  className="bg-white rounded-xl p-3 sm:p-4 mb-4 border border-gray-100"
-                >
+                <motion.div layout className="bg-white rounded-xl p-3 sm:p-4 mb-4 border border-gray-100">
                   <div className="flex items-center gap-2 sm:gap-3">
                     <div className="p-2 sm:p-3 bg-indigo-100 rounded-lg sm:rounded-xl flex-shrink-0">
                       <FiCalendar className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
@@ -622,8 +566,6 @@ export default function CreerEvenement() {
                     </div>
                   </div>
                 </motion.div>
-
-                {/* Calendrier personnalisé */}
                 <AnimatePresence>
                   {showCalendar && (
                     <motion.div
@@ -641,8 +583,6 @@ export default function CreerEvenement() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                {/* Options rapides - Version responsive */}
                 <div className="flex flex-wrap gap-2 mt-4">
                   {['Aujourd\'hui', 'Demain', 'Ce week-end', 'Semaine prochaine'].map((option) => (
                     <motion.button
@@ -653,7 +593,6 @@ export default function CreerEvenement() {
                         const today = new Date();
                         let start = new Date(today);
                         let end = new Date(today);
-
                         switch (option) {
                           case 'Aujourd\'hui':
                             end.setHours(23, 59);
@@ -674,7 +613,6 @@ export default function CreerEvenement() {
                             end.setHours(23, 59);
                             break;
                         }
-
                         handleDateChange([start, end]);
                       }}
                       className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white border border-gray-200 rounded-lg text-[10px] sm:text-xs text-gray-600 hover:border-indigo-500 hover:text-indigo-600 transition-all whitespace-nowrap"
@@ -685,13 +623,10 @@ export default function CreerEvenement() {
                 </div>
               </motion.div>
 
-              {/* Participants */}
               <motion.div
                 onHoverStart={() => setHoveredField('participants')}
                 onHoverEnd={() => setHoveredField(null)}
-                animate={{
-                  scale: hoveredField === 'participants' ? 1.01 : 1
-                }}
+                animate={{ scale: hoveredField === 'participants' ? 1.01 : 1 }}
               >
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <FiUsers className="text-indigo-500" />
@@ -711,7 +646,6 @@ export default function CreerEvenement() {
             </motion.div>
           )}
 
-          {/* Étape 3 : Catégorie et type */}
           {currentStep === 3 && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -720,14 +654,10 @@ export default function CreerEvenement() {
               className="space-y-4 sm:space-y-6"
             >
               <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 sm:mb-6">Catégorie et type</h2>
-
-              {/* Catégorie */}
               <motion.div
                 onHoverStart={() => setHoveredField('category')}
                 onHoverEnd={() => setHoveredField(null)}
-                animate={{
-                  scale: hoveredField === 'category' ? 1.01 : 1
-                }}
+                animate={{ scale: hoveredField === 'category' ? 1.01 : 1 }}
               >
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <FiTag className="text-indigo-500" />
@@ -748,14 +678,10 @@ export default function CreerEvenement() {
                   <option value="autre">✨ Autre</option>
                 </select>
               </motion.div>
-
-              {/* Type d'événement */}
               <motion.div
                 onHoverStart={() => setHoveredField('type')}
                 onHoverEnd={() => setHoveredField(null)}
-                animate={{
-                  scale: hoveredField === 'type' ? 1.01 : 1
-                }}
+                animate={{ scale: hoveredField === 'type' ? 1.01 : 1 }}
               >
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <FiType className="text-indigo-500" />
@@ -788,17 +714,18 @@ export default function CreerEvenement() {
             </motion.div>
           )}
 
-          {/* Navigation entre les étapes - Version responsive */}
+          {/* Navigation avec bouton submit corrigé */}
           <div className="flex flex-col sm:flex-row justify-between gap-3 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-100">
             <motion.button
               type="button"
               onClick={prevStep}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-medium text-sm sm:text-base transition-all ${currentStep === 1
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+              className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-medium text-sm sm:text-base transition-all ${
+                currentStep === 1
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
               disabled={currentStep === 1}
             >
               ← Précédent
@@ -815,29 +742,17 @@ export default function CreerEvenement() {
                 Suivant →
               </motion.button>
             ) : (
-              <button
-                onClick={() =>
-                  navigate("/ressources", {
-                    state: {
-                      eventId: "test-event-123",
-                      eventData: {
-                        category: "Mariage",
-                        nombreParticipants: 100,
-                        dateDebut: "2025-06-01",
-                        dateFin: "2025-06-02",
-                        lieu: null,
-                      },
-                    },
-                  })
-                }
-                className="bg-purple-600 text-white px-4 py-2 rounded"
+              <motion.button
+                type="submit"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-xl font-medium text-sm sm:text-base hover:shadow-lg transition-all"
               >
-                Tester CAS 3 (Mariage)
-              </button>
+                Créer l'événement ✓
+              </motion.button>
             )}
           </div>
 
-          {/* Récapitulatif - Version responsive */}
           {formProgress > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
