@@ -1,29 +1,81 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { X, Calendar, Loader, CheckCircle, Upload } from "lucide-react";
+import { X, Calendar, Loader, CheckCircle, Upload, AlertCircle } from "lucide-react";
 
-const QuickEventModal = ({ isOpen, onClose, onEventCreated }) => {
+/*
+  Props :
+  - resourceDate : string | Date  →  date de la réservation de la ressource.
+    L'événement doit englober cette date (dateDebut ≤ resourceDate ≤ dateFin).
+*/
+const QuickEventModal = ({ isOpen, onClose, onEventCreated, resourceDate }) => {
   const [formData, setFormData] = useState({
     title: "",
     dateDebut: "",
+    dateFin: "",
     category: "",
   });
   const [cinFile, setCinFile] = useState(null);
-  const [cinNumber, setCinNumber] = useState(""); // Ajout du numéro CIN
+  const [cinNumber, setCinNumber] = useState("");
   const [cinError, setCinError] = useState("");
+  const [dateError, setDateError] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
   const token = localStorage.getItem("token");
 
+  /* ── Formatage de la date ressource pour l'affichage ── */
+  const resourceDay = resourceDate ? new Date(resourceDate) : null;
+  const resourceDayStr = resourceDay
+    ? resourceDay.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })
+    : null;
+
   const resetForm = () => {
-    setFormData({ title: "", dateDebut: "", category: "" });
+    setFormData({ title: "", dateDebut: "", dateFin: "", category: "" });
     setCinFile(null);
     setCinNumber("");
     setCinError("");
+    setDateError("");
     setError("");
     setSuccess(false);
+  };
+
+  /* ── Validation de la contrainte de date ── */
+  const validateDateConstraint = (debut, fin) => {
+    if (!resourceDay || !debut || !fin) return true; // pas encore renseigné
+
+    const start = new Date(debut);
+    const end = new Date(fin);
+
+    // dateFin doit être >= dateDebut
+    if (end < start) {
+      setDateError("La date de fin doit être postérieure ou égale à la date de début.");
+      return false;
+    }
+
+    // resourceDate doit être comprise entre dateDebut et dateFin (bornes incluses)
+    const resDate = new Date(resourceDay);
+    resDate.setHours(0, 0, 0, 0);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+
+    if (resDate < start || resDate > end) {
+      setDateError(
+        `La date de la ressource (${resourceDayStr}) doit être incluse dans la période de l'événement.`
+      );
+      return false;
+    }
+
+    setDateError("");
+    return true;
+  };
+
+  const handleDateChange = (field, value) => {
+    const updated = { ...formData, [field]: value };
+    setFormData(updated);
+    if (updated.dateDebut && updated.dateFin) {
+      validateDateConstraint(updated.dateDebut, updated.dateFin);
+    }
   };
 
   const handleCINChange = (e) => {
@@ -46,29 +98,30 @@ const QuickEventModal = ({ isOpen, onClose, onEventCreated }) => {
     e.preventDefault();
     setError("");
     setSuccess(false);
-    setLoading(true);
 
-    // Validation
-    if (!formData.title || !formData.dateDebut || !formData.category) {
-      setError("Tous les champs de l'événement sont obligatoires");
-      setLoading(false);
+    if (!formData.title || !formData.dateDebut || !formData.dateFin || !formData.category) {
+      setError("Tous les champs de l'événement sont obligatoires.");
       return;
     }
 
     if (!cinFile) {
-      setError("Veuillez importer votre CIN");
-      setLoading(false);
+      setError("Veuillez importer votre CIN.");
       return;
     }
 
-    if (!cinNumber) {
-      setError("Veuillez entrer votre numéro de CIN");
-      setLoading(false);
+    if (!cinNumber.trim()) {
+      setError("Veuillez entrer votre numéro de CIN.");
       return;
     }
+
+    // Vérification contrainte de date avant envoi
+    if (!validateDateConstraint(formData.dateDebut, formData.dateFin)) {
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      // Utiliser FormData pour l'envoi (car il y a un fichier)
       const formDataToSend = new FormData();
       formDataToSend.append("title", formData.title);
       formDataToSend.append("description", `Événement créé depuis une réservation : ${formData.title}`);
@@ -76,14 +129,10 @@ const QuickEventModal = ({ isOpen, onClose, onEventCreated }) => {
       formDataToSend.append("lieu", "À définir");
       formDataToSend.append("type", "privé");
       formDataToSend.append("dateDebut", new Date(formData.dateDebut).toISOString());
-      formDataToSend.append("dateFin", new Date(formData.dateDebut).toISOString());
+      formDataToSend.append("dateFin", new Date(formData.dateFin).toISOString());
       formDataToSend.append("nombreParticipants", "0");
       formDataToSend.append("cinNumber", cinNumber);
-      
-      // Ajouter le fichier CIN
-      if (cinFile) {
-        formDataToSend.append("cinFile", cinFile);
-      }
+      formDataToSend.append("cinFile", cinFile);
 
       const response = await axios.post(
         "http://localhost:5000/api/event/addEvent",
@@ -97,18 +146,14 @@ const QuickEventModal = ({ isOpen, onClose, onEventCreated }) => {
       );
 
       setSuccess(true);
-      
-      // Attendre un peu pour montrer le succès
       setTimeout(() => {
-        // Retourner l'ID du nouvel événement ET le fichier CIN
         onEventCreated(response.data._id, cinFile);
         resetForm();
         onClose();
       }, 1000);
-      
     } catch (err) {
       console.error("Erreur création événement:", err);
-      setError(err.response?.data?.message || "Erreur lors de la création de l'événement");
+      setError(err.response?.data?.message || "Erreur lors de la création de l'événement.");
       setLoading(false);
     }
   };
@@ -134,10 +179,21 @@ const QuickEventModal = ({ isOpen, onClose, onEventCreated }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-              {error}
+
+          {/* Contrainte de date visible */}
+          {resourceDayStr && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+              <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700">
+                La ressource est réservée le{" "}
+                <span className="font-semibold">{resourceDayStr}</span>.
+                L'événement doit couvrir cette date (date de début ≤ {resourceDayStr} ≤ date de fin).
+              </p>
             </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">{error}</div>
           )}
 
           {success && (
@@ -150,7 +206,7 @@ const QuickEventModal = ({ isOpen, onClose, onEventCreated }) => {
           {/* Informations de l'événement */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-gray-700 border-b pb-1">Informations de l'événement</h3>
-            
+
             <div>
               <label className="block text-sm font-medium mb-1">Nom de l'événement *</label>
               <input
@@ -159,22 +215,45 @@ const QuickEventModal = ({ isOpen, onClose, onEventCreated }) => {
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Ex: Mariage de Sophie"
+                placeholder="Ex : Mariage de Sophie"
                 disabled={loading}
               />
             </div>
 
+            {/* Date de début */}
             <div>
-              <label className="block text-sm font-medium mb-1">Date de l'événement *</label>
+              <label className="block text-sm font-medium mb-1">Date de début *</label>
               <input
                 type="date"
                 required
                 value={formData.dateDebut}
-                onChange={(e) => setFormData({ ...formData, dateDebut: e.target.value })}
+                onChange={(e) => handleDateChange("dateDebut", e.target.value)}
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 disabled={loading}
               />
             </div>
+
+            {/* Date de fin */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Date de fin *</label>
+              <input
+                type="date"
+                required
+                value={formData.dateFin}
+                min={formData.dateDebut || undefined}
+                onChange={(e) => handleDateChange("dateFin", e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                disabled={loading}
+              />
+            </div>
+
+            {/* Message d'erreur de date */}
+            {dateError && (
+              <div className="flex items-start gap-2 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
+                <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-rose-700">{dateError}</p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium mb-1">Catégorie *</label>
@@ -195,7 +274,7 @@ const QuickEventModal = ({ isOpen, onClose, onEventCreated }) => {
             </div>
           </div>
 
-          {/* Champ CIN - Numéro */}
+          {/* Numéro CIN */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-gray-700">
               Numéro de CIN <span className="text-rose-500">*</span>
@@ -206,12 +285,12 @@ const QuickEventModal = ({ isOpen, onClose, onEventCreated }) => {
               value={cinNumber}
               onChange={(e) => setCinNumber(e.target.value)}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="Ex: 12345678"
+              placeholder="Ex : 12345678"
               disabled={loading}
             />
           </div>
 
-          {/* Champ CIN - Fichier */}
+          {/* Photo CIN */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-gray-700">
               Photo de la CIN <span className="text-rose-500">*</span>
@@ -251,13 +330,13 @@ const QuickEventModal = ({ isOpen, onClose, onEventCreated }) => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !!dateError}
             className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? <Loader className="w-4 h-4 animate-spin" /> : null}
             {loading ? "Création en cours..." : "Créer l'événement et continuer"}
           </button>
-          
+
           <button
             type="button"
             onClick={handleClose}

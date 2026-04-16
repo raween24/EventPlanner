@@ -62,7 +62,7 @@ const resourceSchema = new mongoose.Schema(
       }
     },
     
-      locationname: {   // 🔥 AJOUT
+      locationname: { 
         type: String,
         default: ""
       },
@@ -89,21 +89,20 @@ const resourceSchema = new mongoose.Schema(
     averageRating: { type: Number, default: 0, min: 0, max: 5 },
     totalRatings: { type: Number, default: 0 },
     likesCount: { type: Number, default: 0 },
-    // ✅ NOUVEAU CHAMP STOCK (pour les produits)
+    // CHAMP STOCK (pour les produits)
     stock: {
       type: Number,
       default: 1,
       min: 0
     },
 
-    // 🔥 🔥 TERMS amélioré
     terms: {
       text: {
         type: String,
         default: null
       },
       file: {
-        type: String, // URL du fichier PDF
+        type: String, 
         default: null
       }
     }
@@ -115,7 +114,7 @@ const resourceSchema = new mongoose.Schema(
   }
 );
 
-// 🔐 validation
+// validation
 resourceSchema.pre("save", async function () {
   const hasText = this.terms?.text && this.terms.text.trim() !== "";
   const hasFile = this.terms?.file && this.terms.file !== "";
