@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import recommendationRoutes from "./routes/recommendationRoutes.js";
 import notificationRoutes from './routes/notificationRoutes.js';
-
+import cinRoutes from "./routes/cinRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import ressourceRoutes from "./routes/ressourceRoutes.js";
@@ -65,7 +65,7 @@ app.use("/api/location", LocationRoutes);
 app.use("/api/send-mail", mailRoutes);
 app.use("/api/recommendations", recommendationRoutes);
 app.use('/api/notifications', notificationRoutes);
-
+app.use("/api/cin", cinRoutes);
 // test API
 app.get("/", (req, res) => {
   res.send("API Event Planner fonctionne 🚀");

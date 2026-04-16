@@ -98,7 +98,7 @@ export default function MesDemandes() {
                     : 'Client inconnu',
                 cin: loc.organisateur?.passportOrCid,
                 tel: loc.organisateur?.numTel,
-                region: loc.organisateur?.region,
+                region: loc.organisateur?.locationName,
                 eventName: loc.event?.title || 'Événement inconnu',
                 dateDebut: loc.dateDebut,
                 dateFin: loc.dateFin,
@@ -161,7 +161,7 @@ export default function MesDemandes() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 sm:p-6 lg:p-8">
-            
+
             <div className="max-w-7xl mx-auto">
 
                 {/* En-tête */}

@@ -141,6 +141,7 @@ export default function Signup() {
 
   const [form, setForm] = useState({
     firstname: "", lastname: "",
+    cin: "",
     nomSociete: "",
     email: "", password: "",
     numPatente: "", numTel: "",
@@ -275,6 +276,7 @@ export default function Signup() {
     } else {
       formData.append("firstname", form.firstname);
       formData.append("lastname", form.lastname);
+      formData.append("passportOrCid", form.cin);
     }
 
     if (form.locationLat && form.locationLng) {
@@ -383,6 +385,16 @@ export default function Signup() {
             {/* Nom / prénom ou société */}
             {!isPrestataire ? (
               <>
+                <div className="field-wrap span-2">
+                  <label>cin or passport</label>
+                  <input
+                    name="cin"   // ✅ IMPORTANT
+                    placeholder="Votre CIN ou passport"
+                    value={form.cin}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
                 <div className="field-wrap">
                   <label>Prénom</label>
                   <input name="firstname" placeholder="Votre prénom" value={form.firstname} onChange={handleChange} required />
@@ -631,21 +643,21 @@ export default function Signup() {
                 </div>
 
                 <button
-                  onClick={() => {setShowPendingPopup(false);navigate("/login");}}
-                className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold py-3.5 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group"
+                  onClick={() => { setShowPendingPopup(false); navigate("/login"); }}
+                  className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold py-3.5 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group"
                 >
-                <span className="relative z-10">J'ai compris</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-700 to-indigo-800 transform translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
-              </button>
+                  <span className="relative z-10">J'ai compris</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-700 to-indigo-800 transform translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
+                </button>
 
-              <p className="text-xs text-center text-gray-400 mt-4 animate-fadeIn delay-500">
-                Vous recevrez une confirmation une fois votre demande approuvée
-              </p>
+                <p className="text-xs text-center text-gray-400 mt-4 animate-fadeIn delay-500">
+                  Vous recevrez une confirmation une fois votre demande approuvée
+                </p>
+              </div>
             </div>
           </div>
-          </div>
-  )
-}
+        )
+        }
       </AnimatePresence >
     </div >
   );
