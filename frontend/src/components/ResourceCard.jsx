@@ -186,7 +186,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked, 
 
         <div className="flex justify-between mt-6">
           <p className="text-xl font-bold">
-            {resource.price != null ? `${resource.price.toFixed(2)} €` : "—"}
+            {resource.price != null ? `${resource.price.toFixed(2)} DT` : "—"}
           </p>
 
           <button

@@ -319,6 +319,21 @@ const getAdore = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+export const updateCIN = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { cin: req.body.cin },
+      { new: true }
+    );
+
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 export {
   registerUser,

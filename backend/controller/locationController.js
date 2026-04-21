@@ -1,11 +1,12 @@
 import Location from "../model/location.js";
-import Event from "../model/event.js";
 import Resource from "../model/ressources.js";
 import User from "../model/user.js";
 import mongoose from "mongoose";
-
+import { generateInvoice } from "../utils/invoice.js";
 // ✅ Import correct depuis le controller (pas depuis routes)
 import { createNotification } from '../controller/notificationController.js';
+import Event from "../model/event.js";
+import Dispo from "../model/disponibilite.js";
 
 // ============================
 // ✅ CRÉER UNE DEMANDE (organisateur)
@@ -43,11 +44,18 @@ export const createLocation = async (req, res) => {
         const existingRequest = await Location.findOne({
             resource: resource,
             organisateur: req.user.id,
-            status: { $in: ["en attente", "acceptée"] },
+
+            // ✅ seulement les demandes en attente
+            status: "en attente",
+
+            // ✅ ignorer les déjà payées
+            payer: { $ne: "payer" },
+
+            // ✅ vrai conflit
             $or: [
                 {
-                    dateDebut: { $lte: new Date(dateFin) },
-                    dateFin: { $gte: new Date(dateDebut) }
+                    dateDebut: { $lt: new Date(dateFin) },
+                    dateFin: { $gt: new Date(dateDebut) }
                 }
             ]
         });
@@ -216,11 +224,10 @@ export const updateStatusByProvider = async (req, res) => {
                 await createNotification(
                     location.organisateur._id,
                     status === "acceptée" ? "Réservation acceptée ✅" : "Réservation refusée ❌",
-                    `Le prestataire ${prestataire?.firstname || ""} ${prestataire?.lastname || ""} a ${
-                        status === "acceptée" ? "accepté" : "refusé"
+                    `Le prestataire ${prestataire?.firstname || ""} ${prestataire?.lastname || ""} a ${status === "acceptée" ? "accepté" : "refusé"
                     } votre demande pour la ressource "${location.resource.name}".`,
                     status === "acceptée" ? "success" : "error",
-                    "/mes-reservations"  // ✅ route organisateur correcte dans App.jsx
+                    "/mes-reservations"
                 );
             }
         } catch (notifError) {
@@ -234,6 +241,74 @@ export const updateStatusByProvider = async (req, res) => {
 
     } catch (error) {
         console.error("ERREUR updateStatusByProvider:", error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+
+export const payLocation = async (req, res) => {
+    try {
+        const { locationId, amount } = req.body;
+
+        if (!locationId) {
+            return res.status(400).json({ message: "locationId requis" });
+        }
+
+        const location = await Location.findById(locationId)
+            .populate({
+                path: "resource",
+                populate: { path: "prestataire", select: "firstname lastname email phone" }
+            })
+            .populate("organisateur", "firstname lastname email phone")
+            .populate("event", "title");
+
+        if (!location) {
+            return res.status(404).json({ message: "Location non trouvée" });
+        }
+
+        if (location.status !== "acceptée") {
+            return res.status(400).json({
+                message: "Paiement possible seulement si la réservation est acceptée"
+            });
+        }
+
+        if (location.payer === "payer") {
+            return res.status(400).json({ message: "Déjà payé" });
+        }
+
+        // ✅ Mise à jour paiement
+        location.payer = "payer";
+        location.paymentDate = new Date();
+
+        // ✅ Générer et sauvegarder facture
+        const invoicePath = generateInvoice(location, amount);
+        location.invoice = invoicePath;
+
+        await location.save();
+
+        // ✅ 1. Ajouter la ressource dans ressources_utiliser de l'événement
+        await Event.findByIdAndUpdate(
+            location.event._id || location.event,
+            {
+                $addToSet: { ressources_utiliser: location.resource._id }
+            }
+        );
+
+        // ✅ 2. Marquer les disponibilités concernées comme indisponibles (satut_disp = false)
+        await Dispo.create({
+            resource: location.resource._id,
+            date_deb: location.dateDebut,
+            date_fin: location.dateFin,
+            satut_disp: false
+        });
+
+        res.status(200).json({
+            message: "Paiement confirmé + facture générée",
+            location
+        });
+
+    } catch (error) {
+        console.error("ERREUR PAY:", error);
         res.status(500).json({ message: error.message });
     }
 };

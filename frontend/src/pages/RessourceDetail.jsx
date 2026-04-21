@@ -71,7 +71,7 @@ function CartSidebar({ isOpen, onClose, cartItems, onRemove, onNavigate }) {
                     {item.selectedTimes?.length > 0 && ` · ${item.selectedTimes.length} créneau(x)`}
                   </p>
                 )}
-                <p className="text-xs font-bold text-indigo-600 mt-1">{item.totalPrice || item.price}€</p>
+                <p className="text-xs font-bold text-indigo-600 mt-1">{item.totalPrice || item.price}DT</p>
               </div>
               <button onClick={() => onRemove(item.resourceId)}
                 className="p-1 text-gray-300 hover:text-rose-500 transition flex-shrink-0">
@@ -85,7 +85,7 @@ function CartSidebar({ isOpen, onClose, cartItems, onRemove, onNavigate }) {
           <div className="px-4 py-4 border-t border-gray-100 space-y-3">
             <div className="flex items-center justify-between text-sm font-bold text-gray-900">
               <span>Total estimé</span>
-              <span className="text-indigo-600">{total}€</span>
+              <span className="text-indigo-600">{total}DT</span>
             </div>
             <button
               onClick={onNavigate}
@@ -146,7 +146,6 @@ export default function ResourceDetailsPage() {
   const [editingRating, setEditingRating] = useState(5);
   const [commentFilter, setCommentFilter] = useState("all");
 
-  const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsPopup, setShowTermsPopup] = useState(false);
 
   /* ── init ── */
@@ -234,7 +233,7 @@ export default function ResourceDetailsPage() {
     // Vérifier si l'utilisateur est connecté
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
-    
+
     if (!token || !user) {
       // Stocker l'item pour après connexion
       const cartItem = {
@@ -283,12 +282,13 @@ export default function ResourceDetailsPage() {
 
     performAddToCart(cartItem);
   };
+  
 
   /* ── AUTH SUCCESS ── */
   const handleAuthSuccess = (token, user) => {
     setAuthModalOpen(false);
     setCurrentUser(user);
-    
+
     // Si un item était en attente, l'ajouter au panier maintenant
     if (pendingCartItem) {
       performAddToCart(pendingCartItem);
@@ -481,7 +481,7 @@ export default function ResourceDetailsPage() {
 
   const cartTotal = cartItems.reduce((s, i) => s + (i.totalPrice || i.price), 0);
   const isService = resource?.type === "service";
-  const canAddToCart = (selectedTimes.length > 0 || (startDate && endDate && isRangeValid())) && termsAccepted;
+  const canAddToCart = (selectedTimes.length > 0 || (startDate && endDate && isRangeValid()));
   const alreadyInCart = cartItems.some(i => i.resourceId === id);
 
   if (loading) return (
@@ -549,7 +549,7 @@ export default function ResourceDetailsPage() {
                 {cartItems.length}
               </span>
               <span className="text-gray-300">|</span>
-              <span className="text-indigo-600 font-bold text-sm">{cartTotal}€</span>
+              <span className="text-indigo-600 font-bold text-sm">{cartTotal}DT</span>
             </button>
           )}
         </div>
@@ -867,7 +867,7 @@ export default function ResourceDetailsPage() {
                           className={`w-full p-4 rounded-xl border-2 transition-all flex items-center justify-between ${isSel ? "border-purple-600 bg-purple-50" : "border-gray-200 hover:border-purple-300 hover:bg-gray-50"}`}>
                           <div className="flex items-center gap-3">
                             <Clock className={`h-5 w-5 ${isSel ? "text-purple-600" : "text-gray-400"}`} />
-                            <div className="text-left"><p className="font-medium text-gray-900">{slot.display}</p><p className="text-sm text-gray-500">{slot.price}€</p></div>
+                            <div className="text-left"><p className="font-medium text-gray-900">{slot.display}</p><p className="text-sm text-gray-500">{slot.price}DT</p></div>
                           </div>
                           {isSel && <Check className="h-5 w-5 text-purple-600" />}
                         </button>
@@ -881,7 +881,7 @@ export default function ResourceDetailsPage() {
                   <div className="mt-4 p-4 bg-purple-50 rounded-xl">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-purple-700">{selectedTimes.length} créneau(x)</span>
-                      <span className="text-sm font-bold text-purple-700">Total : {calculateTotalPrice()}€</span>
+                      <span className="text-sm font-bold text-purple-700">Total : {calculateTotalPrice()}DT</span>
                     </div>
                     {selectionMode === "multiple" && selectedTimes.map(slot => (
                       <div key={slot.id} className="flex items-center justify-between text-xs text-purple-600">
@@ -897,7 +897,7 @@ export default function ResourceDetailsPage() {
             {/* Carte réservation */}
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-6 hover:shadow-xl transition-all">
               <div className="text-center pb-6 border-b border-gray-100">
-                <span className="text-4xl font-bold text-gray-900">{resource.price}€</span>
+                <span className="text-4xl font-bold text-gray-900">{resource.price}DT</span>
                 <span className="text-lg text-gray-500 ml-2">/heure</span>
               </div>
 
@@ -911,7 +911,7 @@ export default function ResourceDetailsPage() {
                   )}
                   {selectedTimes.length > 0 && (
                     <div className="p-3 bg-blue-50 rounded-xl">
-                      <div className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-blue-600" /><span className="text-sm font-medium text-blue-700">{selectedTimes.length} créneau(x) — {calculateTotalPrice()}€</span></div>
+                      <div className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-blue-600" /><span className="text-sm font-medium text-blue-700">{selectedTimes.length} créneau(x) — {calculateTotalPrice()}DT</span></div>
                       {selectedTimes.map(s => <p key={s.id} className="text-sm text-blue-600">{s.display}</p>)}
                     </div>
                   )}
@@ -919,7 +919,7 @@ export default function ResourceDetailsPage() {
                     <div className="p-3 bg-blue-50 rounded-xl">
                       <div className="flex items-center gap-2 mb-1"><CalendarRange className="h-4 w-4 text-blue-600" /><span className="text-sm font-medium text-blue-700">Période</span></div>
                       <p className="text-sm text-blue-600">Du {startDate.toLocaleDateString("fr-FR")} au {endDate.toLocaleDateString("fr-FR")}</p>
-                      <p className="text-sm font-medium text-blue-700 mt-1">Total : {resource.price * getNumberOfDays() * 24}€</p>
+                      <p className="text-sm font-medium text-blue-700 mt-1">Total : {resource.price * getNumberOfDays() * 24}DT</p>
                     </div>
                   )}
                 </div>
@@ -931,13 +931,7 @@ export default function ResourceDetailsPage() {
               </div>
 
               {/* Conditions */}
-              <div className="my-4 flex items-start gap-2">
-                <input type="checkbox" id="terms" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-gray-300" />
-                <label htmlFor="terms" className="text-sm text-gray-600">
-                  J'accepte les <button type="button" onClick={() => setShowTermsPopup(true)} className="text-black underline font-medium">conditions générales</button>
-                </label>
-              </div>
+
 
               {/* ════ BOUTON AJOUTER AU PANIER ════ */}
               {alreadyInCart ? (
@@ -969,8 +963,7 @@ export default function ResourceDetailsPage() {
                         ? "Sélectionnez une date"
                         : selectedTimes.length === 0 && !endDate
                           ? "Choisissez des créneaux"
-                          : `Ajouter au panier${selectedTimes.length > 0 ? ` (${calculateTotalPrice()}€)` : ""}`
-                    }
+                          : `Ajouter au panier${selectedTimes.length > 0 ? ` (${calculateTotalPrice()}DT)` : ""}`}
                   </button>
                   {currentUser?.role === "prestataire" && (
                     <p className="text-xs text-amber-600 text-center mt-2">

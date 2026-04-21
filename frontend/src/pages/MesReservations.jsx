@@ -14,24 +14,24 @@ import { useNavigate } from "react-router-dom";
    SVG ICONS (rajout de l'icône manquante)
 ═══════════════════════════════════════════ */
 const Ic = {
-  bag:     (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>,
-  box:     (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
-  service: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
-  send:    (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
-  trash:   (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>,
-  plus:    (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  minus:   (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  close:   (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  clock:   (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-  check:   (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>,
-  xmark:   (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  card:    (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
-  info:    (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
-  upload:  (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
-  user:    (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-  calendar:(p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-  search:  (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-  lock:    (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>,
+  bag: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 01-8 0" /></svg>,
+  box: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg>,
+  service: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>,
+  send: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>,
+  trash: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6M9 6V4h6v2" /></svg>,
+  plus: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>,
+  minus: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12" /></svg>,
+  close: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
+  clock: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
+  check: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>,
+  xmark: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
+  card: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>,
+  info: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>,
+  upload: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>,
+  user: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>,
+  calendar: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>,
+  search: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>,
+  lock: (p) => <svg {...p} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>,
 };
 
 const cx = (...a) => a.filter(Boolean).join(" ");
@@ -62,9 +62,9 @@ function Toast({ toast, onClose }) {
 ═══════════════════════════════════════════ */
 function StatusPill({ status }) {
   const cfg = {
-    "en attente": { bg: "#FEF3C7", fg: "#92400E", Icon: Ic.clock,  label: "En attente" },
-    "acceptée":   { bg: "#D1FAE5", fg: "#065F46", Icon: Ic.check,  label: "Acceptée"   },
-    "refusée":    { bg: "#FEE2E2", fg: "#991B1B", Icon: Ic.xmark,  label: "Refusée"    },
+    "en attente": { bg: "#FEF3C7", fg: "#92400E", Icon: Ic.clock, label: "En attente" },
+    "acceptée": { bg: "#D1FAE5", fg: "#065F46", Icon: Ic.check, label: "Acceptée" },
+    "refusée": { bg: "#FEE2E2", fg: "#991B1B", Icon: Ic.xmark, label: "Refusée" },
   };
   const c = cfg[status] || cfg["en attente"];
   return (
@@ -154,19 +154,39 @@ function CartRow({ item, stockMax, onQty, onRemove, onSend, isSending }) {
 ═══════════════════════════════════════════ */
 function ReservationCard({ res, onPay }) {
   const accepted = res.status === "acceptée";
-    const navigate = useNavigate();
-  const pending  = res.status === "en attente";
+  const navigate = useNavigate();
+  const pending = res.status === "en attente";
+  const isPaid = res.payer === "payer"; // ✅ nouveau
+
+  const handleViewInvoice = () => {
+    if (res.invoice) {
+      window.open(`http://localhost:5000/${res.invoice}`, "_blank");
+    }
+  };
+
   return (
     <div className={cx(
       "bg-white rounded-2xl border px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4 transition hover:shadow-md",
-      accepted ? "border-emerald-200" : res.status === "refusée" ? "border-rose-100" : "border-gray-100"
+      isPaid ? "border-violet-200"
+        : accepted ? "border-emerald-200"
+          : res.status === "refusée" ? "border-rose-100"
+            : "border-gray-100"
     )}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2.5 flex-wrap mb-2">
           <span className="font-bold text-sm text-gray-900 truncate">{res.resource?.name || "Ressource"}</span>
           <StatusPill status={res.status} />
           {res.resource?.type && <TypeBadge type={res.resource.type} />}
+
+          {/* ✅ Badge "Payé" */}
+          {isPaid && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold"
+              style={{ background: "#EDE9FE", color: "#6D28D9" }}>
+              <Ic.check width={10} height={10} /> Payé
+            </span>
+          )}
         </div>
+
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
           <span className="flex items-center gap-1">
             <Ic.calendar width={12} height={12} />
@@ -174,26 +194,56 @@ function ReservationCard({ res, onPay }) {
             {" → "}
             {format(new Date(res.dateFin), "dd MMM yyyy", { locale: fr })}
           </span>
-          <span className="font-bold" style={{ color: "#4338CA" }}>{res.resource?.price}€</span>
+          <span className="font-bold" style={{ color: isPaid ? "#6D28D9" : "#4338CA" }}>
+            {res.resource?.price}€
+          </span>
           {res.event?.title && <span className="text-gray-300">· {res.event.title}</span>}
+          {/* ✅ Date de paiement */}
+          {isPaid && res.paymentDate && (
+            <span className="text-violet-400">
+              · Payé le {format(new Date(res.paymentDate), "dd MMM yyyy", { locale: fr })}
+            </span>
+          )}
         </div>
       </div>
-      {accepted && (
-        <button onClick={() => navigate("/payer")}
+
+      {/* ✅ Bouton dynamique selon état */}
+      {isPaid ? (
+        // Payé → voir la facture
+        <button
+          onClick={handleViewInvoice}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white whitespace-nowrap transition hover:opacity-90"
-          style={{ background: "linear-gradient(135deg,#059669,#10B981)" }}>
+          style={{ background: "linear-gradient(135deg,#7C3AED,#6D28D9)" }}
+        >
+          <svg width={14} height={14} fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          Voir la facture
+        </button>
+      ) : accepted ? (
+        // Acceptée non payée → payer
+        <button
+          onClick={() => navigate("/payer", {
+            state: { amount: res.resource?.price, locationId: res._id }
+          })}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white whitespace-nowrap transition hover:opacity-90"
+          style={{ background: "linear-gradient(135deg,#059669,#10B981)" }}
+        >
           <Ic.card width={14} height={14} /> Payer {res.resource?.price}€
         </button>
-      )}
-      {pending && (
+      ) : pending ? (
+        // En attente
         <span className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-400 border border-gray-200 whitespace-nowrap">
           En attente de réponse
         </span>
-      )}
+      ) : null}
     </div>
   );
 }
-
 /* ═══════════════════════════════════════════
    STAT CARD
 ═══════════════════════════════════════════ */
@@ -213,24 +263,24 @@ export default function MesReservations() {
   const navigate = useNavigate();
 
   const [reservations, setReservations] = useState([]);
-  const [cartItems,    setCartItems]    = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [sending,      setSending]      = useState(null);
-  const [userEvents,   setUserEvents]   = useState([]);
+  const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(null);
+  const [userEvents, setUserEvents] = useState([]);
 
   /* Modals */
-  const [authModal,       setAuthModal]       = useState({ open: false, item: null });
-  const [selectModal,     setSelectModal]     = useState({ open: false, item: null });
+  const [authModal, setAuthModal] = useState({ open: false, item: null });
+  const [selectModal, setSelectModal] = useState({ open: false, item: null });
   const [quickEventModal, setQuickEventModal] = useState({ open: false, item: null });
 
-  const [toast,       setToast]       = useState(null);
+  const [toast, setToast] = useState(null);
   const [stockLimits, setStockLimits] = useState({});
 
   const notify = (message, type = "info") => setToast({ message, type });
 
   /* Auth state */
   const [authToken, setAuthToken] = useState(() => localStorage.getItem("token"));
-  const [authUser,  setAuthUser]  = useState(() => {
+  const [authUser, setAuthUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem("user") || "null"); }
     catch { return null; }
   });
@@ -260,7 +310,7 @@ export default function MesReservations() {
     await Promise.all(validItems.map(async (i) => {
       try {
         const r = await axios.get(`http://localhost:5000/api/ressources/get_by_id/${i.resourceId}`);
-        stocks[i.resourceId] = r.data.stock ?? 999;
+        stocks[i.resourceId] = r.data.quantity ?? 999;
       } catch (err) {
         console.error(`Erreur chargement stock pour ${i.resourceId}:`, err);
         stocks[i.resourceId] = i.type === "service" ? 1 : 999;
@@ -282,7 +332,7 @@ export default function MesReservations() {
   const updateQty = (resourceId, newQty) => {
     if (!resourceId) return;
     const max = stockLimits[resourceId] ?? 999;
-    if (newQty < 1)   { removeItem(resourceId); return; }
+    if (newQty < 1) { removeItem(resourceId); return; }
     if (newQty > max) { notify(`Stock maximum : ${max}`, "error"); return; }
     saveCart(cartItems.map(i =>
       i.resourceId === resourceId
@@ -398,10 +448,10 @@ export default function MesReservations() {
         await axios.post(
           "http://localhost:5000/api/location/create",
           {
-            event:     eventId,
-            resource:  cartItem.resourceId,
+            event: eventId,
+            resource: cartItem.resourceId,
             dateDebut: slot.start || itemDate,
-            dateFin:   slot.end   || itemDate,
+            dateFin: slot.end || itemDate,
           },
           {
             headers: {
@@ -451,10 +501,10 @@ export default function MesReservations() {
   };
 
   /* ── Stats ── */
-  const totalCart     = cartItems.reduce((s, i) => s + (i.quantity || 1), 0);
-  const totalSent     = reservations.length;
+  const totalCart = cartItems.reduce((s, i) => s + (i.quantity || 1), 0);
+  const totalSent = reservations.length;
   const totalAccepted = reservations.filter(r => r.status === "acceptée").length;
-  const isEmpty       = !cartItems.length && !reservations.length;
+  const isEmpty = !cartItems.length && !reservations.length;
 
   if (loading) return (
     <>
@@ -494,6 +544,7 @@ export default function MesReservations() {
         onConfirm={sendRequest}
         events={userEvents}
         onCreateNew={openQuickEventModal}
+        resourceDate={selectModal.item?.selectedDate || null} 
       />
 
       {/* QUICK EVENT MODAL */}
@@ -520,9 +571,9 @@ export default function MesReservations() {
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mb-8">
-            <StatCard label="Dans le panier"    value={totalCart}     accent="#4338CA" />
-            <StatCard label="Demandes envoyées" value={totalSent}     accent="#7C3AED" />
-            <StatCard label="Acceptées"         value={totalAccepted} accent="#059669" />
+            <StatCard label="Dans le panier" value={totalCart} accent="#4338CA" />
+            <StatCard label="Demandes envoyées" value={totalSent} accent="#7C3AED" />
+            <StatCard label="Acceptées" value={totalAccepted} accent="#059669" />
           </div>
 
           {/* Banner non connecté */}

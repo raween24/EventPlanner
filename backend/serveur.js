@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
+dotenv.config();
+
 
 import connectDB from "./config/db.js";
 import recommendationRoutes from "./routes/recommendationRoutes.js";
@@ -19,6 +21,9 @@ import adminRoutes from "./routes/adminRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import LocationRoutes from "./routes/locationRoutes.js";
 import mailRoutes from "./routes/mailRoutes.js";
+import payRoutes from "./routes/pay.js";
+import stripeWebhook from "./routes/stripeWebhook.js";
+
 dotenv.config();
 
 const app = express();
@@ -58,6 +63,10 @@ app.use("/api/media", mediaRoutes);
 app.use("/api/dispo", dispoRoutes);
 app.use("/api/auth", googleAuthRoutes);
 app.use("/api/document", documentRoutes);
+app.use("/api/stripe", stripeWebhook);
+
+// autres routes
+app.use("/api/pay", payRoutes);
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/comment", commentRoutes);
@@ -66,6 +75,7 @@ app.use("/api/send-mail", mailRoutes);
 app.use("/api/recommendations", recommendationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use("/api/cin", cinRoutes);
+app.use("/invoices", express.static("invoices"));
 // test API
 app.get("/", (req, res) => {
   res.send("API Event Planner fonctionne 🚀");

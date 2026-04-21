@@ -5,7 +5,7 @@ import {
   loginUser,
   updateUser, addToAdore,
   removeFromAdore,
-  getAdore, getUserById
+  getAdore, getUserById,updateCIN 
 } from "../controller/userController.js";
 import upload from "../middleware/upload_image.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
@@ -23,5 +23,5 @@ router.delete("/remove", verifyToken, removeFromAdore);
 router.get("/adore/:userId", getAdore);
 router.get("/:id", getUserById);
 router.put('/update', verifyToken, upload.single('image'), updateUser);
-
+router.put("/update-cin", verifyToken, updateCIN);
 export default router;

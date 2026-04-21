@@ -25,6 +25,7 @@
     "multer": "^2.1.1",
     "n8n": "^2.12.3",
     "nodemailer": "^8.0.4",
+    "pdfkit": "^0.18.0",
     "react-big-calendar": "^1.19.4"
   },
   "devDependencies": {

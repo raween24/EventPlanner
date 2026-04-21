@@ -6,10 +6,10 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Clock, Calendar, User, Euro, CheckCircle, XCircle,
+    Clock, Calendar, User, CheckCircle, XCircle,
     RefreshCw, FileText, X, Clock as ClockIcon,
-    Search, Filter, ArrowUpDown, ChevronDown, ArrowLeft,
-    Package
+    Search, ArrowUpDown, ChevronDown, ArrowLeft,
+    ListFilter, AlertCircle, Info
 } from 'lucide-react';
 
 const StatusBadge = ({ status }) => {
@@ -47,7 +47,6 @@ const formatTime = (date) => {
     return format(parseISO(date), 'HH:mm', { locale: fr });
 };
 
-// Couleurs du header selon statut
 const headerGradient = (status) => {
     if (status === 'confirmé') return 'from-green-700 to-green-500';
     if (status === 'refusé') return 'from-red-700 to-red-500';
@@ -74,15 +73,27 @@ export default function MesDemandes() {
     const [showRequestDetailsModal, setShowRequestDetailsModal] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
 
+    // États pour la notification toast
+    const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
+
+    // États des filtres
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [sortOrder, setSortOrder] = useState('desc');
+    const [sortType, setSortType] = useState('recent');
 
     const token = localStorage.getItem('token');
     const api = axios.create({
         baseURL: 'http://localhost:5000/api',
         headers: { Authorization: `Bearer ${token}` },
     });
+
+    // Fonction pour afficher une notification (toast)
+    const showNotification = (message, type = 'success') => {
+        setNotification({ show: true, message, type });
+        setTimeout(() => {
+            setNotification({ show: false, message: '', type: 'success' });
+        }, 4000);
+    };
 
     const fetchRequests = async () => {
         try {
@@ -110,6 +121,7 @@ export default function MesDemandes() {
             setRequests(formatted);
         } catch (err) {
             console.error('Erreur lors du chargement des demandes:', err);
+            showNotification('Erreur lors du chargement des demandes', 'error');
         } finally {
             setRequestsLoading(false);
         }
@@ -120,6 +132,7 @@ export default function MesDemandes() {
         fetchRequests();
     }, []);
 
+    // Application des filtres et tri
     useEffect(() => {
         let result = [...requests];
         if (searchTerm.trim()) {
@@ -133,12 +146,14 @@ export default function MesDemandes() {
         }
         if (statusFilter !== 'all') result = result.filter((r) => r.status === statusFilter);
         result.sort((a, b) => {
-            const dateA = new Date(a.dateDebut);
-            const dateB = new Date(b.dateDebut);
-            return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+            if (sortType === 'recent') return new Date(b.dateDebut) - new Date(a.dateDebut);
+            if (sortType === 'old') return new Date(a.dateDebut) - new Date(b.dateDebut);
+            if (sortType === 'az') return a.resourceName.localeCompare(b.resourceName);
+            if (sortType === 'za') return b.resourceName.localeCompare(a.resourceName);
+            return 0;
         });
         setFilteredRequests(result);
-    }, [requests, searchTerm, statusFilter, sortOrder]);
+    }, [requests, searchTerm, statusFilter, sortType]);
 
     const handleRequestAction = async (requestId, action) => {
         try {
@@ -146,9 +161,15 @@ export default function MesDemandes() {
             await api.put(`/location/update_pres/${requestId}`, { status: newStatus });
             await fetchRequests();
             setShowRequestDetailsModal(false);
+            showNotification(
+                action === 'accept' ? 'Demande acceptée avec succès' : 'Demande refusée',
+                'success'
+            );
         } catch (err) {
             console.error('Erreur lors de la mise à jour:', err);
-            alert('Erreur lors de la mise à jour de la demande');
+            // Récupérer le message d'erreur renvoyé par le backend
+            const errorMessage = err.response?.data?.message || 'Erreur lors de la mise à jour de la demande';
+            showNotification(errorMessage, 'error');
         }
     };
 
@@ -158,12 +179,14 @@ export default function MesDemandes() {
     };
 
     const pendingCount = requests.filter((r) => r.status === 'en_attente').length;
+    const confirmedCount = requests.filter((r) => r.status === 'confirmé').length;
+    const refusedCount = requests.filter((r) => r.status === 'refusé').length;
+
+    const clearSearch = () => setSearchTerm('');
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 sm:p-6 lg:p-8">
-
             <div className="max-w-7xl mx-auto">
-
                 {/* En-tête */}
                 <div className="flex flex-wrap items-center gap-3 mb-6">
                     <motion.button
@@ -191,41 +214,97 @@ export default function MesDemandes() {
                     </div>
                 </div>
 
-                {/* Barre de filtrage */}
-                <div className="bg-white rounded-xl shadow-md p-4 mb-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                    <div className="relative w-full sm:w-72">
-                        <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Rechercher (ressource, client, événement)..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                        />
-                    </div>
-                    <div className="flex flex-wrap gap-3 w-full sm:w-auto">
-                        <div className="relative">
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                className="appearance-none pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-blue-500"
-                            >
-                                <option value="all">Tous les statuts</option>
-                                <option value="en_attente">En attente</option>
-                                <option value="confirmé">Confirmé</option>
-                                <option value="refusé">Refusé</option>
-                            </select>
-                            <Filter size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                            <ChevronDown size={14} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                {/* Barre de filtrage améliorée */}
+                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 p-4 mb-6 transition-all">
+                    <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                        <div className="relative flex-1">
+                            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Rechercher par ressource, client ou événement..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-9 pr-9 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-all bg-gray-50/50"
+                            />
+                            {searchTerm && (
+                                <button
+                                    onClick={clearSearch}
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    <X size={14} />
+                                </button>
+                            )}
                         </div>
+                        <div className="flex gap-2">
+                            <div className="relative">
+                                <select
+                                    value={sortType}
+                                    onChange={(e) => setSortType(e.target.value)}
+                                    className="appearance-none pl-9 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50/50 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200 cursor-pointer"
+                                >
+                                    <option value="recent">📅 Plus récents</option>
+                                    <option value="old">📅 Plus anciens</option>
+                                    <option value="az">🔤 A → Z</option>
+                                    <option value="za">🔤 Z → A</option>
+                                </select>
+                                <ArrowUpDown size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                <ChevronDown size={14} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            </div>
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ rotate: 30 }}
+                                onClick={fetchRequests}
+                                className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                                title="Actualiser"
+                            >
+                                <RefreshCw size={16} />
+                            </motion.button>
+                        </div>
+                    </div>
 
-                        <button
-                            onClick={fetchRequests}
-                            className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                            title="Actualiser"
-                        >
-                            <RefreshCw size={14} /> Actualiser
-                        </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ListFilter size={14} className="text-gray-400 mr-1" />
+                        <span className="text-xs font-medium text-gray-500 mr-2">Filtrer par statut :</span>
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { value: 'all', label: 'Tous', count: requests.length, color: 'gray' },
+                                { value: 'en_attente', label: 'En attente', count: pendingCount, color: 'yellow' },
+                                { value: 'confirmé', label: 'Confirmé', count: confirmedCount, color: 'green' },
+                                { value: 'refusé', label: 'Refusé', count: refusedCount, color: 'red' },
+                            ].map((filter) => (
+                                <motion.button
+                                    key={filter.value}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setStatusFilter(filter.value)}
+                                    className={`
+                                        px-3 py-1.5 rounded-full text-xs font-medium transition-all
+                                        ${statusFilter === filter.value
+                                            ? `bg-${filter.color}-100 text-${filter.color}-700 ring-2 ring-${filter.color}-300 ring-offset-1`
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        }
+                                    `}
+                                >
+                                    {filter.label} ({filter.count})
+                                </motion.button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mt-3 text-xs text-gray-400 border-t border-gray-100 pt-3 flex justify-between items-center">
+                        <span>
+                            {filteredRequests.length} résultat{filteredRequests.length > 1 ? 's' : ''}
+                            {searchTerm && ` pour « ${searchTerm} »`}
+                            {statusFilter !== 'all' && ` • statut : ${statusFilter === 'en_attente' ? 'En attente' : statusFilter === 'confirmé' ? 'Confirmé' : 'Refusé'}`}
+                        </span>
+                        {(searchTerm || statusFilter !== 'all') && (
+                            <button
+                                onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}
+                                className="text-blue-500 hover:text-blue-700 underline text-xs"
+                            >
+                                Réinitialiser les filtres
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -314,7 +393,7 @@ export default function MesDemandes() {
                     )}
                 </div>
 
-                {/* ─── POPUP DESIGN 1 ─── */}
+                {/* Modal de détails (inchangé) */}
                 <AnimatePresence>
                     {showRequestDetailsModal && selectedRequest && (
                         <motion.div
@@ -331,17 +410,11 @@ export default function MesDemandes() {
                                 exit={{ scale: 0.92, y: 24 }}
                                 transition={{ type: 'spring', stiffness: 300, damping: 28 }}
                                 className="w-full max-w-md overflow-hidden rounded-3xl shadow-2xl"
-                                style={{ background: 'var(--bg, white)' }}
                                 onClick={(e) => e.stopPropagation()}
                             >
-
-                                {/* ── Header coloré selon statut ── */}
                                 <div className={`bg-gradient-to-br ${headerGradient(selectedRequest.status)} px-5 pt-5 pb-0`}>
-
-                                    {/* Badge statut + bouton fermer */}
                                     <div className="flex items-center justify-between mb-4">
-                                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium"
-                                            style={{ background: 'rgba(255,255,255,0.18)', color: '#fff' }}>
+                                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium" style={{ background: 'rgba(255,255,255,0.18)', color: '#fff' }}>
                                             <span className={`w-2 h-2 rounded-full ${statusDotColor(selectedRequest.status)}`}></span>
                                             {statusLabel(selectedRequest.status)}
                                         </span>
@@ -355,11 +428,8 @@ export default function MesDemandes() {
                                             <X size={15} />
                                         </motion.button>
                                     </div>
-
-                                    {/* Icône + ressource */}
                                     <div className="flex items-center gap-3 mb-5">
-                                        <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                                            style={{ background: 'rgba(255,255,255,0.18)' }}>
+                                        <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.18)' }}>
                                             <FileText size={22} color="#fff" />
                                         </div>
                                         <div>
@@ -368,16 +438,12 @@ export default function MesDemandes() {
                                             <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.65)' }}>{selectedRequest.eventName}</p>
                                         </div>
                                     </div>
-
-                                    {/* Barre résumé : date / heure / prix */}
-                                    <div className="grid grid-cols-3 border-t"
-                                        style={{ borderColor: 'rgba(255,255,255,0.18)' }}>
+                                    <div className="grid grid-cols-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.18)' }}>
                                         <div className="py-3 text-center">
                                             <p className="text-xs mb-0.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Date</p>
                                             <p className="text-xs font-medium" style={{ color: '#fff' }}>{formatDate(selectedRequest.dateDebut)}</p>
                                         </div>
-                                        <div className="py-3 text-center border-x"
-                                            style={{ borderColor: 'rgba(255,255,255,0.18)' }}>
+                                        <div className="py-3 text-center border-x" style={{ borderColor: 'rgba(255,255,255,0.18)' }}>
                                             <p className="text-xs mb-0.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Horaires</p>
                                             <p className="text-xs font-medium" style={{ color: '#fff' }}>{formatTime(selectedRequest.dateDebut)} → {formatTime(selectedRequest.dateFin)}</p>
                                         </div>
@@ -387,18 +453,12 @@ export default function MesDemandes() {
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* ── Body ── */}
                                 <div className="bg-white px-5 py-4 space-y-3 max-h-64 overflow-y-auto">
-
-                                    {/* Séparateur client */}
                                     <div className="flex items-center gap-2">
                                         <div className="flex-1 h-px bg-gray-100"></div>
                                         <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Informations client</span>
                                         <div className="flex-1 h-px bg-gray-100"></div>
                                     </div>
-
-                                    {/* Grille 2×2 client */}
                                     <div className="grid grid-cols-2 gap-px rounded-xl overflow-hidden border border-gray-100">
                                         {[
                                             { label: 'Nom complet', value: selectedRequest.clientName },
@@ -412,15 +472,11 @@ export default function MesDemandes() {
                                             </div>
                                         ))}
                                     </div>
-
-                                    {/* ID ressource */}
                                     <div className="bg-gray-50 rounded-xl px-4 py-3">
                                         <p className="text-xs text-gray-400 mb-0.5">ID ressource</p>
                                         <p className="text-xs font-mono text-gray-600">{selectedRequest.resourceId || '—'}</p>
                                     </div>
                                 </div>
-
-                                {/* ── Footer actions ── */}
                                 <div className="bg-white px-5 pb-5 pt-2 border-t border-gray-100">
                                     {selectedRequest.status === 'en_attente' ? (
                                         <div className="grid grid-cols-2 gap-3 mb-2">
@@ -449,12 +505,44 @@ export default function MesDemandes() {
                                         Fermer
                                     </button>
                                 </div>
-
                             </motion.div>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
+                {/* ─── POPUP DE NOTIFICATION (TOAST) ÉLÉGANTE ─── */}
+                <AnimatePresence>
+                    {notification.show && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+                            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                            className="fixed top-5 right-5 z-50 max-w-sm w-full shadow-2xl rounded-xl overflow-hidden"
+                        >
+                            <div className={`flex items-center gap-3 p-4 ${notification.type === 'success' ? 'bg-green-50 border-l-4 border-green-500' : 'bg-red-50 border-l-4 border-red-500'
+                                }`}>
+                                <div className={`flex-shrink-0 ${notification.type === 'success' ? 'text-green-500' : 'text-red-500'
+                                    }`}>
+                                    {notification.type === 'success' ? (
+                                        <CheckCircle size={22} />
+                                    ) : (
+                                        <AlertCircle size={22} />
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-800">{notification.message}</p>
+                                </div>
+                                <button
+                                    onClick={() => setNotification({ show: false, message: '', type: 'success' })}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );

@@ -4,6 +4,26 @@ import Event from "../model/event.js";
 import mongoose from "mongoose";
 
 /* ─────────────────────────────────────────────
+   NORMALIZE (définie en premier)
+───────────────────────────────────────────── */
+const normalizeResources = async (resources) => {
+    if (!resources || resources.length === 0) return [];
+    
+    const ids = resources.map(r => r._id);
+
+    const populated = await Resource.find({ _id: { $in: ids } })
+        .populate("prestataire", "nomSociete image")
+        .populate({ path: "media", select: "img_vd" })
+        .lean();
+
+    const map = new Map(populated.map(r => [r._id.toString(), r]));
+
+    return resources
+        .map(r => map.get(r._id.toString()))
+        .filter(Boolean);
+};
+
+/* ─────────────────────────────────────────────
    COSINE SIMILARITY
 ───────────────────────────────────────────── */
 function cosineSimilarity(vecA, vecB) {
@@ -62,11 +82,9 @@ async function findKNearestUsers(userId, targetVector, K = 5) {
 
     for (const u of users) {
         const { vector } = await buildUserVector(u._id);
-
         if (Object.keys(vector).length === 0) continue;
 
         const sim = cosineSimilarity(targetVector, vector);
-
         if (sim > 0) {
             similarities.push({
                 userId: u._id,
@@ -83,11 +101,12 @@ async function findKNearestUsers(userId, targetVector, K = 5) {
    POPULAR
 ───────────────────────────────────────────── */
 export async function getPopularResources(limit = 10) {
-    return await Resource.find()
+    const resources = await Resource.find()
         .sort({ averageRating: -1, likesCount: -1 })
         .limit(limit)
-        .populate("prestataire", "nomSociete image")
-        .populate("media");
+        .lean();
+
+    return await normalizeResources(resources);
 }
 
 /* ─────────────────────────────────────────────
@@ -105,7 +124,6 @@ export async function getPersonalizedResources(userId, limit = 10) {
 
     /* ── KNN SCORE ── */
     const knnScoreMap = {};
-
     for (const n of neighbors) {
         for (const id of n.adore) {
             const key = id.toString();
@@ -119,16 +137,16 @@ export async function getPersonalizedResources(userId, limit = 10) {
         ...(user.adore || []).map(r => r._id)
     ];
 
-    const seenSet = new Set(seenIds.map(id => id.toString()));
-
-    /* ── GEO FILTER ── */
+    /* ── GEO FILTER ou fallback ── */
     let resources = [];
 
-    if (
+    const hasLocation =
         user.location &&
         Array.isArray(user.location.coordinates) &&
-        user.location.coordinates.length === 2
-    ) {
+        user.location.coordinates.length === 2 &&
+        (user.location.coordinates[0] !== 0 || user.location.coordinates[1] !== 0);
+
+    if (hasLocation) {
         resources = await Resource.aggregate([
             {
                 $geoNear: {
@@ -141,23 +159,21 @@ export async function getPersonalizedResources(userId, limit = 10) {
             { $match: { _id: { $nin: seenIds } } }
         ]);
     } else {
-        resources = await Resource.find({ _id: { $nin: seenIds } }).lean();
+        // ✅ Fallback : toutes les ressources hors déjà vues
+        resources = await Resource.find({
+            _id: { $nin: seenIds }
+        }).lean();
     }
 
     /* ── SCORING ── */
     resources = resources.map(r => {
         const knn = knnScoreMap[r._id.toString()] || 0;
-
         const score =
             knn * 0.5 +
             (r.averageRating || 0) * 0.3 +
             ((r.likesCount || 0) / ((r.likesCount || 0) + 10)) * 0.2;
 
-        return {
-            ...r,
-            knnScore: knn,
-            finalScore: score
-        };
+        return { ...r, knnScore: knn, finalScore: score };
     });
 
     /* ── TRI ── */
@@ -175,31 +191,42 @@ export async function getPersonalizedResources(userId, limit = 10) {
         if (diversified.length >= limit) break;
     }
 
-    /* ── FALLBACK ── */
+    /* ── FALLBACK si pas assez ── */
     if (diversified.length < limit) {
         const extra = await getPopularResources(limit);
-        return [...diversified, ...extra].slice(0, limit);
+        const existingIds = new Set(diversified.map(r => r._id.toString()));
+        const merged = [
+            ...diversified,
+            ...extra.filter(r => !existingIds.has(r._id.toString()))
+        ].slice(0, limit);
+        // extra est déjà normalisé, mais diversified ne l'est pas encore
+        const normalizedDiversified = await normalizeResources(diversified);
+        const normalizedIds = new Set(normalizedDiversified.map(r => r._id.toString()));
+        return [
+            ...normalizedDiversified,
+            ...extra.filter(r => !normalizedIds.has(r._id.toString()))
+        ].slice(0, limit);
     }
 
-    return diversified;
+    // ✅ Normalize toujours à la fin
+    return await normalizeResources(diversified);
 }
 
 /* ─────────────────────────────────────────────
    EVENT BASED
 ───────────────────────────────────────────── */
 export async function getEventBasedResources(eventData, userId, limit = 15) {
-
     const categories = {
         mariage: ["salle", "traiteur", "photographe", "dj"],
         anniversaire: ["salle", "decoration", "dj"],
         conference: ["salle", "materiel"],
     };
 
-    const cats = categories[eventData.category] || ["salle"];
+    const cats = categories[eventData.category?.toLowerCase()] || ["salle"];
 
-    let resources = await Resource.find({
+    const resources = await Resource.find({
         category: { $in: cats }
-    }).limit(limit);
+    }).limit(limit).lean();
 
-    return resources;
+    return await normalizeResources(resources);
 }

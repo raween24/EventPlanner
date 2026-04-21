@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const UserSchema = new mongoose.Schema({
   lastname: { type: String, default: "" },
   firstname: { type: String, default: "" },
+  cin:{type:String,default:""},
   nomSociete: { type: String, default: "" }, // ← NOUVEAU : pour les prestataires
   email: { type: String, required: true, unique: true },
   password: { type: String, default: "" },

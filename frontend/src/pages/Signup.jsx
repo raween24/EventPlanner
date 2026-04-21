@@ -141,7 +141,7 @@ export default function Signup() {
 
   const [form, setForm] = useState({
     firstname: "", lastname: "",
-    
+
     nomSociete: "",
     email: "", password: "",
     numPatente: "", numTel: "",
@@ -165,7 +165,7 @@ export default function Signup() {
           locationLng: coords.lng
         }));
       }
-    }, 600); // ⏱️ debounce (évite spam API)
+    }, 600);
 
     return () => clearTimeout(delay);
   }, [form.locationName]);
@@ -294,6 +294,7 @@ export default function Signup() {
       "locationName",
       form.locationName || "Position sélectionnée"
     );
+    formData.append("numTel", form.numTel);
 
 
     formData.append("email", form.email);
@@ -302,7 +303,6 @@ export default function Signup() {
 
     if (role === "prestataire") {
       formData.append("numPatente", form.numPatente);
-      formData.append("numTel", form.numTel);
       if (form.patenteFile) formData.append("patente", form.patenteFile);
     }
     if (form.image) formData.append("image", form.image);
@@ -401,7 +401,7 @@ export default function Signup() {
             )}
             <div className="field-wrap span-2">
               <label>Numéro de téléphone</label>
-              <input name="numTel" type="Number" placeholder="Ex: +216 12 345 678" value={form.numTel} onChange={handleChange} required />
+              <input name="numTel" type="tel" placeholder="Ex: +216 12 345 678" value={form.numTel} onChange={handleChange} required />
             </div>
             <div className="field-wrap span-2">
               <label>Email</label>

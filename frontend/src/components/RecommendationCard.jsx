@@ -16,30 +16,16 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
     // 2. resource.media = ["url1", "url2"]  (tableau de strings directement)
     // 3. resource.images = ["url1"]         (clé alternative)
     const extractImages = () => {
-    const media = resource.media;
+        if (!resource.media) return [];
 
-    if (!media || media.length === 0) {
-        return [];
-    }
-
-    // ✅ Cas 1 : media = [{ img_vd: [...] }]
-    if (typeof media[0] === "object" && media[0]?.img_vd) {
-        return media.flatMap(m =>
+        return resource.media.flatMap(m =>
             (m.img_vd || []).map(img =>
                 img.startsWith("http")
                     ? img
                     : `http://localhost:5000/${img}`
             )
         );
-    }
-
-    // ❌ Cas 2 : media = ["id", "id"] → IGNORER
-    if (typeof media[0] === "string") {
-        return media.filter(img => img.startsWith("http"));
-    }
-
-    return [];
-};
+    };
     const images = extractImages();
     const isAvailable = resource.availability?.length > 0;
 
@@ -130,10 +116,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
 
     // ✅ Nom du prestataire — supporte plusieurs clés possibles
     const prestataireNom =
-        resource.prestataire?.lastname ||
-        resource.prestataire?.name ||
-        resource.provider_name ||
-        resource.provider?.name ||
+        resource.prestataire?.nomSociete ||
         "Inconnu";
 
     return (
@@ -227,7 +210,7 @@ export default function ResourceCard({ resource = {}, eventId, onBook, isLiked }
 
                 <div className="flex items-center justify-between mt-6">
                     <p className="text-xl font-bold text-slate-800">
-                        {resource.price != null ? `${resource.price.toFixed(2)} €` : "—"}
+                        {resource.price != null ? `${resource.price.toFixed(2)} DT` : "—"}
                     </p>
 
                     <button

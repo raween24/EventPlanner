@@ -4,7 +4,7 @@ import {
   getMyLocations,
   getLocationsForProvider,
   deleteLocation,
-  updateStatusByProvider
+  updateStatusByProvider, payLocation
 } from "../controller/locationController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 
@@ -14,6 +14,7 @@ const router = express.Router();
 router.post("/create", verifyToken, createLocation);
 router.get("/get_my_locations", verifyToken, getMyLocations);
 router.delete("/delete/:id", verifyToken, deleteLocation);
+router.post("/pay", verifyToken, payLocation);  // ← ajoute ça
 
 // Routes pour prestataire
 router.get("/get_pres", verifyToken, getLocationsForProvider);
