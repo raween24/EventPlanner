@@ -2,8 +2,8 @@
 
 import React from "react"
 
-import { AppSidebar } from "@/components/app-sidebar"
-import { MobileNav } from "@/components/mobile-nav"
+import { AppSidebar } from "../components/app-sidebar"
+import { MobileNav } from "../components/mobile-nav"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
